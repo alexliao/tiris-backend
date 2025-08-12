@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"tiris-backend/internal/models"
@@ -127,7 +129,7 @@ func (s *AuthService) HandleCallback(ctx context.Context, req *CallbackRequest, 
 	}
 
 	var userInfoMap map[string]interface{}
-	if err := user.Info.Unmarshal(&userInfoMap); err != nil {
+	if err := json.Unmarshal(user.Info, &userInfoMap); err != nil {
 		userInfoMap = make(map[string]interface{})
 	}
 
@@ -178,7 +180,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *RefreshRequest) (*A
 	}
 
 	var userInfoMap map[string]interface{}
-	if err := user.Info.Unmarshal(&userInfoMap); err != nil {
+	if err := json.Unmarshal(user.Info, &userInfoMap); err != nil {
 		userInfoMap = make(map[string]interface{})
 	}
 
@@ -234,8 +236,8 @@ func (s *AuthService) findOrCreateUser(ctx context.Context, oauthUser *auth.OAut
 				"avatar": oauthUser.Avatar,
 			},
 		}
-		infoJSON, _ := datatypes.JSON{}.Value(infoMap)
-		existingToken.Info = infoJSON.(datatypes.JSON)
+		infoJSON, _ := json.Marshal(infoMap)
+		existingToken.Info = datatypes.JSON(infoJSON)
 
 		if err := s.repos.OAuthToken.Update(ctx, existingToken); err != nil {
 			return nil, fmt.Errorf("failed to update OAuth token: %w", err)
@@ -281,8 +283,8 @@ func (s *AuthService) findOrCreateUser(ctx context.Context, oauthUser *auth.OAut
 					"created_via":    "oauth",
 					"first_login":    time.Now(),
 				}
-				infoJSON, _ := datatypes.JSON{}.Value(infoMap)
-				return infoJSON.(datatypes.JSON)
+				infoJSON, _ := json.Marshal(infoMap)
+				return datatypes.JSON(infoJSON)
 			}(),
 		}
 
@@ -307,8 +309,8 @@ func (s *AuthService) findOrCreateUser(ctx context.Context, oauthUser *auth.OAut
 				},
 				"first_auth": time.Now(),
 			}
-			infoJSON, _ := datatypes.JSON{}.Value(infoMap)
-			return infoJSON.(datatypes.JSON)
+			infoJSON, _ := json.Marshal(infoMap)
+			return datatypes.JSON(infoJSON)
 		}(),
 	}
 
@@ -337,9 +339,12 @@ func (s *AuthService) generateUsername(name, email string) string {
 
 	// Fall back to email prefix
 	if email != "" {
-		parts := email[:len(email)-len("@"+email[len(email)-len("@"):]))
-		if len(parts) >= 3 {
-			return parts[:min(len(parts), 20)]
+		atIndex := strings.Index(email, "@")
+		if atIndex > 0 {
+			parts := email[:atIndex]
+			if len(parts) >= 3 {
+				return parts[:min(len(parts), 20)]
+			}
 		}
 	}
 

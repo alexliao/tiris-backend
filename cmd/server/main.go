@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"tiris-backend/internal/api"
 	"tiris-backend/internal/config"
 	"tiris-backend/internal/database"
 	"tiris-backend/internal/nats"
@@ -51,63 +52,9 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Initialize HTTP server
-	router := gin.Default()
-	
-	// Basic health check
-	router.GET("/health/live", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"data": gin.H{
-				"status":    "alive",
-				"timestamp": time.Now().UTC().Format(time.RFC3339),
-			},
-		})
-	})
-
-	// Readiness check with dependencies
-	router.GET("/health/ready", func(c *gin.Context) {
-		checks := gin.H{
-			"database": "ok",
-			"nats":     "ok",
-		}
-
-		// Check database
-		if err := db.HealthCheck(); err != nil {
-			checks["database"] = "error"
-		}
-
-		// Check NATS
-		if err := natsManager.HealthCheck(); err != nil {
-			checks["nats"] = "error"
-		}
-
-		// Determine overall status
-		status := "ready"
-		for _, check := range checks {
-			if check != "ok" {
-				status = "not_ready"
-				c.JSON(http.StatusServiceUnavailable, gin.H{
-					"success": false,
-					"data": gin.H{
-						"status":    status,
-						"checks":    checks,
-						"timestamp": time.Now().UTC().Format(time.RFC3339),
-					},
-				})
-				return
-			}
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"data": gin.H{
-				"status":    status,
-				"checks":    checks,
-				"timestamp": time.Now().UTC().Format(time.RFC3339),
-			},
-		})
-	})
+	// Initialize API server
+	apiServer := api.NewServer(cfg, repos)
+	router := apiServer.SetupRoutes()
 
 	// Create HTTP server
 	srv := &http.Server{
