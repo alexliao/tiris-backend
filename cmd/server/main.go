@@ -11,6 +11,8 @@ import (
 
 	"tiris-backend/internal/config"
 	"tiris-backend/internal/database"
+	"tiris-backend/internal/nats"
+	"tiris-backend/internal/repositories"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,6 +31,21 @@ func main() {
 	}
 	defer database.Close(db)
 
+	// Initialize repositories
+	repos := repositories.NewRepositories(db.DB)
+
+	// Initialize NATS manager
+	natsManager, err := nats.NewManager(cfg.NATS, repos)
+	if err != nil {
+		log.Fatalf("Failed to initialize NATS: %v", err)
+	}
+	defer natsManager.Stop()
+
+	// Start NATS event consumers
+	if err := natsManager.Start(); err != nil {
+		log.Fatalf("Failed to start NATS consumers: %v", err)
+	}
+
 	// Set Gin mode
 	if cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -43,6 +60,50 @@ func main() {
 			"success": true,
 			"data": gin.H{
 				"status":    "alive",
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+			},
+		})
+	})
+
+	// Readiness check with dependencies
+	router.GET("/health/ready", func(c *gin.Context) {
+		checks := gin.H{
+			"database": "ok",
+			"nats":     "ok",
+		}
+
+		// Check database
+		if err := db.HealthCheck(); err != nil {
+			checks["database"] = "error"
+		}
+
+		// Check NATS
+		if err := natsManager.HealthCheck(); err != nil {
+			checks["nats"] = "error"
+		}
+
+		// Determine overall status
+		status := "ready"
+		for _, check := range checks {
+			if check != "ok" {
+				status = "not_ready"
+				c.JSON(http.StatusServiceUnavailable, gin.H{
+					"success": false,
+					"data": gin.H{
+						"status":    status,
+						"checks":    checks,
+						"timestamp": time.Now().UTC().Format(time.RFC3339),
+					},
+				})
+				return
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"status":    status,
+				"checks":    checks,
 				"timestamp": time.Now().UTC().Format(time.RFC3339),
 			},
 		})
