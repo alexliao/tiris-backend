@@ -14,12 +14,13 @@ import (
 
 // Server represents the API server
 type Server struct {
-	router      *gin.Engine
-	config      *config.Config
-	repos       *repositories.Repositories
-	jwtManager  *auth.JWTManager
-	authService *services.AuthService
-	userService *services.UserService
+	router          *gin.Engine
+	config          *config.Config
+	repos           *repositories.Repositories
+	jwtManager      *auth.JWTManager
+	authService     *services.AuthService
+	userService     *services.UserService
+	exchangeService *services.ExchangeService
 }
 
 // NewServer creates a new API server
@@ -50,13 +51,15 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories) *Server {
 	// Initialize services
 	authService := services.NewAuthService(repos, jwtManager, oauthManager)
 	userService := services.NewUserService(repos)
+	exchangeService := services.NewExchangeService(repos)
 
 	return &Server{
-		config:      cfg,
-		repos:       repos,
-		jwtManager:  jwtManager,
-		authService: authService,
-		userService: userService,
+		config:          cfg,
+		repos:           repos,
+		jwtManager:      jwtManager,
+		authService:     authService,
+		userService:     userService,
+		exchangeService: exchangeService,
 	}
 }
 
@@ -95,6 +98,9 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// User management routes
 	s.setupUserRoutes(protected)
+
+	// Exchange management routes
+	s.setupExchangeRoutes(protected)
 
 	s.router = router
 	return router
@@ -164,6 +170,27 @@ func (s *Server) setupUserRoutes(protected *gin.RouterGroup) {
 	adminUsers.GET("", userHandler.ListUsers)
 	adminUsers.GET("/:id", userHandler.GetUserByID)
 	adminUsers.PUT("/:id/disable", userHandler.DisableUser)
+}
+
+// setupExchangeRoutes sets up exchange management routes
+func (s *Server) setupExchangeRoutes(protected *gin.RouterGroup) {
+	exchangeHandler := NewExchangeHandler(s.exchangeService)
+
+	exchanges := protected.Group("/exchanges")
+
+	// User exchange routes
+	exchanges.POST("", exchangeHandler.CreateExchange)
+	exchanges.GET("", exchangeHandler.GetUserExchanges)
+	exchanges.GET("/:id", exchangeHandler.GetExchange)
+	exchanges.PUT("/:id", exchangeHandler.UpdateExchange)
+	exchanges.DELETE("/:id", exchangeHandler.DeleteExchange)
+
+	// Admin exchange routes
+	adminExchanges := protected.Group("/admin/exchanges")
+	adminExchanges.Use(middleware.AdminMiddleware())
+	
+	adminExchanges.GET("", exchangeHandler.ListExchanges)
+	adminExchanges.GET("/:id", exchangeHandler.GetExchangeByID)
 }
 
 // GetRouter returns the configured router
