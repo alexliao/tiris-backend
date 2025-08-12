@@ -4,7 +4,11 @@
       "Bash(grep:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(go mod init:*)",
+      "Bash(go mod:*)",
+      "Bash(go build:*)",
+      "Bash(go get:*)"
     ],
     "deny": [],
     "ask": []
