@@ -1,0 +1,477 @@
+package services
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"tiris-backend/internal/models"
+	"tiris-backend/internal/repositories"
+
+	"github.com/google/uuid"
+	"gorm.io/datatypes"
+)
+
+// TradingLogService handles trading log business logic
+type TradingLogService struct {
+	repos *repositories.Repositories
+}
+
+// NewTradingLogService creates a new trading log service
+func NewTradingLogService(repos *repositories.Repositories) *TradingLogService {
+	return &TradingLogService{
+		repos: repos,
+	}
+}
+
+// TradingLogResponse represents trading log information in responses
+type TradingLogResponse struct {
+	ID            uuid.UUID              `json:"id"`
+	UserID        uuid.UUID              `json:"user_id"`
+	ExchangeID    uuid.UUID              `json:"exchange_id"`
+	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty"`
+	TransactionID *uuid.UUID             `json:"transaction_id,omitempty"`
+	Timestamp     string                 `json:"timestamp"`
+	Type          string                 `json:"type"`
+	Source        string                 `json:"source"`
+	Message       string                 `json:"message"`
+	Info          map[string]interface{} `json:"info"`
+}
+
+// CreateTradingLogRequest represents trading log creation request
+type CreateTradingLogRequest struct {
+	ExchangeID    uuid.UUID              `json:"exchange_id" binding:"required"`
+	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty"`
+	TransactionID *uuid.UUID             `json:"transaction_id,omitempty"`
+	Type          string                 `json:"type" binding:"required,min=1,max=50"`
+	Source        string                 `json:"source" binding:"required,oneof=manual bot"`
+	Message       string                 `json:"message" binding:"required,min=1"`
+	Info          map[string]interface{} `json:"info,omitempty"`
+}
+
+// TradingLogQueryRequest represents trading log query parameters
+type TradingLogQueryRequest struct {
+	Type      *string    `form:"type"`
+	Source    *string    `form:"source" binding:"omitempty,oneof=manual bot"`
+	StartDate *time.Time `form:"start_date" time_format:"2006-01-02T15:04:05Z07:00"`
+	EndDate   *time.Time `form:"end_date" time_format:"2006-01-02T15:04:05Z07:00"`
+	Limit     int        `form:"limit" binding:"omitempty,min=1,max=1000"`
+	Offset    int        `form:"offset" binding:"omitempty,min=0"`
+}
+
+// TradingLogQueryResponse represents paginated trading log results
+type TradingLogQueryResponse struct {
+	TradingLogs []*TradingLogResponse `json:"trading_logs"`
+	Total       int64                 `json:"total"`
+	Limit       int                   `json:"limit"`
+	Offset      int                   `json:"offset"`
+	HasMore     bool                  `json:"has_more"`
+}
+
+// CreateTradingLog creates a new trading log entry
+func (s *TradingLogService) CreateTradingLog(ctx context.Context, userID uuid.UUID, req *CreateTradingLogRequest) (*TradingLogResponse, error) {
+	// Verify user owns the exchange
+	exchange, err := s.repos.Exchange.GetByID(ctx, req.ExchangeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify exchange: %w", err)
+	}
+	if exchange == nil || exchange.UserID != userID {
+		return nil, fmt.Errorf("exchange not found")
+	}
+
+	// Verify sub-account ownership if provided
+	if req.SubAccountID != nil {
+		subAccount, err := s.repos.SubAccount.GetByID(ctx, *req.SubAccountID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify sub-account: %w", err)
+		}
+		if subAccount == nil || subAccount.UserID != userID {
+			return nil, fmt.Errorf("sub-account not found")
+		}
+	}
+
+	// Verify transaction ownership if provided
+	if req.TransactionID != nil {
+		transaction, err := s.repos.Transaction.GetByID(ctx, *req.TransactionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify transaction: %w", err)
+		}
+		if transaction == nil || transaction.UserID != userID {
+			return nil, fmt.Errorf("transaction not found")
+		}
+	}
+
+	// Create info JSON with metadata
+	infoData := req.Info
+	if infoData == nil {
+		infoData = make(map[string]interface{})
+	}
+	// Add metadata
+	infoData["created_by"] = "api"
+	infoData["api_version"] = "v1"
+	infoData["exchange_type"] = exchange.Type
+
+	infoJSON, err := json.Marshal(infoData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode info: %w", err)
+	}
+
+	// Create trading log model
+	tradingLog := &models.TradingLog{
+		ID:            uuid.New(),
+		UserID:        userID,
+		ExchangeID:    req.ExchangeID,
+		SubAccountID:  req.SubAccountID,
+		TransactionID: req.TransactionID,
+		Timestamp:     time.Now().UTC(),
+		Type:          req.Type,
+		Source:        req.Source,
+		Message:       req.Message,
+		Info:          datatypes.JSON(infoJSON),
+	}
+
+	// Save to database
+	if err := s.repos.TradingLog.Create(ctx, tradingLog); err != nil {
+		return nil, fmt.Errorf("failed to create trading log: %w", err)
+	}
+
+	return s.convertToTradingLogResponse(tradingLog), nil
+}
+
+// GetUserTradingLogs retrieves trading logs for a user with filtering
+func (s *TradingLogService) GetUserTradingLogs(ctx context.Context, userID uuid.UUID, req *TradingLogQueryRequest) (*TradingLogQueryResponse, error) {
+	// Set default pagination
+	if req.Limit == 0 {
+		req.Limit = 100
+	}
+
+	// Validate date range
+	if req.StartDate != nil && req.EndDate != nil && req.StartDate.After(*req.EndDate) {
+		return nil, fmt.Errorf("start date cannot be after end date")
+	}
+
+	// Create filters
+	filters := repositories.TradingLogFilters{
+		Type:      req.Type,
+		Source:    req.Source,
+		StartDate: req.StartDate,
+		EndDate:   req.EndDate,
+		Limit:     req.Limit,
+		Offset:    req.Offset,
+	}
+
+	// Query trading logs
+	tradingLogs, total, err := s.repos.TradingLog.GetByUserID(ctx, userID, filters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user trading logs: %w", err)
+	}
+
+	// Convert to response format
+	var responses []*TradingLogResponse
+	for _, tradingLog := range tradingLogs {
+		responses = append(responses, s.convertToTradingLogResponse(tradingLog))
+	}
+
+	return &TradingLogQueryResponse{
+		TradingLogs: responses,
+		Total:       total,
+		Limit:       req.Limit,
+		Offset:      req.Offset,
+		HasMore:     int64(req.Offset+req.Limit) < total,
+	}, nil
+}
+
+// GetSubAccountTradingLogs retrieves trading logs for a specific sub-account
+func (s *TradingLogService) GetSubAccountTradingLogs(ctx context.Context, userID, subAccountID uuid.UUID, req *TradingLogQueryRequest) (*TradingLogQueryResponse, error) {
+	// Verify user owns the sub-account
+	subAccount, err := s.repos.SubAccount.GetByID(ctx, subAccountID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify sub-account: %w", err)
+	}
+	if subAccount == nil || subAccount.UserID != userID {
+		return nil, fmt.Errorf("sub-account not found")
+	}
+
+	// Set default pagination
+	if req.Limit == 0 {
+		req.Limit = 100
+	}
+
+	// Validate date range
+	if req.StartDate != nil && req.EndDate != nil && req.StartDate.After(*req.EndDate) {
+		return nil, fmt.Errorf("start date cannot be after end date")
+	}
+
+	// Create filters
+	filters := repositories.TradingLogFilters{
+		Type:      req.Type,
+		Source:    req.Source,
+		StartDate: req.StartDate,
+		EndDate:   req.EndDate,
+		Limit:     req.Limit,
+		Offset:    req.Offset,
+	}
+
+	// Query trading logs
+	tradingLogs, total, err := s.repos.TradingLog.GetBySubAccountID(ctx, subAccountID, filters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sub-account trading logs: %w", err)
+	}
+
+	// Convert to response format
+	var responses []*TradingLogResponse
+	for _, tradingLog := range tradingLogs {
+		responses = append(responses, s.convertToTradingLogResponse(tradingLog))
+	}
+
+	return &TradingLogQueryResponse{
+		TradingLogs: responses,
+		Total:       total,
+		Limit:       req.Limit,
+		Offset:      req.Offset,
+		HasMore:     int64(req.Offset+req.Limit) < total,
+	}, nil
+}
+
+// GetExchangeTradingLogs retrieves trading logs for a specific exchange
+func (s *TradingLogService) GetExchangeTradingLogs(ctx context.Context, userID, exchangeID uuid.UUID, req *TradingLogQueryRequest) (*TradingLogQueryResponse, error) {
+	// Verify user owns the exchange
+	exchange, err := s.repos.Exchange.GetByID(ctx, exchangeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify exchange: %w", err)
+	}
+	if exchange == nil || exchange.UserID != userID {
+		return nil, fmt.Errorf("exchange not found")
+	}
+
+	// Set default pagination
+	if req.Limit == 0 {
+		req.Limit = 100
+	}
+
+	// Validate date range
+	if req.StartDate != nil && req.EndDate != nil && req.StartDate.After(*req.EndDate) {
+		return nil, fmt.Errorf("start date cannot be after end date")
+	}
+
+	// Create filters
+	filters := repositories.TradingLogFilters{
+		Type:      req.Type,
+		Source:    req.Source,
+		StartDate: req.StartDate,
+		EndDate:   req.EndDate,
+		Limit:     req.Limit,
+		Offset:    req.Offset,
+	}
+
+	// Query trading logs
+	tradingLogs, total, err := s.repos.TradingLog.GetByExchangeID(ctx, exchangeID, filters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get exchange trading logs: %w", err)
+	}
+
+	// Convert to response format
+	var responses []*TradingLogResponse
+	for _, tradingLog := range tradingLogs {
+		responses = append(responses, s.convertToTradingLogResponse(tradingLog))
+	}
+
+	return &TradingLogQueryResponse{
+		TradingLogs: responses,
+		Total:       total,
+		Limit:       req.Limit,
+		Offset:      req.Offset,
+		HasMore:     int64(req.Offset+req.Limit) < total,
+	}, nil
+}
+
+// GetTradingLog retrieves a specific trading log by ID
+func (s *TradingLogService) GetTradingLog(ctx context.Context, userID, tradingLogID uuid.UUID) (*TradingLogResponse, error) {
+	tradingLog, err := s.repos.TradingLog.GetByID(ctx, tradingLogID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trading log: %w", err)
+	}
+	if tradingLog == nil {
+		return nil, fmt.Errorf("trading log not found")
+	}
+
+	// Check if trading log belongs to the user
+	if tradingLog.UserID != userID {
+		return nil, fmt.Errorf("trading log not found")
+	}
+
+	return s.convertToTradingLogResponse(tradingLog), nil
+}
+
+// GetTradingLogsByTimeRange retrieves trading logs within a specific time range
+func (s *TradingLogService) GetTradingLogsByTimeRange(ctx context.Context, userID uuid.UUID, startTime, endTime time.Time, req *TradingLogQueryRequest) (*TradingLogQueryResponse, error) {
+	// Validate time range
+	if startTime.After(endTime) {
+		return nil, fmt.Errorf("start time cannot be after end time")
+	}
+
+	// Set default pagination
+	if req.Limit == 0 {
+		req.Limit = 100
+	}
+
+	// Create filters (override date filters with provided time range)
+	filters := repositories.TradingLogFilters{
+		Type:      req.Type,
+		Source:    req.Source,
+		StartDate: &startTime,
+		EndDate:   &endTime,
+		Limit:     req.Limit,
+		Offset:    req.Offset,
+	}
+
+	// Query trading logs by time range
+	tradingLogs, _, err := s.repos.TradingLog.GetByTimeRange(ctx, startTime, endTime, filters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trading logs by time range: %w", err)
+	}
+
+	// Filter to only include user's trading logs
+	var userTradingLogs []*models.TradingLog
+	for _, tradingLog := range tradingLogs {
+		if tradingLog.UserID == userID {
+			userTradingLogs = append(userTradingLogs, tradingLog)
+		}
+	}
+
+	// Convert to response format
+	var responses []*TradingLogResponse
+	for _, tradingLog := range userTradingLogs {
+		responses = append(responses, s.convertToTradingLogResponse(tradingLog))
+	}
+
+	// Recalculate total for user's trading logs only
+	userTotal := int64(len(userTradingLogs))
+
+	return &TradingLogQueryResponse{
+		TradingLogs: responses,
+		Total:       userTotal,
+		Limit:       req.Limit,
+		Offset:      req.Offset,
+		HasMore:     int64(req.Offset+req.Limit) < userTotal,
+	}, nil
+}
+
+// DeleteTradingLog deletes a trading log (soft delete)
+func (s *TradingLogService) DeleteTradingLog(ctx context.Context, userID, tradingLogID uuid.UUID) error {
+	// Get existing trading log to verify ownership
+	tradingLog, err := s.repos.TradingLog.GetByID(ctx, tradingLogID)
+	if err != nil {
+		return fmt.Errorf("failed to get trading log: %w", err)
+	}
+	if tradingLog == nil {
+		return fmt.Errorf("trading log not found")
+	}
+
+	// Check if trading log belongs to the user
+	if tradingLog.UserID != userID {
+		return fmt.Errorf("trading log not found")
+	}
+
+	// Only allow deletion of manual logs
+	if tradingLog.Source != "manual" {
+		return fmt.Errorf("cannot delete bot-generated trading logs")
+	}
+
+	// Delete the trading log
+	if err := s.repos.TradingLog.Delete(ctx, tradingLogID); err != nil {
+		return fmt.Errorf("failed to delete trading log: %w", err)
+	}
+
+	return nil
+}
+
+// ListAllTradingLogs lists all trading logs with pagination (admin only)
+func (s *TradingLogService) ListAllTradingLogs(ctx context.Context, req *TradingLogQueryRequest) (*TradingLogQueryResponse, error) {
+	// Set default pagination
+	if req.Limit == 0 {
+		req.Limit = 100
+	}
+
+	// Validate date range
+	if req.StartDate != nil && req.EndDate != nil && req.StartDate.After(*req.EndDate) {
+		return nil, fmt.Errorf("start date cannot be after end date")
+	}
+
+	// For admin queries, we'll use a time range approach to get all trading logs
+	// Use a very broad time range if no specific dates provided
+	startTime := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	endTime := time.Now().UTC()
+	
+	if req.StartDate != nil {
+		startTime = *req.StartDate
+	}
+	if req.EndDate != nil {
+		endTime = *req.EndDate
+	}
+
+	// Create filters
+	filters := repositories.TradingLogFilters{
+		Type:      req.Type,
+		Source:    req.Source,
+		StartDate: &startTime,
+		EndDate:   &endTime,
+		Limit:     req.Limit,
+		Offset:    req.Offset,
+	}
+
+	// Query all trading logs in time range
+	tradingLogs, total, err := s.repos.TradingLog.GetByTimeRange(ctx, startTime, endTime, filters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all trading logs: %w", err)
+	}
+
+	// Convert to response format
+	var responses []*TradingLogResponse
+	for _, tradingLog := range tradingLogs {
+		responses = append(responses, s.convertToTradingLogResponse(tradingLog))
+	}
+
+	return &TradingLogQueryResponse{
+		TradingLogs: responses,
+		Total:       total,
+		Limit:       req.Limit,
+		Offset:      req.Offset,
+		HasMore:     int64(req.Offset+req.Limit) < total,
+	}, nil
+}
+
+// GetTradingLogByID retrieves trading log by ID (admin only)
+func (s *TradingLogService) GetTradingLogByID(ctx context.Context, tradingLogID uuid.UUID) (*TradingLogResponse, error) {
+	tradingLog, err := s.repos.TradingLog.GetByID(ctx, tradingLogID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trading log: %w", err)
+	}
+	if tradingLog == nil {
+		return nil, fmt.Errorf("trading log not found")
+	}
+
+	return s.convertToTradingLogResponse(tradingLog), nil
+}
+
+// convertToTradingLogResponse converts a trading log model to response format
+func (s *TradingLogService) convertToTradingLogResponse(tradingLog *models.TradingLog) *TradingLogResponse {
+	var info map[string]interface{}
+	if err := json.Unmarshal(tradingLog.Info, &info); err != nil {
+		info = make(map[string]interface{})
+	}
+
+	return &TradingLogResponse{
+		ID:            tradingLog.ID,
+		UserID:        tradingLog.UserID,
+		ExchangeID:    tradingLog.ExchangeID,
+		SubAccountID:  tradingLog.SubAccountID,
+		TransactionID: tradingLog.TransactionID,
+		Timestamp:     tradingLog.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
+		Type:          tradingLog.Type,
+		Source:        tradingLog.Source,
+		Message:       tradingLog.Message,
+		Info:          info,
+	}
+}

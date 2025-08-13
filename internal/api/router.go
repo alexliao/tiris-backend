@@ -14,15 +14,16 @@ import (
 
 // Server represents the API server
 type Server struct {
-	router              *gin.Engine
-	config              *config.Config
-	repos               *repositories.Repositories
-	jwtManager          *auth.JWTManager
-	authService         *services.AuthService
-	userService         *services.UserService
-	exchangeService     *services.ExchangeService
-	subAccountService   *services.SubAccountService
-	transactionService  *services.TransactionService
+	router               *gin.Engine
+	config               *config.Config
+	repos                *repositories.Repositories
+	jwtManager           *auth.JWTManager
+	authService          *services.AuthService
+	userService          *services.UserService
+	exchangeService      *services.ExchangeService
+	subAccountService    *services.SubAccountService
+	transactionService   *services.TransactionService
+	tradingLogService    *services.TradingLogService
 }
 
 // NewServer creates a new API server
@@ -56,16 +57,18 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories) *Server {
 	exchangeService := services.NewExchangeService(repos)
 	subAccountService := services.NewSubAccountService(repos)
 	transactionService := services.NewTransactionService(repos)
+	tradingLogService := services.NewTradingLogService(repos)
 
 	return &Server{
-		config:             cfg,
-		repos:              repos,
-		jwtManager:         jwtManager,
-		authService:        authService,
-		userService:        userService,
-		exchangeService:    exchangeService,
-		subAccountService:  subAccountService,
-		transactionService: transactionService,
+		config:              cfg,
+		repos:               repos,
+		jwtManager:          jwtManager,
+		authService:         authService,
+		userService:         userService,
+		exchangeService:     exchangeService,
+		subAccountService:   subAccountService,
+		transactionService:  transactionService,
+		tradingLogService:   tradingLogService,
 	}
 }
 
@@ -113,6 +116,9 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// Transaction query routes
 	s.setupTransactionRoutes(protected)
+
+	// Trading log management routes
+	s.setupTradingLogRoutes(protected)
 
 	s.router = router
 	return router
@@ -242,6 +248,29 @@ func (s *Server) setupTransactionRoutes(protected *gin.RouterGroup) {
 	
 	adminTransactions.GET("", transactionHandler.ListAllTransactions)
 	adminTransactions.GET("/:id", transactionHandler.GetTransactionByID)
+}
+
+// setupTradingLogRoutes sets up trading log management routes
+func (s *Server) setupTradingLogRoutes(protected *gin.RouterGroup) {
+	tradingLogHandler := NewTradingLogHandler(s.tradingLogService)
+
+	tradingLogs := protected.Group("/trading-logs")
+
+	// User trading log routes
+	tradingLogs.POST("", tradingLogHandler.CreateTradingLog)
+	tradingLogs.GET("", tradingLogHandler.GetUserTradingLogs)
+	tradingLogs.GET("/:id", tradingLogHandler.GetTradingLog)
+	tradingLogs.DELETE("/:id", tradingLogHandler.DeleteTradingLog)
+	tradingLogs.GET("/sub-account/:sub_account_id", tradingLogHandler.GetSubAccountTradingLogs)
+	tradingLogs.GET("/exchange/:exchange_id", tradingLogHandler.GetExchangeTradingLogs)
+	tradingLogs.GET("/time-range", tradingLogHandler.GetTradingLogsByTimeRange)
+
+	// Admin trading log routes
+	adminTradingLogs := protected.Group("/admin/trading-logs")
+	adminTradingLogs.Use(middleware.AdminMiddleware())
+	
+	adminTradingLogs.GET("", tradingLogHandler.ListAllTradingLogs)
+	adminTradingLogs.GET("/:id", tradingLogHandler.GetTradingLogByID)
 }
 
 // GetRouter returns the configured router
