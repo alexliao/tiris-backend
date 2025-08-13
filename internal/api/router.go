@@ -4,12 +4,14 @@ import (
 	"time"
 
 	"tiris-backend/internal/config"
+	"tiris-backend/internal/metrics"
 	"tiris-backend/internal/middleware"
 	"tiris-backend/internal/repositories"
 	"tiris-backend/internal/services"
 	"tiris-backend/pkg/auth"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Server represents the API server
@@ -24,6 +26,7 @@ type Server struct {
 	subAccountService    *services.SubAccountService
 	transactionService   *services.TransactionService
 	tradingLogService    *services.TradingLogService
+	metrics              *metrics.Metrics
 }
 
 // NewServer creates a new API server
@@ -51,6 +54,9 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories) *Server {
 	}
 	oauthManager := auth.NewOAuthManager(oauthConfig)
 
+	// Initialize metrics
+	metricsInstance := metrics.NewMetrics()
+
 	// Initialize services
 	authService := services.NewAuthService(repos, jwtManager, oauthManager)
 	userService := services.NewUserService(repos)
@@ -69,6 +75,7 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories) *Server {
 		subAccountService:   subAccountService,
 		transactionService:  transactionService,
 		tradingLogService:   tradingLogService,
+		metrics:             metricsInstance,
 	}
 }
 
@@ -90,9 +97,13 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	router.Use(middleware.CORSMiddleware(allowedOrigins))
 	router.Use(middleware.RequestIDMiddleware())
 	router.Use(middleware.HealthCheckLoggingMiddleware())
+	router.Use(s.metrics.HTTPMetricsMiddleware())
 
 	// Health check endpoints (no authentication required)
 	s.setupHealthRoutes(router)
+
+	// Metrics endpoint (no authentication required)
+	s.setupMetricsRoutes(router)
 
 	// API routes with rate limiting
 	api := router.Group("/v1")
@@ -273,10 +284,20 @@ func (s *Server) setupTradingLogRoutes(protected *gin.RouterGroup) {
 	adminTradingLogs.GET("/:id", tradingLogHandler.GetTradingLogByID)
 }
 
+// setupMetricsRoutes sets up Prometheus metrics endpoints
+func (s *Server) setupMetricsRoutes(router *gin.Engine) {
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+}
+
 // GetRouter returns the configured router
 func (s *Server) GetRouter() *gin.Engine {
 	if s.router == nil {
 		return s.SetupRoutes()
 	}
 	return s.router
+}
+
+// GetMetrics returns the metrics instance
+func (s *Server) GetMetrics() *metrics.Metrics {
+	return s.metrics
 }

@@ -12,6 +12,7 @@ import (
 	"tiris-backend/internal/api"
 	"tiris-backend/internal/config"
 	"tiris-backend/internal/database"
+	"tiris-backend/internal/metrics"
 	"tiris-backend/internal/nats"
 	"tiris-backend/internal/repositories"
 
@@ -55,6 +56,11 @@ func main() {
 	// Initialize API server
 	apiServer := api.NewServer(cfg, repos)
 	router := apiServer.SetupRoutes()
+
+	// Start metrics updater
+	metricsUpdater := metrics.NewMetricsUpdater(apiServer.GetMetrics(), repos, 30*time.Second)
+	metricsUpdater.Start()
+	defer metricsUpdater.Stop()
 
 	// Create HTTP server
 	srv := &http.Server{
