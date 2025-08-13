@@ -10,7 +10,8 @@
       "Bash(go build:*)",
       "Bash(go get:*)",
       "WebSearch",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(go test:*)"
     ],
     "deny": [],
     "ask": []
