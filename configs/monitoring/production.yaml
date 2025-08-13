@@ -1,0 +1,235 @@
+# Production Monitoring Configuration
+monitoring:
+  enabled: true
+  service: "tiris-backend"
+  version: "${SERVICE_VERSION}"
+  environment: "production"
+  metrics_interval: "15s"
+
+  # Prometheus metrics configuration
+  metrics:
+    enabled: true
+    port: 9090
+    path: "/metrics"
+    namespace: "tiris"
+    subsystem: "backend"
+
+  # Logging configuration
+  logging:
+    level: "info"
+    format: "json"  # JSON format for production structured logging
+    service: "tiris-backend"
+    version: "${SERVICE_VERSION}"
+    outputs: ["stdout"]
+    fields:
+      environment: "production"
+      datacenter: "${DATACENTER:-us-west-2}"
+      cluster: "${CLUSTER_NAME:-prod}"
+
+  # Alerting configuration
+  alerting:
+    enabled: true
+    receivers:
+      - name: "slack-alerts"
+        type: "slack"
+        url: "${ALERT_SLACK_WEBHOOK_URL}"
+        channel: "#production-alerts"
+      
+      - name: "webhook-pagerduty"
+        type: "webhook"
+        url: "${ALERT_PAGERDUTY_URL}"
+        headers:
+          Authorization: "Token token=${PAGERDUTY_TOKEN}"
+          Content-Type: "application/json"
+      
+      - name: "webhook-opsgenie"
+        type: "webhook"
+        url: "${ALERT_OPSGENIE_URL}"
+        headers:
+          Authorization: "GenieKey ${OPSGENIE_API_KEY}"
+          Content-Type: "application/json"
+
+    rules:
+      - name: "CriticalErrorRate"
+        description: "HTTP error rate is critically high"
+        severity: "critical"
+        component: "http"
+        condition:
+          type: "threshold"
+          metric: "http_error_rate"
+          operator: "gt"
+          threshold: 5.0
+        duration: "2m"
+        cooldown: "15m"
+        enabled: true
+        annotations:
+          runbook_url: "https://docs.company.com/runbooks/http-errors"
+          dashboard_url: "https://grafana.company.com/d/http-overview"
+        
+      - name: "HighErrorRate"
+        description: "HTTP error rate is elevated"
+        severity: "warning"
+        component: "http"
+        condition:
+          type: "threshold"
+          metric: "http_error_rate"
+          operator: "gt"
+          threshold: 2.0
+        duration: "5m"
+        cooldown: "15m"
+        enabled: true
+        
+      - name: "CriticalResponseTime"
+        description: "Response time is critically slow"
+        severity: "critical"
+        component: "http"
+        condition:
+          type: "threshold"
+          metric: "http_response_time_p95"
+          operator: "gt"
+          threshold: 2000.0
+        duration: "3m"
+        cooldown: "10m"
+        enabled: true
+        
+      - name: "HighResponseTime"
+        description: "Response time is elevated"
+        severity: "warning"
+        component: "http"
+        condition:
+          type: "threshold"
+          metric: "http_response_time_p95"
+          operator: "gt"
+          threshold: 1000.0
+        duration: "5m"
+        cooldown: "15m"
+        enabled: true
+        
+      - name: "DatabaseConnectionsCritical"
+        description: "Database connection pool exhausted"
+        severity: "critical"
+        component: "database"
+        condition:
+          type: "threshold"
+          metric: "database_connections_usage_percent"
+          operator: "gt"
+          threshold: 95.0
+        duration: "1m"
+        cooldown: "10m"
+        enabled: true
+        
+      - name: "DatabaseConnectionsHigh"
+        description: "Database connection usage is high"
+        severity: "warning"
+        component: "database"
+        condition:
+          type: "threshold"
+          metric: "database_connections_usage_percent"
+          operator: "gt"
+          threshold: 80.0
+        duration: "5m"
+        cooldown: "15m"
+        enabled: true
+        
+      - name: "MemoryUsageCritical"
+        description: "Memory usage is critically high"
+        severity: "critical"
+        component: "system"
+        condition:
+          type: "threshold"
+          metric: "memory_usage_percent"
+          operator: "gt"
+          threshold: 90.0
+        duration: "2m"
+        cooldown: "10m"
+        enabled: true
+        
+      - name: "MemoryUsageHigh"
+        description: "Memory usage is elevated"
+        severity: "warning"
+        component: "system"
+        condition:
+          type: "threshold"
+          metric: "memory_usage_percent"
+          operator: "gt"
+          threshold: 75.0
+        duration: "5m"
+        cooldown: "15m"
+        enabled: true
+        
+      - name: "SecurityBruteForce"
+        description: "Brute force attack detected"
+        severity: "critical"
+        component: "security"
+        condition:
+          type: "threshold"
+          metric: "failed_login_attempts_per_ip"
+          operator: "gt"
+          threshold: 5.0
+        duration: "1m"
+        cooldown: "5m"
+        enabled: true
+        
+      - name: "SecurityAnomalousActivity"
+        description: "Anomalous security activity detected"
+        severity: "warning"
+        component: "security"
+        condition:
+          type: "threshold"
+          metric: "security_events_per_minute"
+          operator: "gt"
+          threshold: 10.0
+        duration: "3m"
+        cooldown: "15m"
+        enabled: true
+        
+      - name: "APIKeyAbuseDetected"
+        description: "API key abuse or unusual usage pattern"
+        severity: "warning"
+        component: "security"
+        condition:
+          type: "threshold"
+          metric: "api_key_requests_per_minute"
+          operator: "gt"
+          threshold: 1000.0
+        duration: "2m"
+        cooldown: "10m"
+        enabled: true
+
+  # Health checking configuration
+  health:
+    enabled: true
+    port: 8081
+    path: "/health"
+    interval: "30s"
+    timeout: "10s"
+    liveness: "/live"
+    readiness: "/ready"
+
+# Production database settings
+database:
+  health_check: true
+  connection_pool:
+    max_open: 100
+    max_idle: 20
+    max_lifetime: "1h"
+
+# Production redis settings
+redis:
+  health_check: true
+  pool_size: 50
+  max_retries: 3
+
+# Security settings
+security:
+  rate_limiting:
+    enabled: true
+    store: "redis"
+  audit_logging:
+    enabled: true
+    retention: "90d"
+
+# Disable debug features in production
+debug:
+  enabled: false
+  profiling: false

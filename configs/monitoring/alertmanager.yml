@@ -1,0 +1,188 @@
+# AlertManager Configuration
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@tiris.com'
+  smtp_auth_username: 'alerts@tiris.com'
+  smtp_auth_password: 'password'
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree for alert routing
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'web.hook'
+  
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      group_interval: 5m
+      repeat_interval: 5m
+      
+    # Security alerts - immediate notification
+    - match:
+        component: security
+      receiver: 'security-alerts'
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 15m
+      
+    # Database alerts
+    - match:
+        component: database
+      receiver: 'database-alerts'
+      group_interval: 5m
+      repeat_interval: 30m
+      
+    # HTTP/API alerts
+    - match:
+        component: http
+      receiver: 'api-alerts'
+      group_interval: 5m
+      repeat_interval: 15m
+      
+    # System alerts
+    - match:
+        component: system
+      receiver: 'system-alerts'
+      group_interval: 10m
+      repeat_interval: 1h
+
+# Alert receivers
+receivers:
+  # Default webhook receiver
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://localhost:8080/api/v1/alerts'
+        send_resolved: true
+        http_config:
+          basic_auth:
+            username: 'alert'
+            password: 'webhook_password'
+
+  # Critical alerts - multiple channels
+  - name: 'critical-alerts'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/CRITICAL/WEBHOOK'
+        channel: '#critical-alerts'
+        username: 'AlertManager'
+        icon_emoji: ':rotating_light:'
+        title: 'CRITICAL: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        text: >-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.service }}
+          *Environment:* {{ .Labels.environment }}
+          *Severity:* {{ .Labels.severity }}
+          {{ end }}
+        send_resolved: true
+        
+    webhook_configs:
+      - url: 'https://events.pagerduty.com/v2/enqueue'
+        send_resolved: true
+        http_config:
+          headers:
+            Content-Type: 'application/json'
+            Authorization: 'Token token=YOUR_PAGERDUTY_TOKEN'
+
+  # Security alerts
+  - name: 'security-alerts'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SECURITY/WEBHOOK'
+        channel: '#security-alerts'
+        username: 'Security Alert'
+        icon_emoji: ':shield:'
+        title: 'Security Alert: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        text: >-
+          {{ range .Alerts }}
+          *Security Event:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          *Component:* {{ .Labels.component }}
+          *Severity:* {{ .Labels.severity }}
+          *Time:* {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+        send_resolved: true
+
+  # Database alerts
+  - name: 'database-alerts'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/DATABASE/WEBHOOK'
+        channel: '#database-alerts'
+        username: 'Database Monitor'
+        icon_emoji: ':database:'
+        title: 'Database Alert: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        text: >-
+          {{ range .Alerts }}
+          *Database Issue:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          *Database:* {{ .Labels.database | default "unknown" }}
+          *Severity:* {{ .Labels.severity }}
+          {{ if .Annotations.dashboard_url }}*Dashboard:* {{ .Annotations.dashboard_url }}{{ end }}
+          {{ end }}
+        send_resolved: true
+
+  # API alerts
+  - name: 'api-alerts'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/API/WEBHOOK'
+        channel: '#api-alerts'
+        username: 'API Monitor'
+        icon_emoji: ':globe_with_meridians:'
+        title: 'API Alert: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        text: >-
+          {{ range .Alerts }}
+          *API Issue:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          *Endpoint:* {{ .Labels.path | default "unknown" }}
+          *Method:* {{ .Labels.method | default "unknown" }}
+          *Severity:* {{ .Labels.severity }}
+          {{ end }}
+        send_resolved: true
+
+  # System alerts
+  - name: 'system-alerts'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SYSTEM/WEBHOOK'
+        channel: '#system-alerts'
+        username: 'System Monitor'
+        icon_emoji: ':computer:'
+        title: 'System Alert: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        text: >-
+          {{ range .Alerts }}
+          *System Issue:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          *Host:* {{ .Labels.instance | default "unknown" }}
+          *Severity:* {{ .Labels.severity }}
+          {{ end }}
+        send_resolved: true
+
+# Inhibition rules to prevent alert spam
+inhibit_rules:
+  # Inhibit warning alerts if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+    
+  # Inhibit database connection warnings if database is down
+  - source_match:
+      alertname: 'DatabaseDown'
+    target_match:
+      component: 'database'
+    equal: ['instance']
+
+# Silence configuration
+silences:
+  # Maintenance windows can be configured here
+  # or managed via the AlertManager UI/API

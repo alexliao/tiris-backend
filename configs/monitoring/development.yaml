@@ -1,0 +1,87 @@
+# Development Monitoring Configuration
+monitoring:
+  enabled: true
+  service: "tiris-backend"
+  version: "dev"
+  environment: "development"
+  metrics_interval: "15s"
+
+  # Prometheus metrics configuration
+  metrics:
+    enabled: true
+    port: 9090
+    path: "/metrics"
+    namespace: "tiris"
+    subsystem: "backend"
+
+  # Logging configuration
+  logging:
+    level: "debug"
+    format: "text"  # Use text format for development for better readability
+    service: "tiris-backend"
+    version: "dev"
+    outputs: ["stdout"]
+    fields:
+      environment: "development"
+      datacenter: "local"
+
+  # Alerting configuration
+  alerting:
+    enabled: false  # Disable alerting in development
+    receivers: []
+    rules:
+      - name: "HighErrorRate"
+        description: "HTTP error rate is above 10% in development"
+        severity: "warning"
+        component: "http"
+        condition:
+          type: "threshold"
+          metric: "http_error_rate"
+          operator: "gt"
+          threshold: 10.0  # Higher threshold for development
+        duration: "2m"
+        cooldown: "5m"
+        enabled: false
+        
+      - name: "HighResponseTime"
+        description: "Average response time is above 2 seconds in development"
+        severity: "warning"
+        component: "http"
+        condition:
+          type: "threshold"
+          metric: "http_response_time_avg"
+          operator: "gt"
+          threshold: 2000.0  # Higher threshold for development
+        duration: "5m"
+        cooldown: "10m"
+        enabled: false
+
+  # Health checking configuration
+  health:
+    enabled: true
+    port: 8081
+    path: "/health"
+    interval: "30s"
+    timeout: "5s"
+    liveness: "/live"
+    readiness: "/ready"
+
+# Environment-specific overrides
+database:
+  health_check: true
+  connection_pool:
+    max_open: 25
+    max_idle: 10
+
+redis:
+  health_check: true
+  pool_size: 10
+
+# Development-specific features
+debug:
+  enabled: true
+  endpoints:
+    - "/debug/metrics"
+    - "/debug/config"
+    - "/debug/health"
+  profiling: true

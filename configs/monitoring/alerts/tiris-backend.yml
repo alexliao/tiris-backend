@@ -1,0 +1,326 @@
+# Tiris Backend Alert Rules
+groups:
+  - name: tiris-backend.http
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: TirisHighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="tiris-backend",status=~"5.."}[5m])) by (instance)
+            /
+            sum(rate(http_requests_total{job="tiris-backend"}[5m])) by (instance)
+          ) * 100 > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: http
+        annotations:
+          summary: "Tiris Backend high HTTP error rate"
+          description: "HTTP error rate is {{ $value }}% for instance {{ $labels.instance }}"
+          runbook_url: "https://docs.tiris.com/runbooks/high-error-rate"
+          dashboard_url: "https://grafana.tiris.com/d/http-overview"
+
+      # Critical error rate
+      - alert: TirisCriticalErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="tiris-backend",status=~"5.."}[5m])) by (instance)
+            /
+            sum(rate(http_requests_total{job="tiris-backend"}[5m])) by (instance)
+          ) * 100 > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: tiris-backend
+          component: http
+        annotations:
+          summary: "Tiris Backend critical HTTP error rate"
+          description: "HTTP error rate is {{ $value }}% for instance {{ $labels.instance }}"
+          runbook_url: "https://docs.tiris.com/runbooks/critical-error-rate"
+
+      # High response time P95
+      - alert: TirisHighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_request_duration_seconds_bucket{job="tiris-backend"}[5m])) by (le, instance)
+          ) * 1000 > 1000
+        for: 3m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: http
+        annotations:
+          summary: "Tiris Backend high response time"
+          description: "95th percentile response time is {{ $value }}ms for instance {{ $labels.instance }}"
+          
+      # Critical response time P95
+      - alert: TirisCriticalResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_request_duration_seconds_bucket{job="tiris-backend"}[5m])) by (le, instance)
+          ) * 1000 > 2000
+        for: 2m
+        labels:
+          severity: critical
+          service: tiris-backend
+          component: http
+        annotations:
+          summary: "Tiris Backend critical response time"
+          description: "95th percentile response time is {{ $value }}ms for instance {{ $labels.instance }}"
+
+      # High request rate
+      - alert: TirisHighRequestRate
+        expr: |
+          sum(rate(http_requests_total{job="tiris-backend"}[5m])) by (instance) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: http
+        annotations:
+          summary: "Tiris Backend high request rate"
+          description: "Request rate is {{ $value }} requests/sec for instance {{ $labels.instance }}"
+
+  - name: tiris-backend.database
+    interval: 30s
+    rules:
+      # Database connection pool exhaustion
+      - alert: TirisDBConnectionPoolHigh
+        expr: |
+          (database_connections_in_use{job="tiris-backend"} / 
+           (database_connections_in_use{job="tiris-backend"} + database_connections_idle{job="tiris-backend"})
+          ) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: database
+        annotations:
+          summary: "Tiris Database connection pool usage high"
+          description: "Database connection pool usage is {{ $value }}% for instance {{ $labels.instance }}"
+
+      # Critical database connection pool
+      - alert: TirisDBConnectionPoolCritical
+        expr: |
+          (database_connections_in_use{job="tiris-backend"} / 
+           (database_connections_in_use{job="tiris-backend"} + database_connections_idle{job="tiris-backend"})
+          ) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+          service: tiris-backend
+          component: database
+        annotations:
+          summary: "Tiris Database connection pool exhausted"
+          description: "Database connection pool usage is {{ $value }}% for instance {{ $labels.instance }}"
+
+      # Slow database queries
+      - alert: TirisDBSlowQueries
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(database_query_duration_seconds_bucket{job="tiris-backend"}[5m])) by (le, operation, instance)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: database
+        annotations:
+          summary: "Tiris Database slow queries detected"
+          description: "95th percentile query time for {{ $labels.operation }} is {{ $value }}s on {{ $labels.instance }}"
+
+      # Database transaction failures
+      - alert: TirisDBTransactionFailures
+        expr: |
+          sum(rate(database_transactions_total{job="tiris-backend",result="error"}[5m])) by (instance) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: database
+        annotations:
+          summary: "Tiris Database transaction failures"
+          description: "Database transaction failure rate is {{ $value }}/sec on {{ $labels.instance }}"
+
+  - name: tiris-backend.security
+    interval: 15s
+    rules:
+      # Multiple failed authentication attempts
+      - alert: TirisAuthenticationFailures
+        expr: |
+          sum(rate(auth_attempts_total{job="tiris-backend",result="failed"}[1m])) by (instance) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: tiris-backend
+          component: security
+        annotations:
+          summary: "Tiris High authentication failure rate"
+          description: "Authentication failure rate is {{ $value }}/sec on {{ $labels.instance }}"
+
+      # Rate limit violations
+      - alert: TirisRateLimitViolations
+        expr: |
+          sum(rate(rate_limit_hits_total{job="tiris-backend"}[5m])) by (instance, rule) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: security
+        annotations:
+          summary: "Tiris High rate limit violations"
+          description: "Rate limit {{ $labels.rule }} violation rate is {{ $value }}/sec on {{ $labels.instance }}"
+
+      # Security events spike
+      - alert: TirisSecurityEventsSpike
+        expr: |
+          sum(rate(security_events_total{job="tiris-backend"}[5m])) by (instance, event_type) > 20
+        for: 1m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: security
+        annotations:
+          summary: "Tiris Security events spike"
+          description: "Security event {{ $labels.event_type }} rate is {{ $value }}/sec on {{ $labels.instance }}"
+
+      # Suspicious API key usage
+      - alert: TirisAPIKeyAbuse
+        expr: |
+          sum(rate(api_key_usage_total{job="tiris-backend"}[1m])) by (instance, key_type) > 100
+        for: 2m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: security
+        annotations:
+          summary: "Tiris Suspicious API key usage"
+          description: "API key {{ $labels.key_type }} usage rate is {{ $value }}/sec on {{ $labels.instance }}"
+
+  - name: tiris-backend.business
+    interval: 60s
+    rules:
+      # High trading volume
+      - alert: TirisHighTradingVolume
+        expr: |
+          sum(rate(trading_volume_total{job="tiris-backend"}[15m])) by (exchange) > 1000000
+        for: 5m
+        labels:
+          severity: info
+          service: tiris-backend
+          component: business
+        annotations:
+          summary: "Tiris High trading volume on {{ $labels.exchange }}"
+          description: "Trading volume is {{ $value }} on {{ $labels.exchange }}"
+
+      # Exchange connectivity issues
+      - alert: TirisExchangeHealthDegraded
+        expr: |
+          exchange_health_status{job="tiris-backend"} < 1
+        for: 2m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: business
+        annotations:
+          summary: "Tiris Exchange {{ $labels.exchange }} health degraded"
+          description: "Exchange {{ $labels.exchange }} endpoint {{ $labels.endpoint }} is unhealthy"
+
+      # Low account balances (warning for business monitoring)
+      - alert: TirisLowAccountBalance
+        expr: |
+          account_balances{job="tiris-backend"} < 1000
+        for: 5m
+        labels:
+          severity: info
+          service: tiris-backend
+          component: business
+        annotations:
+          summary: "Tiris Low account balance"
+          description: "Account balance for {{ $labels.symbol }} on {{ $labels.exchange }} is {{ $value }}"
+
+  - name: tiris-backend.system
+    interval: 30s
+    rules:
+      # High memory usage
+      - alert: TirisHighMemoryUsage
+        expr: |
+          (memory_usage_bytes{job="tiris-backend"} / (1024*1024*1024)) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: system
+        annotations:
+          summary: "Tiris High memory usage"
+          description: "Memory usage is {{ $value }}GB on {{ $labels.instance }}"
+
+      # High goroutine count
+      - alert: TirisHighGoroutineCount
+        expr: |
+          goroutines_active{job="tiris-backend"} > 10000
+        for: 5m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: system
+        annotations:
+          summary: "Tiris High goroutine count"
+          description: "Goroutine count is {{ $value }} on {{ $labels.instance }}"
+
+      # Application down
+      - alert: TirisApplicationDown
+        expr: |
+          up{job="tiris-backend"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: tiris-backend
+          component: system
+        annotations:
+          summary: "Tiris Backend application is down"
+          description: "Tiris Backend instance {{ $labels.instance }} is down"
+
+      # Health check failing
+      - alert: TirisHealthCheckFailing
+        expr: |
+          up{job="tiris-health"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: tiris-backend
+          component: system
+        annotations:
+          summary: "Tiris Backend health check failing"
+          description: "Health check for {{ $labels.instance }} is failing"
+
+  - name: tiris-backend.redis
+    interval: 30s
+    rules:
+      # Redis connectivity issues
+      - alert: TirisRedisDown
+        expr: |
+          redis_up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: tiris-backend
+          component: redis
+        annotations:
+          summary: "Tiris Redis is down"
+          description: "Redis instance {{ $labels.instance }} is down"
+
+      # Redis high memory usage
+      - alert: TirisRedisHighMemory
+        expr: |
+          redis_memory_used_bytes{job="redis-exporter"} / redis_memory_max_bytes{job="redis-exporter"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: tiris-backend
+          component: redis
+        annotations:
+          summary: "Tiris Redis high memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
