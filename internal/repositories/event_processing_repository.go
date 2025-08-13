@@ -41,7 +41,7 @@ func (r *eventProcessingRepository) GetByEventType(ctx context.Context, eventTyp
 
 	// Build base query
 	query := r.db.WithContext(ctx).Model(&models.EventProcessing{}).Where("event_type = ?", eventType)
-	
+
 	// Apply filters
 	if filters.Status != nil {
 		query = query.Where("status = ?", *filters.Status)

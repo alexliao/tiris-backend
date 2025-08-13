@@ -67,8 +67,8 @@ func (h *TransactionHandler) GetUserTransactions(c *gin.Context) {
 
 	transactions, err := h.transactionService.GetUserTransactions(c.Request.Context(), userID, &req)
 	if err != nil {
-		if err.Error() == "start date cannot be after end date" || 
-		   err.Error() == "min amount cannot be greater than max amount" {
+		if err.Error() == "start date cannot be after end date" ||
+			err.Error() == "min amount cannot be greater than max amount" {
 			c.JSON(http.StatusBadRequest, CreateErrorResponse(
 				"INVALID_FILTER_RANGE",
 				"Invalid filter range",
@@ -157,8 +157,8 @@ func (h *TransactionHandler) GetSubAccountTransactions(c *gin.Context) {
 			))
 			return
 		}
-		if err.Error() == "start date cannot be after end date" || 
-		   err.Error() == "min amount cannot be greater than max amount" {
+		if err.Error() == "start date cannot be after end date" ||
+			err.Error() == "min amount cannot be greater than max amount" {
 			c.JSON(http.StatusBadRequest, CreateErrorResponse(
 				"INVALID_FILTER_RANGE",
 				"Invalid filter range",
@@ -247,8 +247,8 @@ func (h *TransactionHandler) GetExchangeTransactions(c *gin.Context) {
 			))
 			return
 		}
-		if err.Error() == "start date cannot be after end date" || 
-		   err.Error() == "min amount cannot be greater than max amount" {
+		if err.Error() == "start date cannot be after end date" ||
+			err.Error() == "min amount cannot be greater than max amount" {
 			c.JSON(http.StatusBadRequest, CreateErrorResponse(
 				"INVALID_FILTER_RANGE",
 				"Invalid filter range",
@@ -411,8 +411,8 @@ func (h *TransactionHandler) GetTransactionsByTimeRange(c *gin.Context) {
 
 	transactions, err := h.transactionService.GetTransactionsByTimeRange(c.Request.Context(), userID, startTime, endTime, &req)
 	if err != nil {
-		if err.Error() == "start time cannot be after end time" || 
-		   err.Error() == "min amount cannot be greater than max amount" {
+		if err.Error() == "start time cannot be after end time" ||
+			err.Error() == "min amount cannot be greater than max amount" {
 			c.JSON(http.StatusBadRequest, CreateErrorResponse(
 				"INVALID_FILTER_RANGE",
 				"Invalid filter range",
@@ -468,8 +468,8 @@ func (h *TransactionHandler) ListAllTransactions(c *gin.Context) {
 
 	transactions, err := h.transactionService.ListAllTransactions(c.Request.Context(), &req)
 	if err != nil {
-		if err.Error() == "start date cannot be after end date" || 
-		   err.Error() == "min amount cannot be greater than max amount" {
+		if err.Error() == "start date cannot be after end date" ||
+			err.Error() == "min amount cannot be greater than max amount" {
 			c.JSON(http.StatusBadRequest, CreateErrorResponse(
 				"INVALID_FILTER_RANGE",
 				"Invalid filter range",

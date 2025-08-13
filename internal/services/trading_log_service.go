@@ -403,7 +403,7 @@ func (s *TradingLogService) ListAllTradingLogs(ctx context.Context, req *Trading
 	// Use a very broad time range if no specific dates provided
 	startTime := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	endTime := time.Now().UTC()
-	
+
 	if req.StartDate != nil {
 		startTime = *req.StartDate
 	}

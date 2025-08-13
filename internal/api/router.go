@@ -16,17 +16,17 @@ import (
 
 // Server represents the API server
 type Server struct {
-	router               *gin.Engine
-	config               *config.Config
-	repos                *repositories.Repositories
-	jwtManager           *auth.JWTManager
-	authService          *services.AuthService
-	userService          *services.UserService
-	exchangeService      *services.ExchangeService
-	subAccountService    *services.SubAccountService
-	transactionService   *services.TransactionService
-	tradingLogService    *services.TradingLogService
-	metrics              *metrics.Metrics
+	router             *gin.Engine
+	config             *config.Config
+	repos              *repositories.Repositories
+	jwtManager         *auth.JWTManager
+	authService        *services.AuthService
+	userService        *services.UserService
+	exchangeService    *services.ExchangeService
+	subAccountService  *services.SubAccountService
+	transactionService *services.TransactionService
+	tradingLogService  *services.TradingLogService
+	metrics            *metrics.Metrics
 }
 
 // NewServer creates a new API server
@@ -66,16 +66,16 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories) *Server {
 	tradingLogService := services.NewTradingLogService(repos)
 
 	return &Server{
-		config:              cfg,
-		repos:               repos,
-		jwtManager:          jwtManager,
-		authService:         authService,
-		userService:         userService,
-		exchangeService:     exchangeService,
-		subAccountService:   subAccountService,
-		transactionService:  transactionService,
-		tradingLogService:   tradingLogService,
-		metrics:             metricsInstance,
+		config:             cfg,
+		repos:              repos,
+		jwtManager:         jwtManager,
+		authService:        authService,
+		userService:        userService,
+		exchangeService:    exchangeService,
+		subAccountService:  subAccountService,
+		transactionService: transactionService,
+		tradingLogService:  tradingLogService,
+		metrics:            metricsInstance,
 	}
 }
 
@@ -195,7 +195,7 @@ func (s *Server) setupUserRoutes(protected *gin.RouterGroup) {
 	// Admin only routes
 	adminUsers := users.Group("")
 	adminUsers.Use(middleware.AdminMiddleware())
-	
+
 	adminUsers.GET("", userHandler.ListUsers)
 	adminUsers.GET("/:id", userHandler.GetUserByID)
 	adminUsers.PUT("/:id/disable", userHandler.DisableUser)
@@ -217,7 +217,7 @@ func (s *Server) setupExchangeRoutes(protected *gin.RouterGroup) {
 	// Admin exchange routes
 	adminExchanges := protected.Group("/admin/exchanges")
 	adminExchanges.Use(middleware.AdminMiddleware())
-	
+
 	adminExchanges.GET("", exchangeHandler.ListExchanges)
 	adminExchanges.GET("/:id", exchangeHandler.GetExchangeByID)
 }
@@ -235,7 +235,7 @@ func (s *Server) setupSubAccountRoutes(protected *gin.RouterGroup) {
 	subAccounts.PUT("/:id", subAccountHandler.UpdateSubAccount)
 	subAccounts.PUT("/:id/balance", subAccountHandler.UpdateBalance)
 	subAccounts.DELETE("/:id", subAccountHandler.DeleteSubAccount)
-	
+
 	// Symbol-based queries
 	subAccounts.GET("/symbol/:symbol", subAccountHandler.GetSubAccountsBySymbol)
 }
@@ -256,7 +256,7 @@ func (s *Server) setupTransactionRoutes(protected *gin.RouterGroup) {
 	// Admin transaction routes
 	adminTransactions := protected.Group("/admin/transactions")
 	adminTransactions.Use(middleware.AdminMiddleware())
-	
+
 	adminTransactions.GET("", transactionHandler.ListAllTransactions)
 	adminTransactions.GET("/:id", transactionHandler.GetTransactionByID)
 }
@@ -279,7 +279,7 @@ func (s *Server) setupTradingLogRoutes(protected *gin.RouterGroup) {
 	// Admin trading log routes
 	adminTradingLogs := protected.Group("/admin/trading-logs")
 	adminTradingLogs.Use(middleware.AdminMiddleware())
-	
+
 	adminTradingLogs.GET("", tradingLogHandler.ListAllTradingLogs)
 	adminTradingLogs.GET("/:id", tradingLogHandler.GetTradingLogByID)
 }

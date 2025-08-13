@@ -62,7 +62,7 @@ func (r *tradingLogRepository) getTradingLogs(ctx context.Context, filters Tradi
 
 	// Build base query
 	query := r.db.WithContext(ctx).Model(&models.TradingLog{}).Where(whereClause, whereArgs...)
-	
+
 	// Apply filters
 	if filters.Type != nil {
 		query = query.Where("type = ?", *filters.Type)

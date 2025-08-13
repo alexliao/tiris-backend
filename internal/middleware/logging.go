@@ -13,22 +13,22 @@ import (
 
 // LogEntry represents a structured log entry
 type LogEntry struct {
-	Timestamp    time.Time   `json:"timestamp"`
-	RequestID    string      `json:"request_id"`
-	Method       string      `json:"method"`
-	Path         string      `json:"path"`
-	Query        string      `json:"query,omitempty"`
-	StatusCode   int         `json:"status_code"`
-	Duration     float64     `json:"duration_ms"`
-	ClientIP     string      `json:"client_ip"`
-	UserAgent    string      `json:"user_agent"`
-	UserID       *uuid.UUID  `json:"user_id,omitempty"`
-	Username     *string     `json:"username,omitempty"`
-	RequestSize  int64       `json:"request_size"`
-	ResponseSize int         `json:"response_size"`
-	Error        *string     `json:"error,omitempty"`
-	Level        string      `json:"level"`
-	Service      string      `json:"service"`
+	Timestamp    time.Time  `json:"timestamp"`
+	RequestID    string     `json:"request_id"`
+	Method       string     `json:"method"`
+	Path         string     `json:"path"`
+	Query        string     `json:"query,omitempty"`
+	StatusCode   int        `json:"status_code"`
+	Duration     float64    `json:"duration_ms"`
+	ClientIP     string     `json:"client_ip"`
+	UserAgent    string     `json:"user_agent"`
+	UserID       *uuid.UUID `json:"user_id,omitempty"`
+	Username     *string    `json:"username,omitempty"`
+	RequestSize  int64      `json:"request_size"`
+	ResponseSize int        `json:"response_size"`
+	Error        *string    `json:"error,omitempty"`
+	Level        string     `json:"level"`
+	Service      string     `json:"service"`
 }
 
 // responseWriter wrapper to capture response size
@@ -163,18 +163,18 @@ func ErrorLoggingMiddleware() gin.HandlerFunc {
 
 		// Create detailed error log entry
 		errorEntry := map[string]interface{}{
-			"timestamp":    time.Now(),
-			"request_id":   requestID,
-			"level":        "error",
-			"service":      "tiris-backend",
-			"type":         "panic_recovery",
-			"method":       c.Request.Method,
-			"path":         c.Request.URL.Path,
-			"client_ip":    c.ClientIP(),
-			"user_agent":   c.Request.UserAgent(),
-			"user_id":      userID,
-			"username":     username,
-			"panic_value":  recovered,
+			"timestamp":   time.Now(),
+			"request_id":  requestID,
+			"level":       "error",
+			"service":     "tiris-backend",
+			"type":        "panic_recovery",
+			"method":      c.Request.Method,
+			"path":        c.Request.URL.Path,
+			"client_ip":   c.ClientIP(),
+			"user_agent":  c.Request.UserAgent(),
+			"user_id":     userID,
+			"username":    username,
+			"panic_value": recovered,
 		}
 
 		// Log the error

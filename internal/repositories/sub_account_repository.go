@@ -39,11 +39,11 @@ func (r *subAccountRepository) GetByID(ctx context.Context, id uuid.UUID) (*mode
 func (r *subAccountRepository) GetByUserID(ctx context.Context, userID uuid.UUID, exchangeID *uuid.UUID) ([]*models.SubAccount, error) {
 	var subAccounts []*models.SubAccount
 	query := r.db.WithContext(ctx).Where("user_id = ?", userID)
-	
+
 	if exchangeID != nil {
 		query = query.Where("exchange_id = ?", *exchangeID)
 	}
-	
+
 	err := query.Order("created_at DESC").Find(&subAccounts).Error
 	if err != nil {
 		return nil, err

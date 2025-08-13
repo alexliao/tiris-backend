@@ -19,12 +19,12 @@ import (
 // AuthService handles authentication business logic
 type AuthService struct {
 	repos        *repositories.Repositories
-	jwtManager   *auth.JWTManager
-	oauthManager *auth.OAuthManager
+	jwtManager   auth.JWTManagerInterface
+	oauthManager auth.OAuthManagerInterface
 }
 
 // NewAuthService creates a new authentication service
-func NewAuthService(repos *repositories.Repositories, jwtManager *auth.JWTManager, oauthManager *auth.OAuthManager) *AuthService {
+func NewAuthService(repos *repositories.Repositories, jwtManager auth.JWTManagerInterface, oauthManager auth.OAuthManagerInterface) *AuthService {
 	return &AuthService{
 		repos:        repos,
 		jwtManager:   jwtManager,
@@ -53,11 +53,11 @@ type CallbackRequest struct {
 
 // AuthResponse represents an authentication response with tokens
 type AuthResponse struct {
-	AccessToken  string     `json:"access_token"`
-	RefreshToken string     `json:"refresh_token"`
-	TokenType    string     `json:"token_type"`
-	ExpiresIn    int64      `json:"expires_in"`
-	User         *UserInfo  `json:"user"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	TokenType    string    `json:"token_type"`
+	ExpiresIn    int64     `json:"expires_in"`
+	User         *UserInfo `json:"user"`
 }
 
 // UserInfo represents user information in auth response
@@ -295,12 +295,12 @@ func (s *AuthService) findOrCreateUser(ctx context.Context, oauthUser *auth.OAut
 
 	// Create OAuth token record
 	oauthToken := &models.OAuthToken{
-		UserID:           user.ID,
-		Provider:         oauthUser.Provider,
-		ProviderUserID:   oauthUser.ID,
-		AccessToken:      token.AccessToken,
-		RefreshToken:     &token.RefreshToken,
-		ExpiresAt:        &token.Expiry,
+		UserID:         user.ID,
+		Provider:       oauthUser.Provider,
+		ProviderUserID: oauthUser.ID,
+		AccessToken:    token.AccessToken,
+		RefreshToken:   &token.RefreshToken,
+		ExpiresAt:      &token.Expiry,
 		Info: func() datatypes.JSON {
 			infoMap := map[string]interface{}{
 				"provider_data": map[string]interface{}{

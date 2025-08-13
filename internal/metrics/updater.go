@@ -83,12 +83,12 @@ func (u *MetricsUpdater) getUserCount(ctx context.Context) (int64, error) {
 	// We'll use a repository method that can count users
 	// This is a simplified approach - in a real system you'd want a dedicated count method
 	users, total, err := u.repos.User.List(ctx, 1, 0) // Get just one user to get the total count
-	_ = users // We don't need the actual users, just the count
-	
+	_ = users                                         // We don't need the actual users, just the count
+
 	if err != nil {
 		return 0, err
 	}
-	
+
 	return total, nil
 }
 

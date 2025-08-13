@@ -73,15 +73,15 @@ func (tdb *TestDB) CleanDB(t *testing.T) {
 // CreateTestUser creates a test user in the database
 func (tdb *TestDB) CreateTestUser(t *testing.T, email string) *models.User {
 	user := &models.User{
-		ID:           uuid.New(),
-		Email:        email,
-		DisplayName:  sql.NullString{String: "Test User", Valid: true},
-		AvatarURL:    sql.NullString{String: "https://example.com/avatar.png", Valid: true},
-		IsAdmin:      false,
-		IsActive:     true,
-		LastLoginAt:  sql.NullTime{Time: time.Now(), Valid: true},
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:          uuid.New(),
+		Email:       email,
+		DisplayName: sql.NullString{String: "Test User", Valid: true},
+		AvatarURL:   sql.NullString{String: "https://example.com/avatar.png", Valid: true},
+		IsAdmin:     false,
+		IsActive:    true,
+		LastLoginAt: sql.NullTime{Time: time.Now(), Valid: true},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	err := tdb.DB.Create(user).Error
@@ -119,8 +119,8 @@ func (tdb *TestDB) CreateTestSubAccount(t *testing.T, exchangeID uuid.UUID, name
 		ExchangeID: exchangeID,
 		Name:       name,
 		Balance: map[string]interface{}{
-			"BTC": 1.5,
-			"ETH": 10.0,
+			"BTC":  1.5,
+			"ETH":  10.0,
 			"USDT": 1000.0,
 		},
 		IsActive:  true,

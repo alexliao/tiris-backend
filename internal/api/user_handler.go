@@ -324,4 +324,3 @@ func (h *UserHandler) DisableUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, CreateSuccessResponse(response, getTraceID(c)))
 }
-

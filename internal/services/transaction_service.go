@@ -42,14 +42,14 @@ type TransactionResponse struct {
 
 // TransactionQueryRequest represents transaction query parameters
 type TransactionQueryRequest struct {
-	Direction     *string    `form:"direction" binding:"omitempty,oneof=debit credit"`
-	Reason        *string    `form:"reason"`
-	StartDate     *time.Time `form:"start_date" time_format:"2006-01-02T15:04:05Z07:00"`
-	EndDate       *time.Time `form:"end_date" time_format:"2006-01-02T15:04:05Z07:00"`
-	MinAmount     *float64   `form:"min_amount" binding:"omitempty,min=0"`
-	MaxAmount     *float64   `form:"max_amount" binding:"omitempty,min=0"`
-	Limit         int        `form:"limit" binding:"omitempty,min=1,max=1000"`
-	Offset        int        `form:"offset" binding:"omitempty,min=0"`
+	Direction *string    `form:"direction" binding:"omitempty,oneof=debit credit"`
+	Reason    *string    `form:"reason"`
+	StartDate *time.Time `form:"start_date" time_format:"2006-01-02T15:04:05Z07:00"`
+	EndDate   *time.Time `form:"end_date" time_format:"2006-01-02T15:04:05Z07:00"`
+	MinAmount *float64   `form:"min_amount" binding:"omitempty,min=0"`
+	MaxAmount *float64   `form:"max_amount" binding:"omitempty,min=0"`
+	Limit     int        `form:"limit" binding:"omitempty,min=1,max=1000"`
+	Offset    int        `form:"offset" binding:"omitempty,min=0"`
 }
 
 // TransactionQueryResponse represents paginated transaction results
@@ -323,7 +323,7 @@ func (s *TransactionService) ListAllTransactions(ctx context.Context, req *Trans
 	// Use a very broad time range if no specific dates provided
 	startTime := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	endTime := time.Now().UTC()
-	
+
 	if req.StartDate != nil {
 		startTime = *req.StartDate
 	}

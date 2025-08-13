@@ -37,9 +37,9 @@ type DatabaseConfig struct {
 }
 
 type AuthConfig struct {
-	JWTSecret      string
-	JWTExpiration  int
-	RefreshSecret  string
+	JWTSecret         string
+	JWTExpiration     int
+	RefreshSecret     string
 	RefreshExpiration int
 }
 

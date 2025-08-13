@@ -19,8 +19,8 @@ const (
 	EventOrderFailed    EventType = "trading.orders.failed"
 
 	// Balance Events
-	EventBalanceUpdated EventType = "trading.balance.updated"
-	EventBalanceLocked  EventType = "trading.balance.locked"
+	EventBalanceUpdated  EventType = "trading.balance.updated"
+	EventBalanceLocked   EventType = "trading.balance.locked"
 	EventBalanceUnlocked EventType = "trading.balance.unlocked"
 
 	// System Events
@@ -31,13 +31,13 @@ const (
 
 // BaseEvent represents the common fields for all events
 type BaseEvent struct {
-	EventID     string    `json:"event_id"`
-	EventType   EventType `json:"event_type"`
-	Timestamp   time.Time `json:"timestamp"`
-	UserID      uuid.UUID `json:"user_id"`
-	ExchangeID  uuid.UUID `json:"exchange_id"`
-	Source      string    `json:"source"` // "tiris-bot", "manual", etc.
-	Version     string    `json:"version"`
+	EventID    string    `json:"event_id"`
+	EventType  EventType `json:"event_type"`
+	Timestamp  time.Time `json:"timestamp"`
+	UserID     uuid.UUID `json:"user_id"`
+	ExchangeID uuid.UUID `json:"exchange_id"`
+	Source     string    `json:"source"` // "tiris-bot", "manual", etc.
+	Version    string    `json:"version"`
 }
 
 // OrderEvent represents order-related events
@@ -58,15 +58,15 @@ type OrderEvent struct {
 // BalanceEvent represents balance update events
 type BalanceEvent struct {
 	BaseEvent
-	SubAccountID  uuid.UUID              `json:"sub_account_id"`
-	Symbol        string                 `json:"symbol"`
-	PreviousBalance float64              `json:"previous_balance"`
-	NewBalance    float64                `json:"new_balance"`
-	Amount        float64                `json:"amount"`
-	Direction     string                 `json:"direction"` // "debit", "credit"
-	Reason        string                 `json:"reason"`
-	RelatedOrderID *string               `json:"related_order_id,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	SubAccountID    uuid.UUID              `json:"sub_account_id"`
+	Symbol          string                 `json:"symbol"`
+	PreviousBalance float64                `json:"previous_balance"`
+	NewBalance      float64                `json:"new_balance"`
+	Amount          float64                `json:"amount"`
+	Direction       string                 `json:"direction"` // "debit", "credit"
+	Reason          string                 `json:"reason"`
+	RelatedOrderID  *string                `json:"related_order_id,omitempty"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ErrorEvent represents error events

@@ -224,7 +224,7 @@ func (ec *EventConsumer) handleBalanceEvent(msg *nats.Msg) error {
 	}
 
 	// Process the balance event
-	log.Printf("Processing balance event: %s - %s - %f -> %f", 
+	log.Printf("Processing balance event: %s - %s - %f -> %f",
 		event.EventType, event.Symbol, event.PreviousBalance, event.NewBalance)
 
 	// Update balance and create transaction
@@ -301,7 +301,7 @@ func (ec *EventConsumer) handleSignalEvent(msg *nats.Msg) error {
 	}
 
 	// Process the signal event
-	log.Printf("Processing signal event: %s - %s - %s - %.2f confidence", 
+	log.Printf("Processing signal event: %s - %s - %s - %.2f confidence",
 		event.EventType, event.SignalType, event.Symbol, event.Confidence)
 
 	// Create trading log entry for signal

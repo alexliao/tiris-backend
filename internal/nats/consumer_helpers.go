@@ -36,14 +36,14 @@ func (ec *EventConsumer) markEventAsProcessed(eventID, eventType string, userID 
 // createTradingLogFromOrderEvent creates a trading log entry from an order event
 func (ec *EventConsumer) createTradingLogFromOrderEvent(event *OrderEvent) error {
 	metadata, err := json.Marshal(map[string]interface{}{
-		"order_id":      event.OrderID,
-		"symbol":        event.Symbol,
-		"side":          event.Side,
-		"type":          event.Type,
-		"amount":        event.Amount,
-		"price":         event.Price,
-		"status":        event.Status,
-		"event_id":      event.EventID,
+		"order_id":          event.OrderID,
+		"symbol":            event.Symbol,
+		"side":              event.Side,
+		"type":              event.Type,
+		"amount":            event.Amount,
+		"price":             event.Price,
+		"status":            event.Status,
+		"event_id":          event.EventID,
 		"original_metadata": event.Metadata,
 	})
 	if err != nil {
@@ -81,7 +81,7 @@ func (ec *EventConsumer) createTradingLogFromBalanceEvent(event *BalanceEvent, t
 		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
-	message := fmt.Sprintf("Balance updated: %s %f %s (was %f, now %f)", 
+	message := fmt.Sprintf("Balance updated: %s %f %s (was %f, now %f)",
 		event.Direction, event.Amount, event.Symbol, event.PreviousBalance, event.NewBalance)
 
 	log := &models.TradingLog{
@@ -145,7 +145,7 @@ func (ec *EventConsumer) createTradingLogFromSignalEvent(event *SignalEvent) err
 		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
-	message := fmt.Sprintf("Trading signal: %s %s (%.1f%% confidence) - %s", 
+	message := fmt.Sprintf("Trading signal: %s %s (%.1f%% confidence) - %s",
 		event.SignalType, event.Symbol, event.Confidence*100, event.Reasoning)
 
 	log := &models.TradingLog{

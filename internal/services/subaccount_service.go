@@ -46,16 +46,16 @@ type CreateSubAccountRequest struct {
 
 // UpdateSubAccountRequest represents sub-account update request
 type UpdateSubAccountRequest struct {
-	Name   *string  `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
-	Symbol *string  `json:"symbol,omitempty" binding:"omitempty,min=1,max=20"`
+	Name    *string  `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
+	Symbol  *string  `json:"symbol,omitempty" binding:"omitempty,min=1,max=20"`
 	Balance *float64 `json:"balance,omitempty" binding:"omitempty,min=0"`
 }
 
 // UpdateBalanceRequest represents balance update request
 type UpdateBalanceRequest struct {
-	Amount    float64 `json:"amount" binding:"required"`
-	Direction string  `json:"direction" binding:"required,oneof=credit debit"`
-	Reason    string  `json:"reason" binding:"required,min=1,max=255"`
+	Amount    float64                `json:"amount" binding:"required"`
+	Direction string                 `json:"direction" binding:"required,oneof=credit debit"`
+	Reason    string                 `json:"reason" binding:"required,min=1,max=255"`
 	Info      map[string]interface{} `json:"info,omitempty"`
 }
 
@@ -84,8 +84,8 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 
 	// Create info JSON with metadata
 	infoData := map[string]interface{}{
-		"created_by":  "api",
-		"api_version": "v1",
+		"created_by":    "api",
+		"api_version":   "v1",
 		"exchange_type": exchange.Type,
 	}
 

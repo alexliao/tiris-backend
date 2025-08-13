@@ -58,7 +58,7 @@ func (r *transactionRepository) getTransactions(ctx context.Context, filters Tra
 
 	// Build base query
 	query := r.db.WithContext(ctx).Model(&models.Transaction{}).Where(whereClause, whereArgs...)
-	
+
 	// Apply filters
 	if filters.Direction != nil {
 		query = query.Where("direction = ?", *filters.Direction)

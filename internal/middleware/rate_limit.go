@@ -12,11 +12,11 @@ import (
 
 // RateLimiter represents a token bucket rate limiter
 type RateLimiter struct {
-	tokens    int
-	maxTokens int
+	tokens     int
+	maxTokens  int
 	refillRate time.Duration
 	lastRefill time.Time
-	mutex     sync.Mutex
+	mutex      sync.Mutex
 }
 
 // NewRateLimiter creates a new rate limiter
@@ -65,9 +65,9 @@ func (rl *RateLimiter) GetTokens() int {
 
 // RateLimitStore manages rate limiters for different keys
 type RateLimitStore struct {
-	limiters map[string]*RateLimiter
-	mutex    sync.RWMutex
-	maxTokens int
+	limiters   map[string]*RateLimiter
+	mutex      sync.RWMutex
+	maxTokens  int
 	refillRate time.Duration
 }
 
@@ -106,8 +106,8 @@ func (rls *RateLimitStore) GetLimiter(key string) *RateLimiter {
 
 // RateLimitConfig represents rate limiting configuration
 type RateLimitConfig struct {
-	RequestsPerHour int           // Maximum requests per hour
-	WindowDuration  time.Duration // Time window for rate limiting
+	RequestsPerHour int                       // Maximum requests per hour
+	WindowDuration  time.Duration             // Time window for rate limiting
 	KeyFunc         func(*gin.Context) string // Function to generate rate limit key
 }
 

@@ -15,10 +15,10 @@ Implement comprehensive unit tests for all services and handlers in the Tiris Ba
   - ✅ Set up test configuration management
 
 ### Stage 2: Write service layer unit tests
-- **Status**: Pending  
+- **Status**: In Progress  
 - **Tasks**:
   - Test AuthService (login, OAuth, token refresh, logout)
-  - Test UserService (CRUD operations, stats, validation)
+  - ✅ Test UserService (CRUD operations, stats, validation) - 10 comprehensive tests
   - Test ExchangeService (CRUD operations, validation, ownership)
   - Test SubAccountService (CRUD, balance updates, validation)
   - Test TransactionService (complex queries, filtering, pagination)

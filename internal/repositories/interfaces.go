@@ -87,14 +87,14 @@ type EventProcessingRepository interface {
 
 // Filter structs for complex queries
 type TransactionFilters struct {
-	Direction   *string
-	Reason      *string
-	StartDate   *time.Time
-	EndDate     *time.Time
-	MinAmount   *float64
-	MaxAmount   *float64
-	Limit       int
-	Offset      int
+	Direction *string
+	Reason    *string
+	StartDate *time.Time
+	EndDate   *time.Time
+	MinAmount *float64
+	MaxAmount *float64
+	Limit     int
+	Offset    int
 }
 
 type TradingLogFilters struct {
@@ -107,9 +107,9 @@ type TradingLogFilters struct {
 }
 
 type EventProcessingFilters struct {
-	Status     *string
-	StartDate  *time.Time
-	EndDate    *time.Time
-	Limit      int
-	Offset     int
+	Status    *string
+	StartDate *time.Time
+	EndDate   *time.Time
+	Limit     int
+	Offset    int
 }

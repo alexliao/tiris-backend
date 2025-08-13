@@ -6,9 +6,11 @@ import (
 
 	"tiris-backend/internal/models"
 	"tiris-backend/internal/repositories"
+	"tiris-backend/pkg/auth"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	"golang.org/x/oauth2"
 )
 
 // MockUserRepository is a mock implementation of UserRepository
@@ -326,4 +328,66 @@ func (m *MockEventProcessingRepository) GetFailedEvents(ctx context.Context, max
 func (m *MockEventProcessingRepository) DeleteOldEvents(ctx context.Context, olderThan time.Time) error {
 	args := m.Called(ctx, olderThan)
 	return args.Error(0)
+}
+
+// MockJWTManager is a mock implementation of JWTManagerInterface
+type MockJWTManager struct {
+	mock.Mock
+}
+
+func (m *MockJWTManager) GenerateToken(userID uuid.UUID, username, email, role string) (string, error) {
+	args := m.Called(userID, username, email, role)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockJWTManager) GenerateTokenPair(userID uuid.UUID, username, email, role string) (*auth.TokenPair, error) {
+	args := m.Called(userID, username, email, role)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*auth.TokenPair), args.Error(1)
+}
+
+func (m *MockJWTManager) ValidateToken(tokenString string) (*auth.Claims, error) {
+	args := m.Called(tokenString)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*auth.Claims), args.Error(1)
+}
+
+func (m *MockJWTManager) ValidateRefreshToken(tokenString string) (uuid.UUID, error) {
+	args := m.Called(tokenString)
+	return args.Get(0).(uuid.UUID), args.Error(1)
+}
+
+func (m *MockJWTManager) RefreshToken(refreshToken, username, email, role string) (string, error) {
+	args := m.Called(refreshToken, username, email, role)
+	return args.String(0), args.Error(1)
+}
+
+// MockOAuthManager is a mock implementation of OAuthManagerInterface
+type MockOAuthManager struct {
+	mock.Mock
+}
+
+func (m *MockOAuthManager) GetAuthURL(provider auth.OAuthProvider, state string) (string, error) {
+	args := m.Called(provider, state)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockOAuthManager) ExchangeCodeForToken(provider auth.OAuthProvider, code string) (*oauth2.Token, error) {
+	args := m.Called(provider, code)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*oauth2.Token), args.Error(1)
+}
+
+func (m *MockOAuthManager) GetUserInfo(provider auth.OAuthProvider, token *oauth2.Token) (*auth.OAuthUser, error) {
+	args := m.Called(provider, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*auth.OAuthUser), args.Error(1)
 }

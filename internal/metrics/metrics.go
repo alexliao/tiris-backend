@@ -29,22 +29,22 @@ type Metrics struct {
 	NATSMessageProcessTime *prometheus.HistogramVec
 
 	// Business metrics
-	UsersTotal           prometheus.Gauge
-	ExchangesTotal       prometheus.Gauge
-	SubAccountsTotal     prometheus.Gauge
-	TransactionsTotal    *prometheus.CounterVec
-	TradingLogsTotal     *prometheus.CounterVec
-	BalanceUpdatesTotal  *prometheus.CounterVec
+	UsersTotal          prometheus.Gauge
+	ExchangesTotal      prometheus.Gauge
+	SubAccountsTotal    prometheus.Gauge
+	TransactionsTotal   *prometheus.CounterVec
+	TradingLogsTotal    *prometheus.CounterVec
+	BalanceUpdatesTotal *prometheus.CounterVec
 
 	// Auth metrics
-	AuthRequestsTotal     *prometheus.CounterVec
-	ActiveSessions        prometheus.Gauge
-	TokenRefreshTotal     *prometheus.CounterVec
-	OAuthRequestsTotal    *prometheus.CounterVec
+	AuthRequestsTotal  *prometheus.CounterVec
+	ActiveSessions     prometheus.Gauge
+	TokenRefreshTotal  *prometheus.CounterVec
+	OAuthRequestsTotal *prometheus.CounterVec
 
 	// Error metrics
-	ErrorsTotal           *prometheus.CounterVec
-	PanicRecoveryTotal    *prometheus.CounterVec
+	ErrorsTotal        *prometheus.CounterVec
+	PanicRecoveryTotal *prometheus.CounterVec
 }
 
 // NewMetrics creates and registers all Prometheus metrics
@@ -254,10 +254,10 @@ func (m *Metrics) HTTPMetricsMiddleware() gin.HandlerFunc {
 // RecordDatabaseQuery records database query metrics
 func (m *Metrics) RecordDatabaseQuery(operation, table string, duration time.Duration, err error) {
 	labels := []string{operation, table}
-	
+
 	// Record duration
 	m.DatabaseQueryDuration.WithLabelValues(labels...).Observe(duration.Seconds())
-	
+
 	// Record query count with status
 	status := "success"
 	if err != nil {

@@ -11,7 +11,10 @@
       "Bash(go get:*)",
       "WebSearch",
       "Bash(rm:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(git commit:*)",
+      "Bash(go fmt:*)",
+      "Bash(go vet:*)"
     ],
     "deny": [],
     "ask": []

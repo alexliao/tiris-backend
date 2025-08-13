@@ -26,14 +26,14 @@ func NewUserService(repos *repositories.Repositories) *UserService {
 
 // UserResponse represents user information in responses
 type UserResponse struct {
-	ID       uuid.UUID              `json:"id"`
-	Username string                 `json:"username"`
-	Email    string                 `json:"email"`
-	Avatar   *string                `json:"avatar,omitempty"`
-	Settings map[string]interface{} `json:"settings"`
-	Info     map[string]interface{} `json:"info"`
-	CreatedAt string                `json:"created_at"`
-	UpdatedAt string                `json:"updated_at"`
+	ID        uuid.UUID              `json:"id"`
+	Username  string                 `json:"username"`
+	Email     string                 `json:"email"`
+	Avatar    *string                `json:"avatar,omitempty"`
+	Settings  map[string]interface{} `json:"settings"`
+	Info      map[string]interface{} `json:"info"`
+	CreatedAt string                 `json:"created_at"`
+	UpdatedAt string                 `json:"updated_at"`
 }
 
 // UpdateUserRequest represents user update request
