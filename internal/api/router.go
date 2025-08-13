@@ -14,14 +14,15 @@ import (
 
 // Server represents the API server
 type Server struct {
-	router             *gin.Engine
-	config             *config.Config
-	repos              *repositories.Repositories
-	jwtManager         *auth.JWTManager
-	authService        *services.AuthService
-	userService        *services.UserService
-	exchangeService    *services.ExchangeService
-	subAccountService  *services.SubAccountService
+	router              *gin.Engine
+	config              *config.Config
+	repos               *repositories.Repositories
+	jwtManager          *auth.JWTManager
+	authService         *services.AuthService
+	userService         *services.UserService
+	exchangeService     *services.ExchangeService
+	subAccountService   *services.SubAccountService
+	transactionService  *services.TransactionService
 }
 
 // NewServer creates a new API server
@@ -54,15 +55,17 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories) *Server {
 	userService := services.NewUserService(repos)
 	exchangeService := services.NewExchangeService(repos)
 	subAccountService := services.NewSubAccountService(repos)
+	transactionService := services.NewTransactionService(repos)
 
 	return &Server{
-		config:            cfg,
-		repos:             repos,
-		jwtManager:        jwtManager,
-		authService:       authService,
-		userService:       userService,
-		exchangeService:   exchangeService,
-		subAccountService: subAccountService,
+		config:             cfg,
+		repos:              repos,
+		jwtManager:         jwtManager,
+		authService:        authService,
+		userService:        userService,
+		exchangeService:    exchangeService,
+		subAccountService:  subAccountService,
+		transactionService: transactionService,
 	}
 }
 
@@ -107,6 +110,9 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// Sub-account management routes
 	s.setupSubAccountRoutes(protected)
+
+	// Transaction query routes
+	s.setupTransactionRoutes(protected)
 
 	s.router = router
 	return router
@@ -215,6 +221,27 @@ func (s *Server) setupSubAccountRoutes(protected *gin.RouterGroup) {
 	
 	// Symbol-based queries
 	subAccounts.GET("/symbol/:symbol", subAccountHandler.GetSubAccountsBySymbol)
+}
+
+// setupTransactionRoutes sets up transaction query routes
+func (s *Server) setupTransactionRoutes(protected *gin.RouterGroup) {
+	transactionHandler := NewTransactionHandler(s.transactionService)
+
+	transactions := protected.Group("/transactions")
+
+	// User transaction routes
+	transactions.GET("", transactionHandler.GetUserTransactions)
+	transactions.GET("/:id", transactionHandler.GetTransaction)
+	transactions.GET("/sub-account/:sub_account_id", transactionHandler.GetSubAccountTransactions)
+	transactions.GET("/exchange/:exchange_id", transactionHandler.GetExchangeTransactions)
+	transactions.GET("/time-range", transactionHandler.GetTransactionsByTimeRange)
+
+	// Admin transaction routes
+	adminTransactions := protected.Group("/admin/transactions")
+	adminTransactions.Use(middleware.AdminMiddleware())
+	
+	adminTransactions.GET("", transactionHandler.ListAllTransactions)
+	adminTransactions.GET("/:id", transactionHandler.GetTransactionByID)
 }
 
 // GetRouter returns the configured router
