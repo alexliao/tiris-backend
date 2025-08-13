@@ -14,13 +14,14 @@ import (
 
 // Server represents the API server
 type Server struct {
-	router          *gin.Engine
-	config          *config.Config
-	repos           *repositories.Repositories
-	jwtManager      *auth.JWTManager
-	authService     *services.AuthService
-	userService     *services.UserService
-	exchangeService *services.ExchangeService
+	router             *gin.Engine
+	config             *config.Config
+	repos              *repositories.Repositories
+	jwtManager         *auth.JWTManager
+	authService        *services.AuthService
+	userService        *services.UserService
+	exchangeService    *services.ExchangeService
+	subAccountService  *services.SubAccountService
 }
 
 // NewServer creates a new API server
@@ -52,14 +53,16 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories) *Server {
 	authService := services.NewAuthService(repos, jwtManager, oauthManager)
 	userService := services.NewUserService(repos)
 	exchangeService := services.NewExchangeService(repos)
+	subAccountService := services.NewSubAccountService(repos)
 
 	return &Server{
-		config:          cfg,
-		repos:           repos,
-		jwtManager:      jwtManager,
-		authService:     authService,
-		userService:     userService,
-		exchangeService: exchangeService,
+		config:            cfg,
+		repos:             repos,
+		jwtManager:        jwtManager,
+		authService:       authService,
+		userService:       userService,
+		exchangeService:   exchangeService,
+		subAccountService: subAccountService,
 	}
 }
 
@@ -101,6 +104,9 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// Exchange management routes
 	s.setupExchangeRoutes(protected)
+
+	// Sub-account management routes
+	s.setupSubAccountRoutes(protected)
 
 	s.router = router
 	return router
@@ -191,6 +197,24 @@ func (s *Server) setupExchangeRoutes(protected *gin.RouterGroup) {
 	
 	adminExchanges.GET("", exchangeHandler.ListExchanges)
 	adminExchanges.GET("/:id", exchangeHandler.GetExchangeByID)
+}
+
+// setupSubAccountRoutes sets up sub-account management routes
+func (s *Server) setupSubAccountRoutes(protected *gin.RouterGroup) {
+	subAccountHandler := NewSubAccountHandler(s.subAccountService)
+
+	subAccounts := protected.Group("/sub-accounts")
+
+	// User sub-account routes
+	subAccounts.POST("", subAccountHandler.CreateSubAccount)
+	subAccounts.GET("", subAccountHandler.GetUserSubAccounts)
+	subAccounts.GET("/:id", subAccountHandler.GetSubAccount)
+	subAccounts.PUT("/:id", subAccountHandler.UpdateSubAccount)
+	subAccounts.PUT("/:id/balance", subAccountHandler.UpdateBalance)
+	subAccounts.DELETE("/:id", subAccountHandler.DeleteSubAccount)
+	
+	// Symbol-based queries
+	subAccounts.GET("/symbol/:symbol", subAccountHandler.GetSubAccountsBySymbol)
 }
 
 // GetRouter returns the configured router

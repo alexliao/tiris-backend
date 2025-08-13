@@ -9,7 +9,8 @@
       "Bash(go mod:*)",
       "Bash(go build:*)",
       "Bash(go get:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
