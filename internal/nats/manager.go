@@ -74,6 +74,39 @@ func (m *Manager) HealthCheck() error {
 	return m.client.HealthCheck()
 }
 
+// IsConnected returns true if the NATS connection is active
+func (m *Manager) IsConnected() bool {
+	if m.client == nil || m.client.conn == nil {
+		return false
+	}
+	return m.client.conn.IsConnected()
+}
+
+// GetConnectionStats returns detailed connection statistics
+func (m *Manager) GetConnectionStats() map[string]interface{} {
+	if m.client == nil || m.client.conn == nil {
+		return nil
+	}
+
+	stats := m.client.conn.Stats()
+	return map[string]interface{}{
+		"connected_url":     m.client.conn.ConnectedUrl(),
+		"client_id":         m.client.conn.Opts.Name,
+		"discovered_urls":   m.client.conn.DiscoveredServers(),
+		"bytes_sent":        stats.OutBytes,
+		"bytes_received":    stats.InBytes,
+		"messages_sent":     stats.OutMsgs,
+		"messages_received": stats.InMsgs,
+		"reconnects":        stats.Reconnects,
+		"last_error":        func() string {
+			if err := m.client.conn.LastError(); err != nil {
+				return err.Error()
+			}
+			return ""
+		}(),
+	}
+}
+
 // PublishEvent publishes an event to the appropriate stream
 func (m *Manager) PublishEvent(event interface{}) error {
 	if m.client == nil {

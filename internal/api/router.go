@@ -4,8 +4,10 @@ import (
 	"time"
 
 	"tiris-backend/internal/config"
+	"tiris-backend/internal/database"
 	"tiris-backend/internal/metrics"
 	"tiris-backend/internal/middleware"
+	"tiris-backend/internal/nats"
 	"tiris-backend/internal/repositories"
 	"tiris-backend/internal/services"
 	"tiris-backend/pkg/auth"
@@ -18,6 +20,8 @@ import (
 type Server struct {
 	router             *gin.Engine
 	config             *config.Config
+	db                 *database.DB
+	natsManager        *nats.Manager
 	repos              *repositories.Repositories
 	jwtManager         *auth.JWTManager
 	authService        *services.AuthService
@@ -137,35 +141,16 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 // setupHealthRoutes sets up health check routes
 func (s *Server) setupHealthRoutes(router *gin.Engine) {
-	router.GET("/health/live", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"success": true,
-			"data": gin.H{
-				"status":    "alive",
-				"timestamp": time.Now().UTC().Format(time.RFC3339),
-			},
-		})
-	})
+	healthHandler := NewHealthHandler(s.db, s.natsManager)
 
-	router.GET("/health/ready", func(c *gin.Context) {
-		checks := gin.H{
-			"database": "ok",
-			"nats":     "ok",
-		}
-
-		// For health checks, we assume services are ready
-		// In a production setup, you'd want to pass database and NATS
-		// instances to perform actual health checks
-
-		c.JSON(200, gin.H{
-			"success": true,
-			"data": gin.H{
-				"status":    "ready",
-				"checks":    checks,
-				"timestamp": time.Now().UTC().Format(time.RFC3339),
-			},
-		})
-	})
+	// Kubernetes liveness probe - simple check that the app is running
+	router.GET("/health/live", healthHandler.LivenessProbe)
+	
+	// Kubernetes readiness probe - check if app can serve traffic
+	router.GET("/health/ready", healthHandler.ReadinessProbe)
+	
+	// Detailed health check with dependency information
+	router.GET("/health", healthHandler.HealthCheck)
 }
 
 // setupAuthRoutes sets up authentication routes
