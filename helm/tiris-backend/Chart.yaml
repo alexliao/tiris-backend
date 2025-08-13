@@ -1,0 +1,44 @@
+apiVersion: v2
+name: tiris-backend
+description: A Helm chart for Tiris Backend - Trading Infrastructure and Risk Management System
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - trading
+  - backend
+  - api
+  - fintech
+  - microservices
+
+home: https://github.com/tiris-ai/tiris-backend
+sources:
+  - https://github.com/tiris-ai/tiris-backend
+
+maintainers:
+  - name: Tiris Development Team
+    email: dev@tiris.ai
+
+dependencies:
+  - name: postgresql
+    version: "12.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: redis
+    version: "18.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+
+annotations:
+  category: Application
+  licenses: Proprietary
+  images: |
+    - name: tiris-backend
+      image: tiris/backend:1.0.0
+    - name: postgres
+      image: timescale/timescaledb:latest-pg15
+    - name: nats
+      image: nats:alpine
+    - name: redis
+      image: redis:7-alpine

@@ -1,0 +1,383 @@
+# Default values for tiris-backend Helm chart
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: "fast-ssd"
+
+# Application configuration
+app:
+  name: tiris-backend
+  version: "1.0.0"
+  
+image:
+  registry: docker.io
+  repository: tiris/backend
+  tag: "latest"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Deployment configuration
+deployment:
+  replicaCount: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+# Service Account
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: tiris.ai
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: api.tiris.ai
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: tiris-tls-secret
+      hosts:
+        - tiris.ai
+        - api.tiris.ai
+
+# Health checks
+healthcheck:
+  livenessProbe:
+    path: /health/live
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    path: /health/ready
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Auto-scaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable: ""
+
+# Application configuration
+config:
+  environment: production
+  logLevel: info
+  logFormat: json
+  
+  # Database settings
+  database:
+    host: tiris-postgresql
+    port: 5432
+    name: tiris_prod
+    user: tiris_user
+    sslMode: require
+    maxOpenConnections: 25
+    maxIdleConnections: 5
+    connectionMaxLifetime: 300
+  
+  # JWT settings
+  jwt:
+    expiration: 3600
+    refreshExpiration: 604800
+  
+  # CORS settings
+  cors:
+    allowedOrigins: "https://tiris.ai,https://app.tiris.ai"
+    allowedMethods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+    allowedHeaders: "Origin,Content-Type,Accept,Authorization,X-Requested-With"
+  
+  # Rate limiting
+  rateLimit:
+    enabled: true
+    requestsPerMinute: 1000
+    burst: 100
+  
+  # Monitoring
+  metrics:
+    enabled: true
+    path: /metrics
+
+# Secrets (override in production)
+secrets:
+  # Database
+  databasePassword: "CHANGE_ME_PRODUCTION_PASSWORD"
+  
+  # JWT
+  jwtSecret: "CHANGE_ME_PRODUCTION_JWT_SECRET_32_CHARS_MIN"
+  refreshSecret: "CHANGE_ME_PRODUCTION_REFRESH_SECRET_32_CHARS"
+  
+  # OAuth
+  googleClientId: "your-google-client-id"
+  googleClientSecret: "CHANGE_ME_GOOGLE_SECRET"
+  wechatAppId: "wx1234567890abcdef"
+  wechatAppSecret: "CHANGE_ME_WECHAT_SECRET"
+  
+  # NATS
+  natsUser: "nats_user"
+  natsPassword: "CHANGE_ME_NATS_PASSWORD"
+  
+  # Redis
+  redisPassword: "CHANGE_ME_REDIS_PASSWORD"
+
+# PostgreSQL configuration (using Bitnami chart)
+postgresql:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: timescale/timescaledb
+    tag: latest-pg15
+  
+  auth:
+    postgresPassword: "CHANGE_ME_POSTGRES_PASSWORD"
+    username: tiris_user
+    password: "CHANGE_ME_PRODUCTION_PASSWORD"
+    database: tiris_prod
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "fast-ssd"
+    
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 500m
+      limits:
+        memory: 2Gi
+        cpu: 1000m
+    
+    initdb:
+      scripts:
+        init-timescale.sql: |
+          CREATE EXTENSION IF NOT EXISTS timescaledb;
+          CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          CREATE SCHEMA IF NOT EXISTS tiris;
+          GRANT ALL ON SCHEMA tiris TO tiris_user;
+          ALTER ROLE tiris_user SET search_path TO tiris, public;
+
+# NATS configuration
+nats:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: nats
+    tag: alpine
+  
+  auth:
+    enabled: true
+    user: nats_user
+    password: "CHANGE_ME_NATS_PASSWORD"
+  
+  jetstream:
+    enabled: true
+    storage: file
+    maxMemory: 1Gi
+    maxStorage: 10Gi
+  
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: "fast-ssd"
+  
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+
+# Redis configuration (using Bitnami chart)
+redis:
+  enabled: true
+  architecture: standalone
+  
+  auth:
+    enabled: true
+    password: "CHANGE_ME_REDIS_PASSWORD"
+  
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+      storageClass: "fast-ssd"
+    
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 300m
+    
+    configuration: |-
+      maxmemory 512mb
+      maxmemory-policy allkeys-lru
+      save 900 1
+      save 300 10
+      save 60 10000
+
+# Migration job configuration
+migration:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: tiris/backend
+    tag: "latest"
+  
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    path: /metrics
+  
+  prometheusRule:
+    enabled: true
+    rules:
+      - alert: TirisBackendDown
+        expr: up{job="tiris-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tiris Backend is down"
+          description: "Tiris Backend has been down for more than 1 minute"
+      
+      - alert: TirisBackendHighErrorRate
+        expr: rate(http_requests_total{job="tiris-backend",status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in Tiris Backend"
+          description: "Error rate is {{ $value }} errors per second"
+
+# Network policy configuration
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 8080
+  
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 443
+
+# Node affinity and tolerations
+affinity: {}
+tolerations: []
+nodeSelector: {}
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+# Additional labels
+labels: {}
+
+# Additional environment variables
+extraEnvVars: []
+
+# Additional volumes
+extraVolumes: []
+extraVolumeMounts: []

@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: tiris-backend-base
+
+namespace: tiris
+
+resources:
+- namespace.yaml
+- configmap.yaml
+- secrets.yaml
+- postgres.yaml
+- nats.yaml
+- redis.yaml
+- application.yaml
+- migration.yaml
+- ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/name: tiris-backend
+  app.kubernetes.io/part-of: tiris
+  app.kubernetes.io/version: latest
+
+images:
+- name: tiris/backend
+  newTag: latest
+
+configMapGenerator:
+- name: tiris-version-config
+  literals:
+  - VERSION=latest
+  - BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  - GIT_COMMIT=unknown
+
+# Resource limits and requests
+patchesStrategicMerge:
+- |-
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: tiris-backend-config
+    namespace: tiris
+  data:
+    # Override environment-specific values here if needed
+    LOG_LEVEL: "info"
+
+# Validation and security
+validators:
+- kind: KubernetesValidate

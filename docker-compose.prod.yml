@@ -1,0 +1,410 @@
+version: '3.8'
+
+# Production Docker Compose configuration for Tiris Backend
+# Optimized for production deployment with security, performance, and reliability
+
+services:
+  # PostgreSQL with TimescaleDB for production
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: tiris-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tiris_prod}
+      POSTGRES_USER: ${DB_USER:-tiris_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password is required}
+      POSTGRES_INITDB_ARGS: "--auth-host=md5"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+      - ./scripts/init-db-prod.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./scripts/backup-db.sh:/scripts/backup-db.sh:ro
+    networks:
+      - tiris-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tiris_user} -d ${DB_NAME:-tiris_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # NATS JetStream for production
+  nats:
+    image: nats:alpine
+    container_name: tiris-nats-prod
+    restart: always
+    command:
+      - '--jetstream'
+      - '--store_dir=/data'
+      - '--port=4222'
+      - '--http_port=8222'
+      - '--log_file=/var/log/nats/nats.log'
+      - '--pid_file=/var/run/nats/nats.pid'
+      - '--max_payload=1048576'  # 1MB
+      - '--max_pending=268435456' # 256MB
+      - '--write_deadline=10s'
+      - '--user=${NATS_USER:-nats_user}'
+      - '--pass=${NATS_PASSWORD:?NATS password is required}'
+    ports:
+      - "${NATS_PORT:-4222}:4222"
+      - "${NATS_HTTP_PORT:-8222}:8222"
+    volumes:
+      - nats_data:/data
+      - nats_logs:/var/log/nats
+      - nats_run:/var/run/nats
+    networks:
+      - tiris-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/varz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.2'
+
+  # Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: tiris-redis-prod
+    restart: always
+    command: >
+      redis-server 
+      --requirepass ${REDIS_PASSWORD:?Redis password is required}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 300
+      --timeout 0
+      --tcp-backlog 511
+      --databases 16
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+      - redis_config:/usr/local/etc/redis
+    networks:
+      - tiris-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.3'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # Main application server
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ""
+      args:
+        VERSION: ${APP_VERSION:-latest}
+        BUILD_TIME: ${BUILD_TIME}
+        GIT_COMMIT: ${GIT_COMMIT}
+    image: tiris/backend:${APP_VERSION:-latest}
+    container_name: tiris-app-prod
+    restart: always
+    environment:
+      # Application settings
+      ENV: production
+      GIN_MODE: release
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: json
+      
+      # Database configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-tiris_prod}
+      DB_USER: ${DB_USER:-tiris_user}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password is required}
+      DB_SSL_MODE: ${DB_SSL_MODE:-require}
+      DB_MAX_OPEN_CONNS: 25
+      DB_MAX_IDLE_CONNS: 5
+      DB_CONN_MAX_LIFETIME: 300
+      
+      # NATS configuration
+      NATS_URL: nats://${NATS_USER:-nats_user}:${NATS_PASSWORD}@nats:4222
+      NATS_MAX_RECONNECT: 10
+      NATS_RECONNECT_WAIT: 2s
+      
+      # Redis configuration
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      REDIS_MAX_IDLE: 10
+      REDIS_MAX_ACTIVE: 20
+      REDIS_IDLE_TIMEOUT: 240s
+      
+      # JWT configuration
+      JWT_SECRET: ${JWT_SECRET:?JWT secret is required}
+      REFRESH_SECRET: ${REFRESH_SECRET:?Refresh secret is required}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600}
+      REFRESH_EXPIRATION: ${REFRESH_EXPIRATION:-604800}
+      
+      # OAuth configuration
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Google Client ID is required}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?Google Client Secret is required}
+      WECHAT_APP_ID: ${WECHAT_APP_ID:-}
+      WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+      
+      # CORS configuration
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://tiris.ai,https://app.tiris.ai}
+      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+      CORS_ALLOWED_HEADERS: "Origin,Content-Type,Accept,Authorization,X-Requested-With"
+      
+      # Rate limiting
+      RATE_LIMIT_ENABLED: true
+      RATE_LIMIT_REQUESTS_PER_MINUTE: 1000
+      RATE_LIMIT_BURST: 100
+      
+      # Monitoring and observability
+      METRICS_ENABLED: true
+      METRICS_PATH: /metrics
+      HEALTH_CHECK_INTERVAL: 30s
+      
+      # Container-specific settings
+      WAIT_FOR_DB: true
+      RUN_MIGRATIONS: false  # Run separately in migration service
+      
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - app_logs:/app/logs
+      - app_tmp:/app/tmp
+    networks:
+      - tiris-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      replicas: ${APP_REPLICAS:-2}
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  # Database migration service (run once)
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${APP_VERSION:-latest}
+        BUILD_TIME: ${BUILD_TIME}
+        GIT_COMMIT: ${GIT_COMMIT}
+    image: tiris/backend:${APP_VERSION:-latest}
+    container_name: tiris-migrate-prod
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-tiris_prod}
+      DB_USER: ${DB_USER:-tiris_user}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password is required}
+      DB_SSL_MODE: ${DB_SSL_MODE:-require}
+      WAIT_FOR_DB: true
+    volumes:
+      - ./migrations:/app/migrations:ro
+    networks:
+      - tiris-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["migrate-up"]
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    profiles:
+      - migrate
+
+  # NATS stream setup service (run once)
+  nats-setup:
+    image: natsio/nats-box:latest
+    container_name: tiris-nats-setup-prod
+    volumes:
+      - ./scripts/nats-setup-prod.sh:/scripts/nats-setup.sh:ro
+    networks:
+      - tiris-network
+    depends_on:
+      nats:
+        condition: service_healthy
+    environment:
+      NATS_URL: nats://${NATS_USER:-nats_user}:${NATS_PASSWORD}@nats:4222
+    command: ["/scripts/nats-setup.sh"]
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    profiles:
+      - setup
+
+  # Nginx reverse proxy and load balancer
+  nginx:
+    image: nginx:alpine
+    container_name: tiris-nginx-prod
+    restart: always
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./config/ssl:/etc/ssl/certs:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - tiris-network
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.3'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    profiles:
+      - nginx
+
+  # Database backup service
+  backup:
+    image: postgres:15-alpine
+    container_name: tiris-backup-prod
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+      DB_HOST: postgres
+      DB_NAME: ${DB_NAME:-tiris_prod}
+      DB_USER: ${DB_USER:-tiris_user}
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}  # Daily at 2 AM
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+    volumes:
+      - postgres_backups:/backups
+      - ./scripts/backup-cron.sh:/scripts/backup-cron.sh:ro
+    networks:
+      - tiris-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["/scripts/backup-cron.sh"]
+    profiles:
+      - backup
+
+# Production-grade volume configuration
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/postgres
+  postgres_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BACKUP_PATH:-./backups}/postgres
+  nats_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/nats
+  nats_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOG_PATH:-./logs}/nats
+  nats_run:
+    driver: local
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/redis
+  redis_config:
+    driver: local
+  app_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOG_PATH:-./logs}/app
+  app_tmp:
+    driver: local
+  nginx_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOG_PATH:-./logs}/nginx
+
+# Production network configuration
+networks:
+  tiris-network:
+    driver: bridge
+    name: tiris-prod-network
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16

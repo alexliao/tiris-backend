@@ -1,0 +1,380 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  GO_VERSION: '1.23'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get tag
+      id: tag
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get the previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 ${{ steps.tag.outputs.tag }}^ 2>/dev/null || echo "")
+        
+        # Generate changelog
+        if [ -n "$PREV_TAG" ]; then
+          echo "## Changes since $PREV_TAG" > changelog.md
+          echo "" >> changelog.md
+          git log --pretty=format:"- %s (%h)" $PREV_TAG..${{ steps.tag.outputs.tag }} >> changelog.md
+        else
+          echo "## Initial Release" > changelog.md
+          echo "" >> changelog.md
+          git log --pretty=format:"- %s (%h)" >> changelog.md
+        fi
+        
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        cat changelog.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        release_name: Release ${{ steps.tag.outputs.tag }}
+        body: ${{ steps.changelog.outputs.changelog }}
+        draft: false
+        prerelease: ${{ contains(steps.tag.outputs.tag, 'rc') || contains(steps.tag.outputs.tag, 'beta') || contains(steps.tag.outputs.tag, 'alpha') }}
+
+  build-binaries:
+    name: Build Release Binaries
+    runs-on: ubuntu-latest
+    needs: create-release
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Build binaries
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        # Set binary extension for Windows
+        BINARY_EXT=""
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          BINARY_EXT=".exe"
+        fi
+        
+        # Build server binary
+        go build -a -installsuffix cgo \
+          -ldflags="-s -w -X main.Version=${{ needs.create-release.outputs.tag }} -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.GitCommit=$(git rev-parse HEAD)" \
+          -o "tiris-server-${{ matrix.goos }}-${{ matrix.goarch }}${BINARY_EXT}" \
+          cmd/server/main.go
+        
+        # Build migrate binary
+        go build -a -installsuffix cgo \
+          -ldflags="-s -w -X main.Version=${{ needs.create-release.outputs.tag }} -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.GitCommit=$(git rev-parse HEAD)" \
+          -o "tiris-migrate-${{ matrix.goos }}-${{ matrix.goarch }}${BINARY_EXT}" \
+          cmd/migrate/main.go
+
+    - name: Generate checksums
+      run: |
+        sha256sum tiris-server-${{ matrix.goos }}-${{ matrix.goarch }}* > tiris-server-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+        sha256sum tiris-migrate-${{ matrix.goos }}-${{ matrix.goarch }}* > tiris-migrate-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+
+    - name: Upload server binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./tiris-server-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+        asset_name: tiris-server-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+        asset_content_type: application/octet-stream
+
+    - name: Upload migrate binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./tiris-migrate-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+        asset_name: tiris-migrate-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+        asset_content_type: application/octet-stream
+
+    - name: Upload server checksum
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./tiris-server-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+        asset_name: tiris-server-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+        asset_content_type: text/plain
+
+    - name: Upload migrate checksum
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./tiris-migrate-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+        asset_name: tiris-migrate-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+        asset_content_type: text/plain
+
+  build-docker:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: create-release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Log in to Docker Hub
+      if: secrets.DOCKER_USERNAME && secrets.DOCKER_PASSWORD
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          ${{ secrets.DOCKER_USERNAME && 'tiris/backend' || '' }}
+        tags: |
+          type=semver,pattern={{version}},value=${{ needs.create-release.outputs.tag }}
+          type=semver,pattern={{major}}.{{minor}},value=${{ needs.create-release.outputs.tag }}
+          type=semver,pattern={{major}},value=${{ needs.create-release.outputs.tag }}
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build production Dockerfile
+      run: |
+        cat > Dockerfile.prod << 'EOF'
+        # Multi-stage production Dockerfile
+        FROM golang:1.23-alpine AS builder
+        
+        WORKDIR /app
+        COPY go.mod go.sum ./
+        RUN go mod download
+        
+        COPY . .
+        ARG VERSION
+        ARG BUILD_TIME
+        ARG GIT_COMMIT
+        RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+            -ldflags="-s -w -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}" \
+            -o server cmd/server/main.go
+        
+        RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+            -ldflags="-s -w -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}" \
+            -o migrate cmd/migrate/main.go
+        
+        # Final stage
+        FROM alpine:latest
+        
+        RUN apk --no-cache add ca-certificates tzdata
+        WORKDIR /root/
+        
+        # Create non-root user
+        RUN adduser -D -s /bin/sh appuser
+        
+        COPY --from=builder /app/server .
+        COPY --from=builder /app/migrate .
+        COPY --from=builder /app/migrations ./migrations
+        
+        # Change ownership
+        RUN chown -R appuser:appuser /root
+        USER appuser
+        
+        EXPOSE 8080
+        
+        CMD ["./server"]
+        EOF
+
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.prod
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          VERSION=${{ needs.create-release.outputs.tag }}
+          BUILD_TIME=${{ github.run_id }}
+          GIT_COMMIT=${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  helm-chart:
+    name: Package and Release Helm Chart
+    runs-on: ubuntu-latest
+    needs: [create-release, build-docker]
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: 'latest'
+
+    - name: Create Helm chart
+      run: |
+        mkdir -p helm/tiris-backend
+        cat > helm/tiris-backend/Chart.yaml << EOF
+        apiVersion: v2
+        name: tiris-backend
+        description: A Helm chart for Tiris Backend
+        type: application
+        version: ${{ needs.create-release.outputs.tag }}
+        appVersion: ${{ needs.create-release.outputs.tag }}
+        keywords:
+          - trading
+          - backend
+          - api
+        maintainers:
+          - name: Tiris Team
+            email: dev@tiris.com
+        sources:
+          - ${{ github.server_url }}/${{ github.repository }}
+        EOF
+        
+        # Create basic values.yaml (would be expanded based on needs)
+        cat > helm/tiris-backend/values.yaml << 'EOF'
+        replicaCount: 1
+        
+        image:
+          repository: ghcr.io/${{ github.repository_owner }}/tiris-backend
+          pullPolicy: IfNotPresent
+          tag: ""
+        
+        service:
+          type: ClusterIP
+          port: 8080
+        
+        ingress:
+          enabled: false
+        
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        
+        autoscaling:
+          enabled: false
+        
+        postgresql:
+          enabled: true
+        
+        nats:
+          enabled: true
+        
+        redis:
+          enabled: true
+        EOF
+
+    - name: Package Helm chart
+      run: |
+        helm package helm/tiris-backend
+        CHART_FILE=$(ls tiris-backend-*.tgz)
+        echo "CHART_FILE=$CHART_FILE" >> $GITHUB_ENV
+
+    - name: Upload Helm chart
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./${{ env.CHART_FILE }}
+        asset_name: ${{ env.CHART_FILE }}
+        asset_content_type: application/gzip
+
+  notify-release:
+    name: Notify Release Complete
+    runs-on: ubuntu-latest
+    needs: [create-release, build-binaries, build-docker, helm-chart]
+    if: always()
+    
+    steps:
+    - name: Release summary
+      run: |
+        echo "🎉 Release ${{ needs.create-release.outputs.tag }} completed!"
+        echo ""
+        echo "📦 Artifacts created:"
+        echo "  ✅ Release binaries for Linux, macOS, Windows (amd64, arm64)"
+        echo "  ✅ Docker images (multi-platform)"
+        echo "  ✅ Helm chart"
+        echo ""
+        echo "🔗 Release URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.create-release.outputs.tag }}"

@@ -1,0 +1,24 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "tiris-backend.fullname" . }}-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tiris-backend.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alerts
+spec:
+  groups:
+  - name: tiris-backend.rules
+    interval: 30s
+    rules:
+    {{- range .Values.monitoring.prometheusRule.rules }}
+    - alert: {{ .alert }}
+      expr: {{ .expr }}
+      for: {{ .for }}
+      labels:
+        {{- toYaml .labels | nindent 8 }}
+      annotations:
+        {{- toYaml .annotations | nindent 8 }}
+    {{- end }}
+{{- end }}

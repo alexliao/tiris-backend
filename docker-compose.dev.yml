@@ -1,0 +1,179 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with TimescaleDB extension for time-series data
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: tiris-postgres-dev
+    environment:
+      POSTGRES_DB: tiris_dev
+      POSTGRES_USER: tiris_user
+      POSTGRES_PASSWORD: tiris_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - tiris-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tiris_user -d tiris_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NATS JetStream for event messaging
+  nats:
+    image: nats:alpine
+    container_name: tiris-nats-dev
+    command:
+      - '--jetstream'
+      - '--store_dir=/data'
+      - '--port=4222'
+      - '--http_port=8222'
+      - '--log_file=/var/log/nats.log'
+      - '--debug'
+    ports:
+      - "4222:4222"  # NATS client connections
+      - "8222:8222"  # HTTP monitoring
+    volumes:
+      - nats_data:/data
+      - nats_logs:/var/log
+    networks:
+      - tiris-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/varz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and rate limiting
+  redis:
+    image: redis:alpine
+    container_name: tiris-redis-dev
+    command: redis-server --requirepass redis_password --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tiris-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application container for development
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: tiris-app-dev
+    environment:
+      - ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=tiris_dev
+      - DB_USER=tiris_user
+      - DB_PASSWORD=tiris_password
+      - DB_SSL_MODE=disable
+      - NATS_URL=nats://nats:4222
+      - REDIS_URL=redis://:redis_password@redis:6379/0
+      - JWT_SECRET=dev_jwt_secret_key_change_in_production
+      - REFRESH_SECRET=dev_refresh_secret_key_change_in_production
+      - JWT_EXPIRATION=3600
+      - REFRESH_EXPIRATION=604800
+      - LOG_LEVEL=debug
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+    ports:
+      - "8080:8080"
+      - "2345:2345"  # Delve debugger port
+    volumes:
+      - .:/app
+      - go_modules:/go/pkg/mod
+    networks:
+      - tiris-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["air", "-c", ".air.toml"]  # Hot reload with Air
+    stdin_open: true
+    tty: true
+
+  # Database migration service
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: tiris-migrate-dev
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=tiris_dev
+      - DB_USER=tiris_user
+      - DB_PASSWORD=tiris_password
+      - DB_SSL_MODE=disable
+    volumes:
+      - ./migrations:/migrations
+    networks:
+      - tiris-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["migrate", "-path", "/migrations", "-database", "postgres://tiris_user:tiris_password@postgres:5432/tiris_dev?sslmode=disable", "up"]
+    profiles:
+      - migrate
+
+  # NATS setup service for creating streams and consumers
+  nats-setup:
+    image: natsio/nats-box:latest
+    container_name: tiris-nats-setup
+    networks:
+      - tiris-network
+    depends_on:
+      nats:
+        condition: service_healthy
+    volumes:
+      - ./scripts/nats-setup.sh:/scripts/nats-setup.sh
+    command: ["/scripts/nats-setup.sh"]
+    profiles:
+      - setup
+
+  # Development tools container
+  tools:
+    image: golang:1.23-alpine
+    container_name: tiris-tools-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - go_modules:/go/pkg/mod
+    networks:
+      - tiris-network
+    command: ["tail", "-f", "/dev/null"]  # Keep container running
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+    driver: local
+  nats_data:
+    driver: local
+  nats_logs:
+    driver: local
+  redis_data:
+    driver: local
+  go_modules:
+    driver: local
+
+networks:
+  tiris-network:
+    driver: bridge
+    name: tiris-dev-network

@@ -1,0 +1,435 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+
+env:
+  GO_VERSION: '1.23'
+  POSTGRES_VERSION: '15'
+  REDIS_VERSION: '7-alpine'
+  NATS_VERSION: 'alpine'
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v4
+      with:
+        version: latest
+        args: --timeout=5m
+
+    - name: Check go mod tidy
+      run: |
+        go mod tidy
+        git diff --exit-code go.mod go.sum
+
+    - name: Check formatting
+      run: |
+        gofmt -s -l . | tee /tmp/gofmt-output
+        test ! -s /tmp/gofmt-output
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_DB: tiris_test
+          POSTGRES_USER: tiris_test_user
+          POSTGRES_PASSWORD: tiris_test_password
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+      nats:
+        image: nats:${{ env.NATS_VERSION }}
+        options: >-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:8222/varz || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 4222:4222
+          - 8222:8222
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Install migrate tool
+      run: |
+        go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+    - name: Wait for services to be ready
+      run: |
+        echo "Waiting for PostgreSQL..."
+        timeout 60 bash -c 'until pg_isready -h localhost -p 5432 -U tiris_test_user; do sleep 1; done'
+        
+        echo "Waiting for Redis..."
+        timeout 60 bash -c 'until redis-cli -h localhost -p 6379 ping | grep -q PONG; do sleep 1; done'
+        
+        echo "Waiting for NATS..."
+        timeout 60 bash -c 'until curl -f http://localhost:8222/varz; do sleep 1; done'
+
+    - name: Set up test database
+      run: |
+        # Create TimescaleDB extension and test user
+        PGPASSWORD=tiris_test_password psql -h localhost -U tiris_test_user -d tiris_test -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+        PGPASSWORD=tiris_test_password psql -h localhost -U tiris_test_user -d tiris_test -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
+        PGPASSWORD=tiris_test_password psql -h localhost -U tiris_test_user -d tiris_test -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
+    - name: Run database migrations
+      run: |
+        migrate -path ./migrations -database "postgres://tiris_test_user:tiris_test_password@localhost:5432/tiris_test?sslmode=disable" up
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: tiris_test
+        DB_USER: tiris_test_user
+        DB_PASSWORD: tiris_test_password
+        DB_SSL_MODE: disable
+
+    - name: Run unit tests
+      run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+      env:
+        ENV: test
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: tiris_test
+        DB_USER: tiris_test_user
+        DB_PASSWORD: tiris_test_password
+        DB_SSL_MODE: disable
+        NATS_URL: nats://localhost:4222
+        REDIS_URL: redis://localhost:6379/1
+        JWT_SECRET: test_jwt_secret_key_for_ci_cd
+        REFRESH_SECRET: test_refresh_secret_key_for_ci_cd
+        JWT_EXPIRATION: 3600
+        REFRESH_EXPIRATION: 604800
+        LOG_LEVEL: error
+
+    - name: Generate coverage reports
+      run: |
+        go tool cover -html=coverage.out -o coverage.html
+        go tool cover -func=coverage.out | tee coverage.txt
+
+    - name: Check test coverage
+      run: |
+        # Extract total coverage percentage
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Total test coverage: ${COVERAGE}%"
+        
+        # Set minimum coverage threshold (adjust as needed)
+        MIN_COVERAGE=70.0
+        
+        if (( $(echo "$COVERAGE < $MIN_COVERAGE" | bc -l) )); then
+          echo "❌ Test coverage ${COVERAGE}% is below minimum threshold ${MIN_COVERAGE}%"
+          exit 1
+        else
+          echo "✅ Test coverage ${COVERAGE}% meets minimum threshold ${MIN_COVERAGE}%"
+        fi
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Archive coverage artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-reports
+        path: |
+          coverage.out
+          coverage.html
+          coverage.txt
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Build server binary
+      run: |
+        CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/server cmd/server/main.go
+        
+    - name: Build migrate binary
+      run: |
+        CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/migrate cmd/migrate/main.go
+
+    - name: Test built binaries
+      run: |
+        file bin/server
+        file bin/migrate
+        ./bin/server --help || true
+        ./bin/migrate --help || true
+
+    - name: Archive build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: bin/
+
+  docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          tiris/backend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.dev
+        target: development
+        platforms: linux/amd64,linux/arm64
+        push: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [lint]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Run Gosec Security Scanner
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: '-fmt sarif -out gosec.sarif ./...'
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: gosec.sarif
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Start services with Docker Compose
+      run: |
+        docker-compose -f docker-compose.dev.yml up -d postgres redis nats
+        
+    - name: Wait for services
+      run: |
+        echo "Waiting for services to be healthy..."
+        timeout 120 bash -c 'until docker-compose -f docker-compose.dev.yml ps | grep -E "(healthy|Up).*postgres.*healthy"; do sleep 5; done'
+        timeout 60 bash -c 'until docker-compose -f docker-compose.dev.yml ps | grep -E "(healthy|Up).*redis.*healthy"; do sleep 5; done'
+        timeout 60 bash -c 'until docker-compose -f docker-compose.dev.yml ps | grep -E "(healthy|Up).*nats.*healthy"; do sleep 5; done'
+
+    - name: Run migrations
+      run: |
+        docker-compose -f docker-compose.dev.yml run --rm migrate
+
+    - name: Set up NATS streams
+      run: |
+        docker-compose -f docker-compose.dev.yml --profile setup run --rm nats-setup
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: bin/
+
+    - name: Make binaries executable
+      run: chmod +x bin/*
+
+    - name: Run integration tests
+      run: |
+        # Start the server in background
+        ENV=test \
+        DB_HOST=localhost \
+        DB_PORT=5432 \
+        DB_NAME=tiris_dev \
+        DB_USER=tiris_user \
+        DB_PASSWORD=tiris_password \
+        DB_SSL_MODE=disable \
+        NATS_URL=nats://localhost:4222 \
+        REDIS_URL=redis://:redis_password@localhost:6379/0 \
+        JWT_SECRET=integration_test_jwt_secret \
+        REFRESH_SECRET=integration_test_refresh_secret \
+        JWT_EXPIRATION=3600 \
+        REFRESH_EXPIRATION=604800 \
+        LOG_LEVEL=error \
+        ./bin/server &
+        
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        timeout 30 bash -c 'until curl -f http://localhost:8080/health/live; do sleep 1; done'
+        
+        # Run basic integration tests
+        curl -f http://localhost:8080/health/live
+        curl -f http://localhost:8080/health/ready
+        curl -f http://localhost:8080/health
+        
+        # Stop the server
+        kill $SERVER_PID
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker-compose -f docker-compose.dev.yml down -v
+
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, security]
+    if: always()
+    
+    steps:
+    - name: Notify success
+      if: ${{ needs.lint.result == 'success' && needs.test.result == 'success' && needs.build.result == 'success' && needs.security.result == 'success' }}
+      run: |
+        echo "✅ All CI/CD pipeline jobs completed successfully!"
+        echo "- Linting: PASSED"
+        echo "- Tests: PASSED"
+        echo "- Build: PASSED"
+        echo "- Security: PASSED"
+
+    - name: Notify failure
+      if: ${{ needs.lint.result == 'failure' || needs.test.result == 'failure' || needs.build.result == 'failure' || needs.security.result == 'failure' }}
+      run: |
+        echo "❌ CI/CD pipeline failed!"
+        echo "- Linting: ${{ needs.lint.result }}"
+        echo "- Tests: ${{ needs.test.result }}"
+        echo "- Build: ${{ needs.build.result }}"
+        echo "- Security: ${{ needs.security.result }}"
+        exit 1

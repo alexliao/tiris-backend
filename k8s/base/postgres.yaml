@@ -1,0 +1,162 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tiris-postgres
+  namespace: tiris
+  labels:
+    app: tiris-postgres
+    component: database
+spec:
+  serviceName: tiris-postgres-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tiris-postgres
+  template:
+    metadata:
+      labels:
+        app: tiris-postgres
+        component: database
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+      - name: postgres
+        image: timescale/timescaledb:latest-pg15
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: tiris-postgres-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: tiris-postgres-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tiris-postgres-secrets
+              key: POSTGRES_PASSWORD
+        - name: PGDATA
+          valueFrom:
+            configMapKeyRef:
+              name: tiris-postgres-config
+              key: PGDATA
+        - name: POSTGRES_INITDB_ARGS
+          valueFrom:
+            secretKeyRef:
+              name: tiris-postgres-secrets
+              key: POSTGRES_INITDB_ARGS
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-init
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - tiris_user
+            - -d
+            - tiris_prod
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - tiris_user
+            - -d
+            - tiris_prod
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: postgres-init
+        configMap:
+          name: tiris-postgres-init
+          defaultMode: 0755
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 20Gi
+      storageClassName: fast-ssd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tiris-postgres-service
+  namespace: tiris
+  labels:
+    app: tiris-postgres
+    component: database
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: tiris-postgres
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tiris-postgres-init
+  namespace: tiris
+data:
+  init-db.sql: |
+    -- Production database initialization script for TimescaleDB
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    
+    -- Set timezone to UTC
+    SET timezone = 'UTC';
+    
+    -- Create application schema
+    CREATE SCHEMA IF NOT EXISTS tiris AUTHORIZATION tiris_user;
+    
+    -- Set search path for the user
+    ALTER ROLE tiris_user SET search_path TO tiris, public;
+    
+    -- Create encryption functions for API keys
+    CREATE OR REPLACE FUNCTION encrypt_api_key(api_key TEXT) 
+    RETURNS TEXT AS $$
+    BEGIN
+        RETURN crypt(api_key, gen_salt('bf', 12));
+    END;
+    $$ LANGUAGE plpgsql;
+    
+    CREATE OR REPLACE FUNCTION verify_api_key(api_key TEXT, encrypted_key TEXT) 
+    RETURNS BOOLEAN AS $$
+    BEGIN
+        RETURN encrypted_key = crypt(api_key, encrypted_key);
+    END;
+    $$ LANGUAGE plpgsql;
+    
+    -- Grant execute permissions
+    GRANT EXECUTE ON FUNCTION encrypt_api_key(TEXT) TO tiris_user;
+    GRANT EXECUTE ON FUNCTION verify_api_key(TEXT, TEXT) TO tiris_user;

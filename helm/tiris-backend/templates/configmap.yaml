@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tiris-backend.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tiris-backend.labels" . | nindent 4 }}
+data:
+  # Application configuration
+  ENV: {{ .Values.config.environment | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  LOG_FORMAT: {{ .Values.config.logFormat | quote }}
+  
+  # Database configuration
+  DB_HOST: {{ .Values.config.database.host | quote }}
+  DB_PORT: {{ .Values.config.database.port | quote }}
+  DB_NAME: {{ .Values.config.database.name | quote }}
+  DB_USER: {{ .Values.config.database.user | quote }}
+  DB_SSL_MODE: {{ .Values.config.database.sslMode | quote }}
+  DB_MAX_OPEN_CONNECTIONS: {{ .Values.config.database.maxOpenConnections | quote }}
+  DB_MAX_IDLE_CONNECTIONS: {{ .Values.config.database.maxIdleConnections | quote }}
+  DB_CONNECTION_MAX_LIFETIME: {{ .Values.config.database.connectionMaxLifetime | quote }}
+  
+  # JWT configuration
+  JWT_EXPIRATION: {{ .Values.config.jwt.expiration | quote }}
+  JWT_REFRESH_EXPIRATION: {{ .Values.config.jwt.refreshExpiration | quote }}
+  
+  # CORS configuration
+  CORS_ALLOWED_ORIGINS: {{ .Values.config.cors.allowedOrigins | quote }}
+  CORS_ALLOWED_METHODS: {{ .Values.config.cors.allowedMethods | quote }}
+  CORS_ALLOWED_HEADERS: {{ .Values.config.cors.allowedHeaders | quote }}
+  
+  # Rate limiting configuration
+  RATE_LIMIT_ENABLED: {{ .Values.config.rateLimit.enabled | quote }}
+  RATE_LIMIT_REQUESTS_PER_MINUTE: {{ .Values.config.rateLimit.requestsPerMinute | quote }}
+  RATE_LIMIT_BURST: {{ .Values.config.rateLimit.burst | quote }}
+  
+  # Metrics configuration
+  METRICS_ENABLED: {{ .Values.config.metrics.enabled | quote }}
+  METRICS_PATH: {{ .Values.config.metrics.path | quote }}
+  
+  # Service URLs
+  NATS_URL: "nats://{{ include "tiris-backend.natsHost" . }}:4222"
+  REDIS_HOST: {{ include "tiris-backend.redisHost" . | quote }}
+  REDIS_PORT: "6379"

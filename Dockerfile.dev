@@ -1,0 +1,40 @@
+# Development Dockerfile with hot reload support
+FROM golang:1.23-alpine AS development
+
+# Install development tools
+RUN apk add --no-cache git curl bash postgresql-client
+
+# Install Air for hot reload
+RUN go install github.com/cosmtrek/air@latest
+
+# Install migrate tool for database migrations
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+# Install Delve debugger
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Create non-root user for security
+RUN adduser -D -s /bin/sh appuser && \
+    chown -R appuser:appuser /app && \
+    chown -R appuser:appuser /go
+
+# Switch to non-root user
+USER appuser
+
+# Expose application and debugger ports
+EXPOSE 8080 2345
+
+# Default command (can be overridden in docker-compose)
+CMD ["air", "-c", ".air.toml"]

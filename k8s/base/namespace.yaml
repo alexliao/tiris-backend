@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tiris
+  labels:
+    app.kubernetes.io/name: tiris-backend
+    app.kubernetes.io/part-of: tiris
+    environment: base

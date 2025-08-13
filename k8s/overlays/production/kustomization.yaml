@@ -1,0 +1,68 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: tiris-backend-production
+
+namespace: tiris
+
+resources:
+- ../../base
+
+commonLabels:
+  environment: production
+  app.kubernetes.io/instance: tiris-production
+
+images:
+- name: tiris/backend
+  newTag: stable
+
+replicas:
+- name: tiris-backend
+  count: 3
+
+configMapGenerator:
+- name: tiris-production-config
+  behavior: merge
+  literals:
+  - ENV=production
+  - LOG_LEVEL=warn
+  - CORS_ALLOWED_ORIGINS=https://tiris.ai,https://app.tiris.ai,https://admin.tiris.ai
+  - RATE_LIMIT_REQUESTS_PER_MINUTE=500
+  - RATE_LIMIT_BURST=50
+
+patchesStrategicMerge:
+- production-patches.yaml
+
+patchesJson6902:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: tiris-backend
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: 1Gi
+    - op: add
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: 2Gi
+    - op: add
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: 2000m
+
+- target:
+    group: apps
+    version: v1
+    kind: StatefulSet
+    name: tiris-postgres
+  patch: |-
+    - op: replace
+      path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+      value: 100Gi
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: 2Gi
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: 4Gi

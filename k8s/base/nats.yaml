@@ -1,0 +1,185 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tiris-nats
+  namespace: tiris
+  labels:
+    app: tiris-nats
+    component: messaging
+spec:
+  serviceName: tiris-nats-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tiris-nats
+  template:
+    metadata:
+      labels:
+        app: tiris-nats
+        component: messaging
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+      - name: nats
+        image: nats:alpine
+        ports:
+        - containerPort: 4222
+          name: nats
+        - containerPort: 8222
+          name: monitor
+        command:
+        - /nats-server
+        args:
+        - --jetstream
+        - --store_dir=/data
+        - --port=4222
+        - --http_port=8222
+        - --log_file=/var/log/nats/nats.log
+        - --max_payload=1048576
+        - --max_pending=268435456
+        - --write_deadline=10s
+        - --user=$(NATS_USER)
+        - --pass=$(NATS_PASSWORD)
+        env:
+        - name: NATS_USER
+          valueFrom:
+            secretKeyRef:
+              name: tiris-backend-secrets
+              key: NATS_USER
+        - name: NATS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tiris-backend-secrets
+              key: NATS_PASSWORD
+        volumeMounts:
+        - name: nats-data
+          mountPath: /data
+        - name: nats-logs
+          mountPath: /var/log/nats
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /varz
+            port: 8222
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /varz
+            port: 8222
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: nats-logs
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: nats-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi
+      storageClassName: fast-ssd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tiris-nats-service
+  namespace: tiris
+  labels:
+    app: tiris-nats
+    component: messaging
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4222
+    targetPort: 4222
+    protocol: TCP
+    name: nats
+  - port: 8222
+    targetPort: 8222
+    protocol: TCP
+    name: monitor
+  selector:
+    app: tiris-nats
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tiris-nats-setup
+  namespace: tiris
+  labels:
+    app: tiris-nats
+    component: setup
+spec:
+  template:
+    metadata:
+      labels:
+        app: tiris-nats
+        component: setup
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: nats-setup
+        image: natsio/nats-box:latest
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          # Wait for NATS to be ready
+          until nats --server=nats://${NATS_USER}:${NATS_PASSWORD}@tiris-nats-service:4222 server ping; do
+            echo "Waiting for NATS..."
+            sleep 5
+          done
+          
+          # Create streams
+          nats --server=nats://${NATS_USER}:${NATS_PASSWORD}@tiris-nats-service:4222 stream add TRADING_EVENTS \
+            --subjects="trading.orders.*,trading.balance.*,trading.signals,trading.errors" \
+            --retention=limits \
+            --max-age=72h \
+            --storage=file \
+            --replicas=1 \
+            --discard=old \
+            --max-msg-size=2MB \
+            --max-msgs=1000000 \
+            --max-bytes=10GB \
+            --dupe-window=5m || true
+          
+          nats --server=nats://${NATS_USER}:${NATS_PASSWORD}@tiris-nats-service:4222 stream add SYSTEM_EVENTS \
+            --subjects="system.*" \
+            --retention=limits \
+            --max-age=24h \
+            --storage=file \
+            --replicas=1 \
+            --discard=old \
+            --max-msg-size=1MB \
+            --max-msgs=100000 \
+            --max-bytes=1GB \
+            --dupe-window=5m || true
+          
+          echo "NATS setup completed successfully"
+        env:
+        - name: NATS_USER
+          valueFrom:
+            secretKeyRef:
+              name: tiris-backend-secrets
+              key: NATS_USER
+        - name: NATS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tiris-backend-secrets
+              key: NATS_PASSWORD
