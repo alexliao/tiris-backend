@@ -17,6 +17,7 @@
       "Bash(go vet:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "defaultMode": "bypassPermissions"
   }
 }

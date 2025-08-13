@@ -9,6 +9,9 @@ import (
 	"gorm.io/datatypes"
 )
 
+// FixedTime is a consistent time for tests
+var FixedTime = time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
+
 // UserFixtures provides test user data
 var UserFixtures = struct {
 	ValidUser        *models.User
