@@ -12,11 +12,11 @@ import (
 
 // SubAccountHandler handles sub-account management endpoints
 type SubAccountHandler struct {
-	subAccountService *services.SubAccountService
+	subAccountService SubAccountServiceInterface
 }
 
 // NewSubAccountHandler creates a new sub-account handler
-func NewSubAccountHandler(subAccountService *services.SubAccountService) *SubAccountHandler {
+func NewSubAccountHandler(subAccountService SubAccountServiceInterface) *SubAccountHandler {
 	return &SubAccountHandler{
 		subAccountService: subAccountService,
 	}

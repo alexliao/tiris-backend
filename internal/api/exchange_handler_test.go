@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"tiris-backend/internal/middleware"
 	"tiris-backend/internal/services"
 	"tiris-backend/test/mocks"
 
@@ -352,16 +350,19 @@ func (suite *ExchangeHandlerTestSuite) TestGetExchange_NotFound() {
 
 func (suite *ExchangeHandlerTestSuite) TestUpdateExchange_Success() {
 	// Arrange
+	name := "Updated Exchange Name"
+	apiKey := "new_api_key"
+	apiSecret := "new_api_secret"
 	req := services.UpdateExchangeRequest{
-		Name:      "Updated Exchange Name",
-		APIKey:    "new_api_key",
-		APISecret: "new_api_secret",
+		Name:      &name,
+		APIKey:    &apiKey,
+		APISecret: &apiSecret,
 	}
 
 	expectedExchange := &services.ExchangeResponse{
 		ID:        suite.testExchangeID,
 		UserID:    suite.testUserID,
-		Name:      req.Name,
+		Name:      *req.Name,
 		Type:      "binance",
 		Status:    "active",
 		UpdatedAt: time.Now().Format(time.RFC3339),
@@ -392,8 +393,9 @@ func (suite *ExchangeHandlerTestSuite) TestUpdateExchange_Success() {
 
 func (suite *ExchangeHandlerTestSuite) TestUpdateExchange_NotFound() {
 	// Arrange
+	name := "Updated Exchange Name"
 	req := services.UpdateExchangeRequest{
-		Name: "Updated Exchange Name",
+		Name: &name,
 	}
 
 	suite.mockService.On("UpdateExchange", mock.Anything, suite.testUserID, suite.testExchangeID, &req).
