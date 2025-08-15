@@ -34,7 +34,7 @@ type Server struct {
 }
 
 // NewServer creates a new API server
-func NewServer(cfg *config.Config, repos *repositories.Repositories) *Server {
+func NewServer(cfg *config.Config, repos *repositories.Repositories, db *database.DB, natsManager *nats.Manager) *Server {
 	// Initialize JWT manager
 	jwtManager := auth.NewJWTManager(
 		cfg.Auth.JWTSecret,
@@ -71,6 +71,8 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories) *Server {
 
 	return &Server{
 		config:             cfg,
+		db:                 db,
+		natsManager:        natsManager,
 		repos:              repos,
 		jwtManager:         jwtManager,
 		authService:        authService,

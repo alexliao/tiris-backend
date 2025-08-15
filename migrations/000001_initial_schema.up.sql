@@ -82,7 +82,7 @@ CREATE INDEX idx_sub_accounts_info ON sub_accounts USING GIN(info);
 
 -- Transactions table (time-series data)
 CREATE TABLE transactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id),
     exchange_id UUID NOT NULL REFERENCES exchanges(id),
     sub_account_id UUID NOT NULL REFERENCES sub_accounts(id),
@@ -93,7 +93,8 @@ CREATE TABLE transactions (
     closing_balance DECIMAL(20,8) NOT NULL,
     price DECIMAL(20,8),
     quote_symbol VARCHAR(20),
-    info JSONB DEFAULT '{}'
+    info JSONB DEFAULT '{}',
+    PRIMARY KEY (id, timestamp)
 );
 
 -- Convert transactions to hypertable for TimescaleDB
@@ -109,16 +110,17 @@ CREATE INDEX idx_transactions_info ON transactions USING GIN(info);
 
 -- Trading logs table (time-series data)
 CREATE TABLE trading_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id),
     exchange_id UUID NOT NULL REFERENCES exchanges(id),
     sub_account_id UUID REFERENCES sub_accounts(id),
-    transaction_id UUID REFERENCES transactions(id),
+    transaction_id UUID,
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     type VARCHAR(50) NOT NULL,
     source VARCHAR(20) NOT NULL CHECK (source IN ('manual', 'bot')),
     message TEXT NOT NULL,
-    info JSONB DEFAULT '{}'
+    info JSONB DEFAULT '{}',
+    PRIMARY KEY (id, timestamp)
 );
 
 -- Convert trading_logs to hypertable for TimescaleDB

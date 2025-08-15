@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"tiris-backend/internal/repositories"
 
@@ -71,109 +72,281 @@ func (ec *EventConsumer) Stop() {
 
 // startOrderEventConsumer starts consuming order events
 func (ec *EventConsumer) startOrderEventConsumer() error {
-	subjects := []string{
-		string(EventOrderCreated),
-		string(EventOrderFilled),
-		string(EventOrderCancelled),
-		string(EventOrderFailed),
+	// Create a durable pull consumer for order events
+	consumerConfig := &nats.ConsumerConfig{
+		Durable:       "order-processor",
+		FilterSubject: "trading.orders.*",
+		AckPolicy:     nats.AckExplicitPolicy,
+		MaxDeliver:    3,
+		AckWait:       30 * time.Second,
 	}
 
-	for _, subject := range subjects {
-		_, err := ec.client.QueueSubscribe(subject, "order-processors", func(msg *nats.Msg) {
-			if err := ec.handleOrderEvent(msg); err != nil {
-				log.Printf("Error handling order event: %v", err)
-				// Negative acknowledgment will cause redelivery
-				msg.Nak()
-			} else {
-				msg.Ack()
+	// Create or update the consumer
+	_, err := ec.client.js.AddConsumer("TRADING", consumerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create order consumer: %w", err)
+	}
+
+	// Subscribe to the consumer
+	sub, err := ec.client.js.PullSubscribe("trading.orders.*", "order-processor", nats.Bind("TRADING", "order-processor"))
+	if err != nil {
+		return fmt.Errorf("failed to pull subscribe to order events: %w", err)
+	}
+
+	// Start consuming messages in background
+	go func() {
+		for {
+			select {
+			case <-ec.ctx.Done():
+				sub.Unsubscribe()
+				return
+			default:
+				msgs, err := sub.Fetch(10, nats.MaxWait(5*time.Second))
+				if err != nil {
+					if err == nats.ErrTimeout {
+						continue
+					}
+					log.Printf("Error fetching order messages: %v", err)
+					continue
+				}
+
+				for _, msg := range msgs {
+					if err := ec.handleOrderEvent(msg); err != nil {
+						log.Printf("Error handling order event: %v", err)
+						msg.Nak()
+					} else {
+						msg.Ack()
+					}
+				}
 			}
-		})
-		if err != nil {
-			return fmt.Errorf("failed to subscribe to %s: %w", subject, err)
 		}
-		log.Printf("Subscribed to order events: %s", subject)
-	}
+	}()
 
+	log.Printf("Subscribed to order events: trading.orders.*")
 	return nil
 }
 
 // startBalanceEventConsumer starts consuming balance events
 func (ec *EventConsumer) startBalanceEventConsumer() error {
-	subjects := []string{
-		string(EventBalanceUpdated),
-		string(EventBalanceLocked),
-		string(EventBalanceUnlocked),
+	// Create a durable pull consumer for balance events
+	consumerConfig := &nats.ConsumerConfig{
+		Durable:       "balance-processor",
+		FilterSubject: "trading.balance.*",
+		AckPolicy:     nats.AckExplicitPolicy,
+		MaxDeliver:    3,
+		AckWait:       30 * time.Second,
 	}
 
-	for _, subject := range subjects {
-		_, err := ec.client.QueueSubscribe(subject, "balance-processors", func(msg *nats.Msg) {
-			if err := ec.handleBalanceEvent(msg); err != nil {
-				log.Printf("Error handling balance event: %v", err)
-				msg.Nak()
-			} else {
-				msg.Ack()
+	// Create or update the consumer
+	_, err := ec.client.js.AddConsumer("TRADING", consumerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create balance consumer: %w", err)
+	}
+
+	// Subscribe to the consumer
+	sub, err := ec.client.js.PullSubscribe("trading.balance.*", "balance-processor", nats.Bind("TRADING", "balance-processor"))
+	if err != nil {
+		return fmt.Errorf("failed to pull subscribe to balance events: %w", err)
+	}
+
+	// Start consuming messages in background
+	go func() {
+		for {
+			select {
+			case <-ec.ctx.Done():
+				sub.Unsubscribe()
+				return
+			default:
+				msgs, err := sub.Fetch(10, nats.MaxWait(5*time.Second))
+				if err != nil {
+					if err == nats.ErrTimeout {
+						continue
+					}
+					log.Printf("Error fetching balance messages: %v", err)
+					continue
+				}
+
+				for _, msg := range msgs {
+					if err := ec.handleBalanceEvent(msg); err != nil {
+						log.Printf("Error handling balance event: %v", err)
+						msg.Nak()
+					} else {
+						msg.Ack()
+					}
+				}
 			}
-		})
-		if err != nil {
-			return fmt.Errorf("failed to subscribe to %s: %w", subject, err)
 		}
-		log.Printf("Subscribed to balance events: %s", subject)
-	}
+	}()
 
+	log.Printf("Subscribed to balance events: trading.balance.*")
 	return nil
 }
 
 // startErrorEventConsumer starts consuming error events
 func (ec *EventConsumer) startErrorEventConsumer() error {
-	_, err := ec.client.QueueSubscribe(string(EventSystemError), "error-processors", func(msg *nats.Msg) {
-		if err := ec.handleErrorEvent(msg); err != nil {
-			log.Printf("Error handling error event: %v", err)
-			msg.Nak()
-		} else {
-			msg.Ack()
-		}
-	})
-	if err != nil {
-		return fmt.Errorf("failed to subscribe to error events: %w", err)
+	// Create a durable pull consumer for error events
+	consumerConfig := &nats.ConsumerConfig{
+		Durable:       "error-processor",
+		FilterSubject: "trading.errors",
+		AckPolicy:     nats.AckExplicitPolicy,
+		MaxDeliver:    3,
+		AckWait:       30 * time.Second,
 	}
-	log.Printf("Subscribed to error events: %s", EventSystemError)
 
+	// Create or update the consumer
+	_, err := ec.client.js.AddConsumer("TRADING_ERRORS", consumerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create error consumer: %w", err)
+	}
+
+	// Subscribe to the consumer
+	sub, err := ec.client.js.PullSubscribe("trading.errors", "error-processor", nats.Bind("TRADING_ERRORS", "error-processor"))
+	if err != nil {
+		return fmt.Errorf("failed to pull subscribe to error events: %w", err)
+	}
+
+	// Start consuming messages in background
+	go func() {
+		for {
+			select {
+			case <-ec.ctx.Done():
+				sub.Unsubscribe()
+				return
+			default:
+				msgs, err := sub.Fetch(10, nats.MaxWait(5*time.Second))
+				if err != nil {
+					if err == nats.ErrTimeout {
+						continue
+					}
+					log.Printf("Error fetching error messages: %v", err)
+					continue
+				}
+
+				for _, msg := range msgs {
+					if err := ec.handleErrorEvent(msg); err != nil {
+						log.Printf("Error handling error event: %v", err)
+						msg.Nak()
+					} else {
+						msg.Ack()
+					}
+				}
+			}
+		}
+	}()
+
+	log.Printf("Subscribed to error events: trading.errors")
 	return nil
 }
 
 // startSignalEventConsumer starts consuming signal events
 func (ec *EventConsumer) startSignalEventConsumer() error {
-	_, err := ec.client.QueueSubscribe(string(EventSignalGenerated), "signal-processors", func(msg *nats.Msg) {
-		if err := ec.handleSignalEvent(msg); err != nil {
-			log.Printf("Error handling signal event: %v", err)
-			msg.Nak()
-		} else {
-			msg.Ack()
-		}
-	})
-	if err != nil {
-		return fmt.Errorf("failed to subscribe to signal events: %w", err)
+	// Create a durable pull consumer for signal events
+	consumerConfig := &nats.ConsumerConfig{
+		Durable:       "signal-processor",
+		FilterSubject: "trading.signals",
+		AckPolicy:     nats.AckExplicitPolicy,
+		MaxDeliver:    3,
+		AckWait:       30 * time.Second,
 	}
-	log.Printf("Subscribed to signal events: %s", EventSignalGenerated)
 
+	// Create or update the consumer
+	_, err := ec.client.js.AddConsumer("TRADING", consumerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create signal consumer: %w", err)
+	}
+
+	// Subscribe to the consumer
+	sub, err := ec.client.js.PullSubscribe("trading.signals", "signal-processor", nats.Bind("TRADING", "signal-processor"))
+	if err != nil {
+		return fmt.Errorf("failed to pull subscribe to signal events: %w", err)
+	}
+
+	// Start consuming messages in background
+	go func() {
+		for {
+			select {
+			case <-ec.ctx.Done():
+				sub.Unsubscribe()
+				return
+			default:
+				msgs, err := sub.Fetch(10, nats.MaxWait(5*time.Second))
+				if err != nil {
+					if err == nats.ErrTimeout {
+						continue
+					}
+					log.Printf("Error fetching signal messages: %v", err)
+					continue
+				}
+
+				for _, msg := range msgs {
+					if err := ec.handleSignalEvent(msg); err != nil {
+						log.Printf("Error handling signal event: %v", err)
+						msg.Nak()
+					} else {
+						msg.Ack()
+					}
+				}
+			}
+		}
+	}()
+
+	log.Printf("Subscribed to signal events: trading.signals")
 	return nil
 }
 
 // startHeartbeatEventConsumer starts consuming heartbeat events
 func (ec *EventConsumer) startHeartbeatEventConsumer() error {
-	_, err := ec.client.QueueSubscribe(string(EventBotHeartbeat), "heartbeat-processors", func(msg *nats.Msg) {
-		if err := ec.handleHeartbeatEvent(msg); err != nil {
-			log.Printf("Error handling heartbeat event: %v", err)
-			msg.Nak()
-		} else {
-			msg.Ack()
-		}
-	})
-	if err != nil {
-		return fmt.Errorf("failed to subscribe to heartbeat events: %w", err)
+	// Create a durable pull consumer for heartbeat events
+	consumerConfig := &nats.ConsumerConfig{
+		Durable:       "heartbeat-processor",
+		FilterSubject: "system.heartbeat",
+		AckPolicy:     nats.AckExplicitPolicy,
+		MaxDeliver:    3,
+		AckWait:       30 * time.Second,
 	}
-	log.Printf("Subscribed to heartbeat events: %s", EventBotHeartbeat)
 
+	// Create or update the consumer
+	_, err := ec.client.js.AddConsumer("SYSTEM", consumerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create heartbeat consumer: %w", err)
+	}
+
+	// Subscribe to the consumer
+	sub, err := ec.client.js.PullSubscribe("system.heartbeat", "heartbeat-processor", nats.Bind("SYSTEM", "heartbeat-processor"))
+	if err != nil {
+		return fmt.Errorf("failed to pull subscribe to heartbeat events: %w", err)
+	}
+
+	// Start consuming messages in background
+	go func() {
+		for {
+			select {
+			case <-ec.ctx.Done():
+				sub.Unsubscribe()
+				return
+			default:
+				msgs, err := sub.Fetch(10, nats.MaxWait(5*time.Second))
+				if err != nil {
+					if err == nats.ErrTimeout {
+						continue
+					}
+					log.Printf("Error fetching heartbeat messages: %v", err)
+					continue
+				}
+
+				for _, msg := range msgs {
+					if err := ec.handleHeartbeatEvent(msg); err != nil {
+						log.Printf("Error handling heartbeat event: %v", err)
+						msg.Nak()
+					} else {
+						msg.Ack()
+					}
+				}
+			}
+		}
+	}()
+
+	log.Printf("Subscribed to heartbeat events: system.heartbeat")
 	return nil
 }
 

@@ -1,4 +1,4 @@
-.PHONY: build build-migrate run test clean dev deps migrate-up migrate-down migrate-version docker-build docker-run
+.PHONY: build build-migrate run test clean dev deps migrate-up migrate-down migrate-version docker-build docker-run check-ports
 
 # Build the application
 build:
@@ -67,6 +67,19 @@ setup: deps
 	cp .env.example .env
 	@echo "Please edit .env file with your configuration"
 
+# Port checking
+check-ports:
+	@./scripts/check-ports.sh --dev
+
+check-ports-all:
+	@./scripts/check-ports.sh --all
+
+check-ports-detailed:
+	@./scripts/check-ports.sh --detailed
+
+kill-ports:
+	@./scripts/check-ports.sh --kill-dev
+
 # Help
 help:
 	@echo "Available commands:"
@@ -85,4 +98,8 @@ help:
 	@echo "  lint         - Run linter"
 	@echo "  fmt          - Format code"
 	@echo "  setup        - Initial development setup"
+	@echo "  check-ports  - Check development port availability"
+	@echo "  check-ports-all - Check all ports"
+	@echo "  check-ports-detailed - Show detailed port usage"
+	@echo "  kill-ports   - Kill processes on development ports"
 	@echo "  help         - Show this help message"

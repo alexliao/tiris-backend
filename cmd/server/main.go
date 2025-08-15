@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// Initialize API server
-	apiServer := api.NewServer(cfg, repos)
+	apiServer := api.NewServer(cfg, repos, db, natsManager)
 	router := apiServer.SetupRoutes()
 
 	// Start metrics updater
