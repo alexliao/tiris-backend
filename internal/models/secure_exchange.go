@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -211,7 +212,7 @@ func (em *ExchangeManager) GetSecuritySettings(exchange *SecureExchange) (*Secur
 	}
 
 	if len(exchange.SecuritySettings) > 0 {
-		if err := exchange.SecuritySettings.Unmarshal(settings); err != nil {
+		if err := json.Unmarshal(exchange.SecuritySettings, settings); err != nil {
 			return nil, err
 		}
 	}
@@ -221,7 +222,7 @@ func (em *ExchangeManager) GetSecuritySettings(exchange *SecureExchange) (*Secur
 
 // UpdateSecuritySettings updates the security settings for an exchange
 func (em *ExchangeManager) UpdateSecuritySettings(exchange *SecureExchange, settings *SecuritySettings) error {
-	data, err := datatypes.NewJSON(settings)
+	data, err := json.Marshal(settings)
 	if err != nil {
 		return err
 	}

@@ -13,11 +13,11 @@ import (
 
 // ExchangeHandler handles exchange management endpoints
 type ExchangeHandler struct {
-	exchangeService *services.ExchangeService
+	exchangeService ExchangeServiceInterface
 }
 
 // NewExchangeHandler creates a new exchange handler
-func NewExchangeHandler(exchangeService *services.ExchangeService) *ExchangeHandler {
+func NewExchangeHandler(exchangeService ExchangeServiceInterface) *ExchangeHandler {
 	return &ExchangeHandler{
 		exchangeService: exchangeService,
 	}

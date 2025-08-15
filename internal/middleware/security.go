@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -107,8 +106,6 @@ func (sm *SecurityMiddleware) RateLimitMiddleware(ruleName string) gin.HandlerFu
 	}
 
 	return func(c *gin.Context) {
-		startTime := time.Now()
-		
 		// Determine identifier for rate limiting
 		identifier := sm.getRateLimitIdentifier(c)
 		
@@ -377,9 +374,9 @@ func (sm *SecurityMiddleware) logAuthSuccess(c *gin.Context, action security.Aud
 }
 
 func (sm *SecurityMiddleware) logAuthFailure(c *gin.Context, action security.AuditAction, reason string, startTime time.Time) {
-	duration := time.Since(startTime)
 	details := map[string]interface{}{
 		"failure_reason": reason,
+		"duration_ms":    time.Since(startTime).Milliseconds(),
 	}
 	
 	sm.auditLogger.LogSecurityEvent(

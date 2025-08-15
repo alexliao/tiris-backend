@@ -6,6 +6,7 @@ import (
 
 	"tiris-backend/internal/models"
 	"tiris-backend/internal/repositories"
+	"tiris-backend/internal/services"
 	"tiris-backend/pkg/auth"
 
 	"github.com/google/uuid"
@@ -390,4 +391,56 @@ func (m *MockOAuthManager) GetUserInfo(provider auth.OAuthProvider, token *oauth
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*auth.OAuthUser), args.Error(1)
+}
+
+// MockExchangeService is a mock implementation of ExchangeServiceInterface
+type MockExchangeService struct {
+	mock.Mock
+}
+
+func (m *MockExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, req *services.CreateExchangeRequest) (*services.ExchangeResponse, error) {
+	args := m.Called(ctx, userID, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*services.ExchangeResponse), args.Error(1)
+}
+
+func (m *MockExchangeService) GetUserExchanges(ctx context.Context, userID uuid.UUID) ([]*services.ExchangeResponse, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).([]*services.ExchangeResponse), args.Error(1)
+}
+
+func (m *MockExchangeService) GetExchange(ctx context.Context, userID, exchangeID uuid.UUID) (*services.ExchangeResponse, error) {
+	args := m.Called(ctx, userID, exchangeID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*services.ExchangeResponse), args.Error(1)
+}
+
+func (m *MockExchangeService) UpdateExchange(ctx context.Context, userID, exchangeID uuid.UUID, req *services.UpdateExchangeRequest) (*services.ExchangeResponse, error) {
+	args := m.Called(ctx, userID, exchangeID, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*services.ExchangeResponse), args.Error(1)
+}
+
+func (m *MockExchangeService) DeleteExchange(ctx context.Context, userID, exchangeID uuid.UUID) error {
+	args := m.Called(ctx, userID, exchangeID)
+	return args.Error(0)
+}
+
+func (m *MockExchangeService) ListExchanges(ctx context.Context, limit, offset int) ([]*services.ExchangeResponse, int64, error) {
+	args := m.Called(ctx, limit, offset)
+	return args.Get(0).([]*services.ExchangeResponse), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockExchangeService) GetExchangeByID(ctx context.Context, exchangeID uuid.UUID) (*services.ExchangeResponse, error) {
+	args := m.Called(ctx, exchangeID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*services.ExchangeResponse), args.Error(1)
 }
