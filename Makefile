@@ -23,13 +23,14 @@ test:
 
 # Run tests with coverage
 test-coverage:
-	go test -v -coverprofile=coverage.out ./...
-	go tool cover -html=coverage.out -o coverage.html
+	mkdir -p coverage
+	go test -v -coverprofile=coverage/coverage.out ./...
+	go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
 # Clean build artifacts
 clean:
 	rm -rf bin/
-	rm -f coverage.out coverage.html
+	rm -rf coverage/
 
 # Install dependencies
 deps:
