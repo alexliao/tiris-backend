@@ -11,6 +11,7 @@ import (
 type TestConfig struct {
 	Database DatabaseTestConfig `json:"database"`
 	Redis    RedisTestConfig    `json:"redis"`
+	NATS     NATSTestConfig     `json:"nats"`
 	Auth     AuthTestConfig     `json:"auth"`
 	Security SecurityTestConfig `json:"security"`
 	Test     TestSettings       `json:"test"`
@@ -35,6 +36,19 @@ type RedisTestConfig struct {
 	Port     int    `json:"port"`
 	Password string `json:"password"`
 	DB       int    `json:"db"`
+}
+
+// NATSTestConfig holds NATS configuration for tests
+type NATSTestConfig struct {
+	URL              string        `json:"url"`
+	ClusterID        string        `json:"cluster_id"`
+	ClientID         string        `json:"client_id"`
+	DurableName      string        `json:"durable_name"`
+	ConnectTimeout   time.Duration `json:"connect_timeout"`
+	ReconnectWait    time.Duration `json:"reconnect_wait"`
+	MaxReconnect     int           `json:"max_reconnect"`
+	StreamName       string        `json:"stream_name"`
+	SubjectPrefix    string        `json:"subject_prefix"`
 }
 
 // AuthTestConfig holds authentication configuration for tests
@@ -81,9 +95,20 @@ func LoadTestConfig() *TestConfig {
 		},
 		Redis: RedisTestConfig{
 			Host:     getEnvString("TEST_REDIS_HOST", "localhost"),
-			Port:     getEnvInt("TEST_REDIS_PORT", 6379),
+			Port:     getEnvInt("TEST_REDIS_PORT", 6380),
 			Password: getEnvString("TEST_REDIS_PASSWORD", ""),
 			DB:       getEnvInt("TEST_REDIS_DB", 1),
+		},
+		NATS: NATSTestConfig{
+			URL:              getEnvString("TEST_NATS_URL", "nats://localhost:4223"),
+			ClusterID:        getEnvString("TEST_NATS_CLUSTER_ID", "tiris-test-cluster"),
+			ClientID:         getEnvString("TEST_NATS_CLIENT_ID", "tiris-test-client"),
+			DurableName:      getEnvString("TEST_NATS_DURABLE", "tiris-test-durable"),
+			ConnectTimeout:   getEnvDuration("TEST_NATS_CONNECT_TIMEOUT", 10*time.Second),
+			ReconnectWait:    getEnvDuration("TEST_NATS_RECONNECT_WAIT", 2*time.Second),
+			MaxReconnect:     getEnvInt("TEST_NATS_MAX_RECONNECT", 5),
+			StreamName:       getEnvString("TEST_NATS_STREAM", "TIRIS_TEST"),
+			SubjectPrefix:    getEnvString("TEST_NATS_SUBJECT_PREFIX", "tiris.test"),
 		},
 		Auth: AuthTestConfig{
 			JWTSecret:         getEnvString("TEST_JWT_SECRET", "integration-test-jwt-secret-key-32-chars"),
@@ -126,6 +151,11 @@ func (c *TestConfig) GetConnectionString() string {
 // GetRedisAddress returns the Redis address for tests
 func (c *TestConfig) GetRedisAddress() string {
 	return fmt.Sprintf("%s:%d", c.Redis.Host, c.Redis.Port)
+}
+
+// GetNATSURL returns the NATS URL for tests
+func (c *TestConfig) GetNATSURL() string {
+	return c.NATS.URL
 }
 
 // IsPerformanceTestEnabled returns true if performance tests should run

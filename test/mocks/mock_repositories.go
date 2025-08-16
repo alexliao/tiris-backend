@@ -26,6 +26,9 @@ func (m *MockUserRepository) Create(ctx context.Context, user *models.User) erro
 
 func (m *MockUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*models.User), args.Error(1)
 }
 
@@ -443,4 +446,28 @@ func (m *MockExchangeService) GetExchangeByID(ctx context.Context, exchangeID uu
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*services.ExchangeResponse), args.Error(1)
+}
+
+// MockRepositories combines all mock repositories
+type MockRepositories struct {
+	User            repositories.UserRepository
+	Exchange        repositories.ExchangeRepository
+	SubAccount      repositories.SubAccountRepository
+	Transaction     repositories.TransactionRepository
+	TradingLog      repositories.TradingLogRepository
+	OAuthToken      repositories.OAuthTokenRepository
+	EventProcessing repositories.EventProcessingRepository
+}
+
+// NewMockRepositories creates a new mock repositories instance
+func NewMockRepositories() *MockRepositories {
+	return &MockRepositories{
+		User:            &MockUserRepository{},
+		Exchange:        &MockExchangeRepository{},
+		SubAccount:      &MockSubAccountRepository{},
+		Transaction:     &MockTransactionRepository{},
+		TradingLog:      &MockTradingLogRepository{},
+		OAuthToken:      &MockOAuthTokenRepository{},
+		EventProcessing: &MockEventProcessingRepository{},
+	}
 }
