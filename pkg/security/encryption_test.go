@@ -269,7 +269,7 @@ func TestValidateKeyStrength(t *testing.T) {
 		},
 		{
 			name:    "minimum valid",
-			key:     "MinimumValidPassword123WithCase",
+			key:     "MinimumValidPassword123WithCase32",
 			wantErr: false,
 		},
 	}

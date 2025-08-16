@@ -1,4 +1,4 @@
-.PHONY: build build-migrate run test clean dev deps migrate-up migrate-down migrate-version docker-build docker-run check-ports
+.PHONY: build build-migrate run test clean dev deps migrate-up migrate-down migrate-version docker-build docker-run check-ports create-test-user
 
 # Build the application
 build:
@@ -80,6 +80,10 @@ check-ports-detailed:
 kill-ports:
 	@./scripts/check-ports.sh --kill-dev
 
+# Create test user
+create-test-user:
+	@./scripts/create-test-user.sh $(ARGS)
+
 # Help
 help:
 	@echo "Available commands:"
@@ -102,4 +106,5 @@ help:
 	@echo "  check-ports-all - Check all ports"
 	@echo "  check-ports-detailed - Show detailed port usage"
 	@echo "  kill-ports   - Kill processes on development ports"
+	@echo "  create-test-user - Create a test user (use ARGS for options)"
 	@echo "  help         - Show this help message"
