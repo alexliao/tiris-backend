@@ -58,8 +58,8 @@ func LoggingMiddleware() gin.HandlerFunc {
 		requestID := c.GetHeader("X-Request-ID")
 		if requestID == "" {
 			requestID = uuid.New().String()
-			c.Header("X-Request-ID", requestID)
 		}
+		c.Header("X-Request-ID", requestID)
 
 		// Wrap response writer to capture response size
 		rw := &responseWriter{
