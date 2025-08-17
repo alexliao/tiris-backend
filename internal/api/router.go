@@ -288,3 +288,8 @@ func (s *Server) GetRouter() *gin.Engine {
 func (s *Server) GetMetrics() *metrics.Metrics {
 	return s.metrics
 }
+
+// GetJWTManager returns the JWT manager instance
+func (s *Server) GetJWTManager() *auth.JWTManager {
+	return s.jwtManager
+}

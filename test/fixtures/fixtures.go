@@ -263,6 +263,49 @@ var OAuthTokenFixtures = struct {
 	},
 }
 
+// CreateUser creates a new user with randomized values for testing
+func CreateUser() *models.User {
+	return &models.User{
+		ID:        uuid.New(),
+		Username:  "testuser_" + uuid.New().String()[:8],
+		Email:     "test_" + uuid.New().String()[:8] + "@example.com",
+		Avatar:    nil,
+		Settings:  datatypes.JSON(`{"theme": "dark"}`),
+		Info:      datatypes.JSON(`{}`),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+}
+
+// CreateExchange creates a new exchange with randomized values for testing
+func CreateExchange(userID uuid.UUID) *models.Exchange {
+	return &models.Exchange{
+		ID:        uuid.New(),
+		UserID:    userID,
+		Name:      "test_exchange_" + uuid.New().String()[:8],
+		Type:      "spot",
+		APIKey:    "test_api_key",
+		APISecret: "test_api_secret",
+		Status:    "active",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+}
+
+// CreateSubAccount creates a new sub-account with randomized values for testing
+func CreateSubAccount(userID, exchangeID uuid.UUID) *models.SubAccount {
+	return &models.SubAccount{
+		ID:         uuid.New(),
+		UserID:     userID,
+		ExchangeID: exchangeID,
+		Name:       "test_subaccount_" + uuid.New().String()[:8],
+		Symbol:     "USDT",
+		Balance:    1000.0,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+	}
+}
+
 // Helper functions
 func stringPtr(s string) *string {
 	return &s
