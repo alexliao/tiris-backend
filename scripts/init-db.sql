@@ -13,6 +13,10 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- Set timezone to UTC
 SET timezone = 'UTC';
 
+-- Create database if it doesn't exist (this handles fresh installations)
+SELECT 'CREATE DATABASE tiris_dev OWNER tiris_user' 
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'tiris_dev')\gexec
+
 -- Create development user if it doesn't exist
 DO $$
 BEGIN

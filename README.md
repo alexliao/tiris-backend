@@ -68,7 +68,7 @@ docker compose -f docker-compose.dev.yml ps
 
 #### 3. Setup Database
 ```bash
-# Run database migrations
+# Run database migrations (database is created automatically on first run)
 make migrate-up
 
 # Verify tables were created
