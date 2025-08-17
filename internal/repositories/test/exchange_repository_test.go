@@ -33,8 +33,8 @@ type TestExchange struct {
 	DeletedAt *time.Time `gorm:"index" json:"-"`
 }
 
-// TestSubAccount represents a simplified sub-account model for SQLite testing
-type TestSubAccount struct {
+// TestSubAccountForExchange represents a simplified sub-account model for SQLite testing
+type TestSubAccountForExchange struct {
 	ID         uuid.UUID `gorm:"type:TEXT;primary_key" json:"id"`
 	ExchangeID uuid.UUID `gorm:"type:TEXT;not null;index" json:"exchange_id"`
 	UserID     uuid.UUID `gorm:"type:TEXT;not null;index" json:"user_id"`
@@ -63,7 +63,7 @@ func setupExchangeTestDB() (*gorm.DB, error) {
 		return nil, err
 	}
 	
-	if err := db.Table("sub_accounts").AutoMigrate(&TestSubAccount{}); err != nil {
+	if err := db.Table("sub_accounts").AutoMigrate(&TestSubAccountForExchange{}); err != nil {
 		return nil, err
 	}
 
@@ -585,7 +585,7 @@ func TestExchangeRepository_Delete(t *testing.T) {
 		require.NoError(t, err)
 		
 		// Create a sub-account for this exchange
-		testSubAccount := TestSubAccount{
+		testSubAccount := TestSubAccountForExchange{
 			ID:         uuid.New(),
 			ExchangeID: testExchange.ID,
 			UserID:     testUser.ID,
