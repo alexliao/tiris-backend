@@ -37,23 +37,23 @@ type SubAccountResponse struct {
 
 // CreateSubAccountRequest represents sub-account creation request
 type CreateSubAccountRequest struct {
-	ExchangeID uuid.UUID `json:"exchange_id" binding:"required"`
-	Name       string    `json:"name" binding:"required,min=1,max=100"`
-	Symbol     string    `json:"symbol" binding:"required,min=1,max=20"`
+	ExchangeID uuid.UUID `json:"exchange_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
+	Name       string    `json:"name" binding:"required,min=1,max=100" example:"BTC Trading Account"`
+	Symbol     string    `json:"symbol" binding:"required,min=1,max=20" example:"BTC/USDT"`
 }
 
 // UpdateSubAccountRequest represents sub-account update request
 type UpdateSubAccountRequest struct {
-	Name    *string  `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
-	Symbol  *string  `json:"symbol,omitempty" binding:"omitempty,min=1,max=20"`
-	Balance *float64 `json:"balance,omitempty" binding:"omitempty,min=0"`
+	Name    *string  `json:"name,omitempty" binding:"omitempty,min=1,max=100" example:"ETH Trading Account"`
+	Symbol  *string  `json:"symbol,omitempty" binding:"omitempty,min=1,max=20" example:"ETH/USD"`
+	Balance *float64 `json:"balance,omitempty" binding:"omitempty,min=0" example:"1250.75"`
 }
 
 // UpdateBalanceRequest represents balance update request
 type UpdateBalanceRequest struct {
-	Amount    float64                `json:"amount" binding:"required"`
-	Direction string                 `json:"direction" binding:"required,oneof=credit debit"`
-	Reason    string                 `json:"reason" binding:"required,min=1,max=255"`
+	Amount    float64                `json:"amount" binding:"required" example:"500.25"`
+	Direction string                 `json:"direction" binding:"required,oneof=credit debit" example:"credit"`
+	Reason    string                 `json:"reason" binding:"required,min=1,max=255" example:"Successful BTC/USDT trade profit"`
 	Info      map[string]interface{} `json:"info,omitempty"`
 }
 

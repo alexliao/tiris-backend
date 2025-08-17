@@ -45,10 +45,10 @@ type CreateExchangeRequest struct {
 
 // UpdateExchangeRequest represents exchange update request
 type UpdateExchangeRequest struct {
-	Name      *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
-	APIKey    *string `json:"api_key,omitempty" binding:"omitempty,min=1"`
-	APISecret *string `json:"api_secret,omitempty" binding:"omitempty,min=1"`
-	Status    *string `json:"status,omitempty" binding:"omitempty,oneof=active inactive"`
+	Name      *string `json:"name,omitempty" binding:"omitempty,min=1,max=100" example:"My Updated Exchange Account"`
+	APIKey    *string `json:"api_key,omitempty" binding:"omitempty,min=1" example:"updated_api_key_12345"`
+	APISecret *string `json:"api_secret,omitempty" binding:"omitempty,min=1" example:"updated_api_secret_67890"`
+	Status    *string `json:"status,omitempty" binding:"omitempty,oneof=active inactive" example:"active"`
 }
 
 // CreateExchange creates a new exchange configuration

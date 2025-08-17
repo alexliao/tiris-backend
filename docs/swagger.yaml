@@ -82,12 +82,16 @@ definitions:
   services.AuthResponse:
     properties:
       access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiN2U2YTg5ZTYtM2U0Ni00MWQzLWFlYzYtMjg1ZmQ5Mjg5ODNiIiwidXNlcm5hbWUiOiJqb2huZG9lIiwiZXhwIjoxNzg2OTk5NjQyfQ.abcd1234
         type: string
       expires_in:
+        example: 3600
         type: integer
       refresh_token:
+        example: rt_1234567890abcdef
         type: string
       token_type:
+        example: Bearer
         type: string
       user:
         $ref: '#/definitions/services.UserInfo'
@@ -95,13 +99,16 @@ definitions:
   services.CallbackRequest:
     properties:
       code:
+        example: 4/0AX4XfWjQK9rO8tA1bCdE9...
         type: string
       provider:
         enum:
         - google
         - wechat
+        example: google
         type: string
       state:
+        example: abc123def456ghi789
         type: string
     required:
     - code
@@ -135,12 +142,15 @@ definitions:
   services.CreateSubAccountRequest:
     properties:
       exchange_id:
+        example: 453f0347-3959-49de-8e3f-1cf7c8e0827c
         type: string
       name:
+        example: BTC Trading Account
         maxLength: 100
         minLength: 1
         type: string
       symbol:
+        example: BTC/USDT
         maxLength: 20
         minLength: 1
         type: string
@@ -152,23 +162,29 @@ definitions:
   services.CreateTradingLogRequest:
     properties:
       exchange_id:
+        example: 453f0347-3959-49de-8e3f-1cf7c8e0827c
         type: string
       info:
         additionalProperties: true
         type: object
       message:
+        example: Successfully executed BUY order for 0.5 BTC at $42,500
         minLength: 1
         type: string
       source:
         enum:
         - manual
         - bot
+        example: bot
         type: string
       sub_account_id:
+        example: b4e006d0-1069-4ef4-b33f-7690af4929f4
         type: string
       transaction_id:
+        example: 1a098613-e738-447d-b921-74c3594df3a5
         type: string
       type:
+        example: trade_execution
         maxLength: 50
         minLength: 1
         type: string
@@ -207,8 +223,10 @@ definitions:
         enum:
         - google
         - wechat
+        example: google
         type: string
       redirect_uri:
+        example: https://yourapp.com/auth/callback
         type: string
     required:
     - provider
@@ -217,13 +235,16 @@ definitions:
   services.LoginResponse:
     properties:
       auth_url:
+        example: https://accounts.google.com/oauth/authorize?client_id=...&redirect_uri=...&state=abc123
         type: string
       state:
+        example: abc123def456ghi789
         type: string
     type: object
   services.RefreshRequest:
     properties:
       refresh_token:
+        example: rt_1234567890abcdef
         type: string
     required:
     - refresh_token
@@ -335,16 +356,19 @@ definitions:
   services.UpdateBalanceRequest:
     properties:
       amount:
+        example: 500.25
         type: number
       direction:
         enum:
         - credit
         - debit
+        example: credit
         type: string
       info:
         additionalProperties: true
         type: object
       reason:
+        example: Successful BTC/USDT trade profit
         maxLength: 255
         minLength: 1
         type: string
@@ -356,12 +380,15 @@ definitions:
   services.UpdateExchangeRequest:
     properties:
       api_key:
+        example: updated_api_key_12345
         minLength: 1
         type: string
       api_secret:
+        example: updated_api_secret_67890
         minLength: 1
         type: string
       name:
+        example: My Updated Exchange Account
         maxLength: 100
         minLength: 1
         type: string
@@ -369,18 +396,22 @@ definitions:
         enum:
         - active
         - inactive
+        example: active
         type: string
     type: object
   services.UpdateSubAccountRequest:
     properties:
       balance:
+        example: 1250.75
         minimum: 0
         type: number
       name:
+        example: ETH Trading Account
         maxLength: 100
         minLength: 1
         type: string
       symbol:
+        example: ETH/USD
         maxLength: 20
         minLength: 1
         type: string
@@ -388,11 +419,13 @@ definitions:
   services.UpdateUserRequest:
     properties:
       avatar:
+        example: https://example.com/avatars/johndoe.jpg
         type: string
       settings:
         additionalProperties: true
         type: object
       username:
+        example: johndoe_trader
         maxLength: 50
         minLength: 3
         type: string
@@ -400,15 +433,19 @@ definitions:
   services.UserInfo:
     properties:
       avatar:
+        example: https://lh3.googleusercontent.com/a/user-avatar-url
         type: string
       email:
+        example: john.doe@example.com
         type: string
       id:
+        example: 7e6a89e6-3e46-41d3-aec6-285fd928983b
         type: string
       info:
         additionalProperties: true
         type: object
       username:
+        example: johndoe
         type: string
     type: object
   services.UserResponse:

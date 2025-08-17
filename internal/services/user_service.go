@@ -36,8 +36,8 @@ type UserResponse struct {
 
 // UpdateUserRequest represents user update request
 type UpdateUserRequest struct {
-	Username *string                `json:"username,omitempty" binding:"omitempty,min=3,max=50"`
-	Avatar   *string                `json:"avatar,omitempty" binding:"omitempty,url"`
+	Username *string                `json:"username,omitempty" binding:"omitempty,min=3,max=50" example:"johndoe_trader"`
+	Avatar   *string                `json:"avatar,omitempty" binding:"omitempty,url" example:"https://example.com/avatars/johndoe.jpg"`
 	Settings map[string]interface{} `json:"settings,omitempty"`
 }
 

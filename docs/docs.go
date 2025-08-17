@@ -2950,16 +2950,20 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "access_token": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiN2U2YTg5ZTYtM2U0Ni00MWQzLWFlYzYtMjg1ZmQ5Mjg5ODNiIiwidXNlcm5hbWUiOiJqb2huZG9lIiwiZXhwIjoxNzg2OTk5NjQyfQ.abcd1234"
                 },
                 "expires_in": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 3600
                 },
                 "refresh_token": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "rt_1234567890abcdef"
                 },
                 "token_type": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Bearer"
                 },
                 "user": {
                     "$ref": "#/definitions/services.UserInfo"
@@ -2975,17 +2979,20 @@ const docTemplate = `{
             ],
             "properties": {
                 "code": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "4/0AX4XfWjQK9rO8tA1bCdE9..."
                 },
                 "provider": {
                     "type": "string",
                     "enum": [
                         "google",
                         "wechat"
-                    ]
+                    ],
+                    "example": "google"
                 },
                 "state": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "abc123def456ghi789"
                 }
             }
         },
@@ -3029,17 +3036,20 @@ const docTemplate = `{
             ],
             "properties": {
                 "exchange_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "453f0347-3959-49de-8e3f-1cf7c8e0827c"
                 },
                 "name": {
                     "type": "string",
                     "maxLength": 100,
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "BTC Trading Account"
                 },
                 "symbol": {
                     "type": "string",
                     "maxLength": 20,
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "BTC/USDT"
                 }
             }
         },
@@ -3053,7 +3063,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "exchange_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "453f0347-3959-49de-8e3f-1cf7c8e0827c"
                 },
                 "info": {
                     "type": "object",
@@ -3061,25 +3072,30 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "Successfully executed BUY order for 0.5 BTC at $42,500"
                 },
                 "source": {
                     "type": "string",
                     "enum": [
                         "manual",
                         "bot"
-                    ]
+                    ],
+                    "example": "bot"
                 },
                 "sub_account_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "b4e006d0-1069-4ef4-b33f-7690af4929f4"
                 },
                 "transaction_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "1a098613-e738-447d-b921-74c3594df3a5"
                 },
                 "type": {
                     "type": "string",
                     "maxLength": 50,
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "trade_execution"
                 }
             }
         },
@@ -3129,10 +3145,12 @@ const docTemplate = `{
                     "enum": [
                         "google",
                         "wechat"
-                    ]
+                    ],
+                    "example": "google"
                 },
                 "redirect_uri": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://yourapp.com/auth/callback"
                 }
             }
         },
@@ -3140,10 +3158,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "auth_url": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://accounts.google.com/oauth/authorize?client_id=...\u0026redirect_uri=...\u0026state=abc123"
                 },
                 "state": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "abc123def456ghi789"
                 }
             }
         },
@@ -3154,7 +3174,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "refresh_token": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "rt_1234567890abcdef"
                 }
             }
         },
@@ -3324,14 +3345,16 @@ const docTemplate = `{
             ],
             "properties": {
                 "amount": {
-                    "type": "number"
+                    "type": "number",
+                    "example": 500.25
                 },
                 "direction": {
                     "type": "string",
                     "enum": [
                         "credit",
                         "debit"
-                    ]
+                    ],
+                    "example": "credit"
                 },
                 "info": {
                     "type": "object",
@@ -3340,7 +3363,8 @@ const docTemplate = `{
                 "reason": {
                     "type": "string",
                     "maxLength": 255,
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "Successful BTC/USDT trade profit"
                 }
             }
         },
@@ -3349,23 +3373,27 @@ const docTemplate = `{
             "properties": {
                 "api_key": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "updated_api_key_12345"
                 },
                 "api_secret": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "updated_api_secret_67890"
                 },
                 "name": {
                     "type": "string",
                     "maxLength": 100,
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "My Updated Exchange Account"
                 },
                 "status": {
                     "type": "string",
                     "enum": [
                         "active",
                         "inactive"
-                    ]
+                    ],
+                    "example": "active"
                 }
             }
         },
@@ -3374,17 +3402,20 @@ const docTemplate = `{
             "properties": {
                 "balance": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "example": 1250.75
                 },
                 "name": {
                     "type": "string",
                     "maxLength": 100,
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "ETH Trading Account"
                 },
                 "symbol": {
                     "type": "string",
                     "maxLength": 20,
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "ETH/USD"
                 }
             }
         },
@@ -3392,7 +3423,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "avatar": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://example.com/avatars/johndoe.jpg"
                 },
                 "settings": {
                     "type": "object",
@@ -3401,7 +3433,8 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "maxLength": 50,
-                    "minLength": 3
+                    "minLength": 3,
+                    "example": "johndoe_trader"
                 }
             }
         },
@@ -3409,20 +3442,24 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "avatar": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://lh3.googleusercontent.com/a/user-avatar-url"
                 },
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "john.doe@example.com"
                 },
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "7e6a89e6-3e46-41d3-aec6-285fd928983b"
                 },
                 "info": {
                     "type": "object",
                     "additionalProperties": true
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "johndoe"
                 }
             }
         },

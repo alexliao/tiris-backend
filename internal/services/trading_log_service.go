@@ -39,23 +39,23 @@ type TradingLogResponse struct {
 
 // CreateTradingLogRequest represents trading log creation request
 type CreateTradingLogRequest struct {
-	ExchangeID    uuid.UUID              `json:"exchange_id" binding:"required"`
-	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty"`
-	TransactionID *uuid.UUID             `json:"transaction_id,omitempty"`
-	Type          string                 `json:"type" binding:"required,min=1,max=50"`
-	Source        string                 `json:"source" binding:"required,oneof=manual bot"`
-	Message       string                 `json:"message" binding:"required,min=1"`
+	ExchangeID    uuid.UUID              `json:"exchange_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
+	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty" example:"b4e006d0-1069-4ef4-b33f-7690af4929f4"`
+	TransactionID *uuid.UUID             `json:"transaction_id,omitempty" example:"1a098613-e738-447d-b921-74c3594df3a5"`
+	Type          string                 `json:"type" binding:"required,min=1,max=50" example:"trade_execution"`
+	Source        string                 `json:"source" binding:"required,oneof=manual bot" example:"bot"`
+	Message       string                 `json:"message" binding:"required,min=1" example:"Successfully executed BUY order for 0.5 BTC at $42,500"`
 	Info          map[string]interface{} `json:"info,omitempty"`
 }
 
 // TradingLogQueryRequest represents trading log query parameters
 type TradingLogQueryRequest struct {
-	Type      *string    `form:"type"`
-	Source    *string    `form:"source" binding:"omitempty,oneof=manual bot"`
-	StartDate *time.Time `form:"start_date" time_format:"2006-01-02T15:04:05Z07:00"`
-	EndDate   *time.Time `form:"end_date" time_format:"2006-01-02T15:04:05Z07:00"`
-	Limit     int        `form:"limit" binding:"omitempty,min=1,max=1000"`
-	Offset    int        `form:"offset" binding:"omitempty,min=0"`
+	Type      *string    `form:"type" example:"trade_execution"`
+	Source    *string    `form:"source" binding:"omitempty,oneof=manual bot" example:"bot"`
+	StartDate *time.Time `form:"start_date" time_format:"2006-01-02T15:04:05Z07:00" example:"2025-08-01T00:00:00Z"`
+	EndDate   *time.Time `form:"end_date" time_format:"2006-01-02T15:04:05Z07:00" example:"2025-08-31T23:59:59Z"`
+	Limit     int        `form:"limit" binding:"omitempty,min=1,max=1000" example:"50"`
+	Offset    int        `form:"offset" binding:"omitempty,min=0" example:"0"`
 }
 
 // TradingLogQueryResponse represents paginated trading log results

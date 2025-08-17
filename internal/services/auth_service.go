@@ -32,44 +32,44 @@ func NewAuthService(repos *repositories.Repositories, jwtManager auth.JWTManager
 
 // LoginRequest represents a login request
 type LoginRequest struct {
-	Provider    string `json:"provider" binding:"required,oneof=google wechat"`
-	RedirectURL string `json:"redirect_uri" binding:"required,url"`
+	Provider    string `json:"provider" binding:"required,oneof=google wechat" example:"google"`
+	RedirectURL string `json:"redirect_uri" binding:"required,url" example:"https://yourapp.com/auth/callback"`
 }
 
 // LoginResponse represents a login response with auth URL
 type LoginResponse struct {
-	AuthURL string `json:"auth_url"`
-	State   string `json:"state"`
+	AuthURL string `json:"auth_url" example:"https://accounts.google.com/oauth/authorize?client_id=...&redirect_uri=...&state=abc123"`
+	State   string `json:"state" example:"abc123def456ghi789"`
 }
 
 // CallbackRequest represents an OAuth callback request
 type CallbackRequest struct {
-	Provider string `json:"provider" binding:"required,oneof=google wechat"`
-	Code     string `json:"code" binding:"required"`
-	State    string `json:"state" binding:"required"`
+	Provider string `json:"provider" binding:"required,oneof=google wechat" example:"google"`
+	Code     string `json:"code" binding:"required" example:"4/0AX4XfWjQK9rO8tA1bCdE9..."`
+	State    string `json:"state" binding:"required" example:"abc123def456ghi789"`
 }
 
 // AuthResponse represents an authentication response with tokens
 type AuthResponse struct {
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
-	TokenType    string    `json:"token_type"`
-	ExpiresIn    int64     `json:"expires_in"`
+	AccessToken  string    `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiN2U2YTg5ZTYtM2U0Ni00MWQzLWFlYzYtMjg1ZmQ5Mjg5ODNiIiwidXNlcm5hbWUiOiJqb2huZG9lIiwiZXhwIjoxNzg2OTk5NjQyfQ.abcd1234"`
+	RefreshToken string    `json:"refresh_token" example:"rt_1234567890abcdef"`
+	TokenType    string    `json:"token_type" example:"Bearer"`
+	ExpiresIn    int64     `json:"expires_in" example:"3600"`
 	User         *UserInfo `json:"user"`
 }
 
 // UserInfo represents user information in auth response
 type UserInfo struct {
-	ID       uuid.UUID              `json:"id"`
-	Username string                 `json:"username"`
-	Email    string                 `json:"email"`
-	Avatar   *string                `json:"avatar,omitempty"`
+	ID       uuid.UUID              `json:"id" example:"7e6a89e6-3e46-41d3-aec6-285fd928983b"`
+	Username string                 `json:"username" example:"johndoe"`
+	Email    string                 `json:"email" example:"john.doe@example.com"`
+	Avatar   *string                `json:"avatar,omitempty" example:"https://lh3.googleusercontent.com/a/user-avatar-url"`
 	Info     map[string]interface{} `json:"info"`
 }
 
 // RefreshRequest represents a token refresh request
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token" binding:"required" example:"rt_1234567890abcdef"`
 }
 
 // InitiateLogin initiates OAuth login flow
