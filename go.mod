@@ -11,6 +11,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
+	github.com/lib/pq v1.10.9
 	github.com/nats-io/nats.go v1.32.0
 	github.com/prometheus/client_golang v1.23.0
 	github.com/stretchr/testify v1.10.0
@@ -18,6 +19,7 @@ require (
 	golang.org/x/oauth2 v0.30.0
 	gorm.io/datatypes v1.2.6
 	gorm.io/driver/postgres v1.5.4
+	gorm.io/driver/sqlite v1.4.3
 	gorm.io/gorm v1.30.0
 )
 
@@ -49,8 +51,8 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
-	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
