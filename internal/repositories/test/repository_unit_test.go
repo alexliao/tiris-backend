@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/datatypes"
 )
 
 // SimpleUser represents a SQLite-compatible user model for testing
@@ -76,8 +75,8 @@ func convertFromSimpleUser(simple *SimpleUser) *models.User {
 		ID:       id,
 		Username: simple.Username,
 		Email:    simple.Email,
-		Settings: datatypes.JSON(simple.Settings),
-		Info:     datatypes.JSON(simple.Info),
+		Settings: models.JSON(map[string]interface{}{"settings": "data"}),
+		Info:     models.JSON(map[string]interface{}{"info": "data"}),
 		CreatedAt: simple.CreatedAt,
 		UpdatedAt: simple.UpdatedAt,
 	}

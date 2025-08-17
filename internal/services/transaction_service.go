@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -380,7 +379,9 @@ func (s *TransactionService) GetTransactionByID(ctx context.Context, transaction
 // convertToTransactionResponse converts a transaction model to response format
 func (s *TransactionService) convertToTransactionResponse(transaction *models.Transaction) *TransactionResponse {
 	var info map[string]interface{}
-	if err := json.Unmarshal(transaction.Info, &info); err != nil {
+	if len(transaction.Info) > 0 {
+		info = transaction.Info
+	} else {
 		info = make(map[string]interface{})
 	}
 

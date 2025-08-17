@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"tiris-backend/internal/repositories"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes"
 )
 
 // TradingLogService handles trading log business logic
@@ -102,20 +100,15 @@ func (s *TradingLogService) CreateTradingLog(ctx context.Context, userID uuid.UU
 		}
 	}
 
-	// Create info JSON with metadata
-	infoData := req.Info
-	if infoData == nil {
-		infoData = make(map[string]interface{})
+	// Create info map with metadata
+	infoMap := req.Info
+	if infoMap == nil {
+		infoMap = make(map[string]interface{})
 	}
 	// Add metadata
-	infoData["created_by"] = "api"
-	infoData["api_version"] = "v1"
-	infoData["exchange_type"] = exchange.Type
-
-	infoJSON, err := json.Marshal(infoData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode info: %w", err)
-	}
+	infoMap["created_by"] = "api"
+	infoMap["api_version"] = "v1"
+	infoMap["exchange_type"] = exchange.Type
 
 	// Create trading log model
 	tradingLog := &models.TradingLog{
@@ -128,7 +121,7 @@ func (s *TradingLogService) CreateTradingLog(ctx context.Context, userID uuid.UU
 		Type:          req.Type,
 		Source:        req.Source,
 		Message:       req.Message,
-		Info:          datatypes.JSON(infoJSON),
+		Info:          models.JSON(infoMap),
 	}
 
 	// Save to database
@@ -458,7 +451,9 @@ func (s *TradingLogService) GetTradingLogByID(ctx context.Context, tradingLogID 
 // convertToTradingLogResponse converts a trading log model to response format
 func (s *TradingLogService) convertToTradingLogResponse(tradingLog *models.TradingLog) *TradingLogResponse {
 	var info map[string]interface{}
-	if err := json.Unmarshal(tradingLog.Info, &info); err != nil {
+	if len(tradingLog.Info) > 0 {
+		info = tradingLog.Info
+	} else {
 		info = make(map[string]interface{})
 	}
 

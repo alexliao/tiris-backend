@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
@@ -9,7 +8,6 @@ import (
 	"tiris-backend/internal/models"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes"
 )
 
 // TestDataFactory provides methods to create test data dynamically
@@ -50,8 +48,8 @@ func (f *UserFactory) Build() *models.User {
 		Username:  fmt.Sprintf("testuser_%d", id),
 		Email:     fmt.Sprintf("testuser_%d@example.com", id),
 		Avatar:    nil,
-		Settings:  datatypes.JSON(`{"theme": "dark"}`),
-		Info:      datatypes.JSON(`{}`),
+		Settings:  models.JSON(map[string]interface{}{"theme": "dark"}),
+		Info:      models.JSON(map[string]interface{}{}),
 		CreatedAt: time.Now().Add(-time.Duration(rand.Intn(72)) * time.Hour),
 		UpdatedAt: time.Now().Add(-time.Duration(rand.Intn(24)) * time.Hour),
 	}
@@ -88,18 +86,14 @@ func (f *UserFactory) WithAvatar(avatarURL string) *models.User {
 // WithSettings sets user settings
 func (f *UserFactory) WithSettings(settings map[string]interface{}) *models.User {
 	user := f.Build()
-	if settingsJSON, err := json.Marshal(settings); err == nil {
-		user.Settings = datatypes.JSON(settingsJSON)
-	}
+	user.Settings = models.JSON(settings)
 	return user
 }
 
 // WithInfo sets user info
 func (f *UserFactory) WithInfo(info map[string]interface{}) *models.User {
 	user := f.Build()
-	if infoJSON, err := json.Marshal(info); err == nil {
-		user.Info = datatypes.JSON(infoJSON)
-	}
+	user.Info = models.JSON(info)
 	return user
 }
 
@@ -112,15 +106,11 @@ func (f *UserFactory) AdminUser() *models.User {
 		"role":  "admin",
 		"theme": "light",
 	}
-	if settingsJSON, err := json.Marshal(adminSettings); err == nil {
-		user.Settings = datatypes.JSON(settingsJSON)
-	}
+	user.Settings = models.JSON(adminSettings)
 	adminInfo := map[string]interface{}{
 		"permissions": []string{"read", "write", "admin"},
 	}
-	if infoJSON, err := json.Marshal(adminInfo); err == nil {
-		user.Info = datatypes.JSON(infoJSON)
-	}
+	user.Info = models.JSON(adminInfo)
 	return user
 }
 
@@ -147,7 +137,7 @@ func (f *ExchangeFactory) Build() *models.Exchange {
 		APIKey:    fmt.Sprintf("test_api_key_%d", id),
 		APISecret: fmt.Sprintf("test_api_secret_%d", id),
 		Status:    "active",
-		Info:      datatypes.JSON(`{"sandbox": true}`),
+		Info:      models.JSON(map[string]interface{}{"sandbox": true}),
 		CreatedAt: time.Now().Add(-time.Duration(rand.Intn(48)) * time.Hour),
 		UpdatedAt: time.Now().Add(-time.Duration(rand.Intn(12)) * time.Hour),
 	}
@@ -192,9 +182,7 @@ func (f *ExchangeFactory) WithStatus(status string) *models.Exchange {
 // WithInfo sets exchange info
 func (f *ExchangeFactory) WithInfo(info map[string]interface{}) *models.Exchange {
 	exchange := f.Build()
-	if infoJSON, err := json.Marshal(info); err == nil {
-		exchange.Info = datatypes.JSON(infoJSON)
-	}
+	exchange.Info = models.JSON(info)
 	return exchange
 }
 
@@ -208,9 +196,7 @@ func (f *ExchangeFactory) BinanceExchange() *models.Exchange {
 		"base_url":  "https://testnet.binance.vision",
 		"rate_limit": 1200,
 	}
-	if infoJSON, err := json.Marshal(binanceInfo); err == nil {
-		exchange.Info = datatypes.JSON(infoJSON)
-	}
+	exchange.Info = models.JSON(binanceInfo)
 	return exchange
 }
 
@@ -236,7 +222,7 @@ func (f *SubAccountFactory) Build() *models.SubAccount {
 		Name:       fmt.Sprintf("account_%d", id),
 		Symbol:     "USDT",
 		Balance:    1000.0 + float64(rand.Intn(9000)), // Random balance between 1000-10000
-		Info:       datatypes.JSON(`{"type": "spot"}`),
+		Info:       models.JSON(map[string]interface{}{"type": "spot"}),
 		CreatedAt:  time.Now().Add(-time.Duration(rand.Intn(24)) * time.Hour),
 		UpdatedAt:  time.Now().Add(-time.Duration(rand.Intn(6)) * time.Hour),
 	}
@@ -294,9 +280,7 @@ func (f *SubAccountFactory) SpotAccount() *models.SubAccount {
 		"type":     "spot",
 		"features": []string{"trading", "deposits", "withdrawals"},
 	}
-	if infoJSON, err := json.Marshal(spotInfo); err == nil {
-		account.Info = datatypes.JSON(infoJSON)
-	}
+	account.Info = models.JSON(spotInfo)
 	return account
 }
 
@@ -311,9 +295,7 @@ func (f *SubAccountFactory) FuturesAccount() *models.SubAccount {
 		"leverage": 10,
 		"features": []string{"trading", "margin"},
 	}
-	if infoJSON, err := json.Marshal(futuresInfo); err == nil {
-		account.Info = datatypes.JSON(infoJSON)
-	}
+	account.Info = models.JSON(futuresInfo)
 	return account
 }
 
@@ -342,7 +324,7 @@ func (f *TransactionFactory) Build() *models.Transaction {
 		Reason:         "deposit",
 		Amount:         amount,
 		ClosingBalance: amount,
-		Info:           datatypes.JSON(`{}`),
+		Info:           models.JSON(map[string]interface{}{}),
 	}
 }
 
@@ -399,9 +381,7 @@ func (f *TransactionFactory) DepositTransaction(amount float64, closingBalance f
 		"txid":   fmt.Sprintf("0x%x", rand.Int63()),
 		"method": "bank_transfer",
 	}
-	if infoJSON, err := json.Marshal(depositInfo); err == nil {
-		tx.Info = datatypes.JSON(infoJSON)
-	}
+	tx.Info = models.JSON(depositInfo)
 	return tx
 }
 
@@ -416,9 +396,7 @@ func (f *TransactionFactory) WithdrawTransaction(amount float64, closingBalance 
 		"address": fmt.Sprintf("0x%x", rand.Int63()),
 		"fee":     amount * 0.001, // 0.1% fee
 	}
-	if infoJSON, err := json.Marshal(withdrawInfo); err == nil {
-		tx.Info = datatypes.JSON(infoJSON)
-	}
+	tx.Info = models.JSON(withdrawInfo)
 	return tx
 }
 
@@ -435,9 +413,7 @@ func (f *TransactionFactory) TradeTransaction(amount float64, closingBalance flo
 		"side":     "buy",
 		"price":    45000.0 + float64(rand.Intn(10000)),
 	}
-	if infoJSON, err := json.Marshal(tradeInfo); err == nil {
-		tx.Info = datatypes.JSON(infoJSON)
-	}
+	tx.Info = models.JSON(tradeInfo)
 	return tx
 }
 
@@ -465,7 +441,7 @@ func (f *TradingLogFactory) Build() *models.TradingLog {
 		Type:         "trade",
 		Source:       "manual",
 		Message:      fmt.Sprintf("Test trading log entry %d", id),
-		Info:         datatypes.JSON(`{}`),
+		Info:         models.JSON(map[string]interface{}{}),
 	}
 }
 
@@ -509,9 +485,7 @@ func (f *TradingLogFactory) BotLog() *models.TradingLog {
 		"action":   "open_position",
 		"bot_id":   fmt.Sprintf("bot_%d", f.factory.nextID()),
 	}
-	if infoJSON, err := json.Marshal(botInfo); err == nil {
-		log.Info = datatypes.JSON(infoJSON)
-	}
+	log.Info = models.JSON(botInfo)
 	return log
 }
 
@@ -526,9 +500,7 @@ func (f *TradingLogFactory) ErrorLog() *models.TradingLog {
 		"endpoint":   "/api/v5/trade/order",
 		"retry_after": 30,
 	}
-	if infoJSON, err := json.Marshal(errorInfo); err == nil {
-		log.Info = datatypes.JSON(infoJSON)
-	}
+	log.Info = models.JSON(errorInfo)
 	return log
 }
 

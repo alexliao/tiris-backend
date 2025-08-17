@@ -2,14 +2,12 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"tiris-backend/internal/models"
 	"tiris-backend/internal/repositories"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes"
 )
 
 // ExchangeService handles exchange business logic
@@ -73,15 +71,10 @@ func (s *ExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, 
 		}
 	}
 
-	// Create info JSON with metadata
-	infoData := map[string]interface{}{
+	// Create info map with metadata
+	infoMap := map[string]interface{}{
 		"created_by":  "api",
 		"api_version": "v1",
-	}
-
-	infoJSON, err := json.Marshal(infoData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode info: %w", err)
 	}
 
 	// Create exchange model
@@ -93,7 +86,7 @@ func (s *ExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, 
 		APIKey:    req.APIKey,
 		APISecret: req.APISecret,
 		Status:    "active", // Default to active
-		Info:      datatypes.JSON(infoJSON),
+		Info:      models.JSON(infoMap),
 	}
 
 	// Save to database
@@ -248,7 +241,9 @@ func (s *ExchangeService) GetExchangeByID(ctx context.Context, exchangeID uuid.U
 // convertToExchangeResponse converts an exchange model to response format
 func (s *ExchangeService) convertToExchangeResponse(exchange *models.Exchange) *ExchangeResponse {
 	var info map[string]interface{}
-	if err := json.Unmarshal(exchange.Info, &info); err != nil {
+	if len(exchange.Info) > 0 {
+		info = exchange.Info
+	} else {
 		info = make(map[string]interface{})
 	}
 

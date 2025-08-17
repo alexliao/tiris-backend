@@ -8,7 +8,6 @@ import (
 	"tiris-backend/pkg/security"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -22,11 +21,11 @@ type SecureExchange struct {
 	EncryptedSecret  string         `gorm:"type:text;not null;column:encrypted_api_secret" json:"-"`
 	APIKeyHash       string         `gorm:"type:varchar(64);not null;index;column:api_key_hash" json:"-"`
 	Status           string         `gorm:"type:varchar(20);default:'active';index" json:"status"`
-	Info             datatypes.JSON `gorm:"type:jsonb;default:'{}'" json:"info"`
+	Info             JSON `gorm:"type:jsonb;default:'{}'" json:"info"`
 	LastUsedAt       *time.Time     `gorm:"column:last_used_at" json:"last_used_at,omitempty"`
 	FailureCount     int            `gorm:"default:0;column:failure_count" json:"-"`
 	LastFailureAt    *time.Time     `gorm:"column:last_failure_at" json:"-"`
-	SecuritySettings datatypes.JSON `gorm:"type:jsonb;default:'{}';column:security_settings" json:"security_settings"`
+	SecuritySettings JSON `gorm:"type:jsonb;default:'{}';column:security_settings" json:"security_settings"`
 
 	CreatedAt time.Time      `gorm:"default:now()" json:"created_at"`
 	UpdatedAt time.Time      `gorm:"default:now()" json:"updated_at"`
@@ -212,7 +211,12 @@ func (em *ExchangeManager) GetSecuritySettings(exchange *SecureExchange) (*Secur
 	}
 
 	if len(exchange.SecuritySettings) > 0 {
-		if err := json.Unmarshal(exchange.SecuritySettings, settings); err != nil {
+		// Convert JSON map to bytes first, then unmarshal to settings
+		data, err := json.Marshal(exchange.SecuritySettings)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(data, settings); err != nil {
 			return nil, err
 		}
 	}
@@ -227,7 +231,13 @@ func (em *ExchangeManager) UpdateSecuritySettings(exchange *SecureExchange, sett
 		return err
 	}
 
-	exchange.SecuritySettings = data
+	// Convert []byte to JSON map
+	var jsonMap map[string]interface{}
+	if err := json.Unmarshal(data, &jsonMap); err != nil {
+		return err
+	}
+	
+	exchange.SecuritySettings = JSON(jsonMap)
 	return nil
 }
 
@@ -256,9 +266,9 @@ type ExchangeResponse struct {
 	Type             string         `json:"type"`
 	MaskedAPIKey     string         `json:"masked_api_key"`
 	Status           string         `json:"status"`
-	Info             datatypes.JSON `json:"info"`
+	Info             JSON `json:"info"`
 	LastUsedAt       *time.Time     `json:"last_used_at,omitempty"`
-	SecuritySettings datatypes.JSON `json:"security_settings"`
+	SecuritySettings JSON `json:"security_settings"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 }

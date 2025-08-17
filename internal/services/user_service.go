@@ -2,14 +2,12 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"tiris-backend/internal/models"
 	"tiris-backend/internal/repositories"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes"
 )
 
 // UserService handles user business logic
@@ -87,7 +85,9 @@ func (s *UserService) UpdateCurrentUser(ctx context.Context, userID uuid.UUID, r
 	if req.Settings != nil {
 		// Merge with existing settings
 		var existingSettings map[string]interface{}
-		if err := json.Unmarshal(user.Settings, &existingSettings); err != nil {
+		if len(user.Settings) > 0 {
+			existingSettings = user.Settings
+		} else {
 			existingSettings = make(map[string]interface{})
 		}
 
@@ -96,11 +96,7 @@ func (s *UserService) UpdateCurrentUser(ctx context.Context, userID uuid.UUID, r
 			existingSettings[key] = value
 		}
 
-		settingsJSON, err := json.Marshal(existingSettings)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode settings: %w", err)
-		}
-		user.Settings = datatypes.JSON(settingsJSON)
+		user.Settings = models.JSON(existingSettings)
 	}
 
 	// Save updated user
@@ -182,8 +178,8 @@ func (s *UserService) GetUserStats(ctx context.Context, userID uuid.UUID) (map[s
 	// In a real implementation, you'd add a method to get transaction count by date range
 
 	stats := map[string]interface{}{
-		"exchanges_count":    len(exchanges),
-		"sub_accounts_count": len(subAccounts),
+		"total_exchanges":    len(exchanges),
+		"total_subaccounts":  len(subAccounts),
 		"total_balance":      totalBalance,
 		"active_exchanges":   len(exchanges), // Assuming all are active for now
 	}
@@ -194,12 +190,16 @@ func (s *UserService) GetUserStats(ctx context.Context, userID uuid.UUID) (map[s
 // convertToUserResponse converts a user model to response format
 func (s *UserService) convertToUserResponse(user *models.User) *UserResponse {
 	var settings map[string]interface{}
-	if err := json.Unmarshal(user.Settings, &settings); err != nil {
+	if len(user.Settings) > 0 {
+		settings = user.Settings
+	} else {
 		settings = make(map[string]interface{})
 	}
 
 	var info map[string]interface{}
-	if err := json.Unmarshal(user.Info, &info); err != nil {
+	if len(user.Info) > 0 {
+		info = user.Info
+	} else {
 		info = make(map[string]interface{})
 	}
 

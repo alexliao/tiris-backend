@@ -1,14 +1,12 @@
 package nats
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"tiris-backend/internal/models"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes"
 )
 
 // isEventProcessed checks if an event has already been processed
@@ -35,7 +33,7 @@ func (ec *EventConsumer) markEventAsProcessed(eventID, eventType string, userID 
 
 // createTradingLogFromOrderEvent creates a trading log entry from an order event
 func (ec *EventConsumer) createTradingLogFromOrderEvent(event *OrderEvent) error {
-	metadata, err := json.Marshal(map[string]interface{}{
+	metadataMap := map[string]interface{}{
 		"order_id":          event.OrderID,
 		"symbol":            event.Symbol,
 		"side":              event.Side,
@@ -45,9 +43,6 @@ func (ec *EventConsumer) createTradingLogFromOrderEvent(event *OrderEvent) error
 		"status":            event.Status,
 		"event_id":          event.EventID,
 		"original_metadata": event.Metadata,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
 	log := &models.TradingLog{
@@ -58,7 +53,7 @@ func (ec *EventConsumer) createTradingLogFromOrderEvent(event *OrderEvent) error
 		Type:         fmt.Sprintf("order_%s", getOrderAction(event.EventType)),
 		Source:       "bot",
 		Message:      event.Message,
-		Info:         datatypes.JSON(metadata),
+		Info:         models.JSON(metadataMap),
 	}
 
 	return ec.repos.TradingLog.Create(ec.ctx, log)
@@ -66,7 +61,7 @@ func (ec *EventConsumer) createTradingLogFromOrderEvent(event *OrderEvent) error
 
 // createTradingLogFromBalanceEvent creates a trading log entry from a balance event
 func (ec *EventConsumer) createTradingLogFromBalanceEvent(event *BalanceEvent, transactionID *uuid.UUID) error {
-	metadata, err := json.Marshal(map[string]interface{}{
+	metadataMap := map[string]interface{}{
 		"symbol":            event.Symbol,
 		"previous_balance":  event.PreviousBalance,
 		"new_balance":       event.NewBalance,
@@ -76,9 +71,6 @@ func (ec *EventConsumer) createTradingLogFromBalanceEvent(event *BalanceEvent, t
 		"related_order_id":  event.RelatedOrderID,
 		"event_id":          event.EventID,
 		"original_metadata": event.Metadata,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
 	message := fmt.Sprintf("Balance updated: %s %f %s (was %f, now %f)",
@@ -93,7 +85,7 @@ func (ec *EventConsumer) createTradingLogFromBalanceEvent(event *BalanceEvent, t
 		Type:          "balance_update",
 		Source:        "bot",
 		Message:       message,
-		Info:          datatypes.JSON(metadata),
+		Info:          models.JSON(metadataMap),
 	}
 
 	return ec.repos.TradingLog.Create(ec.ctx, log)
@@ -101,16 +93,13 @@ func (ec *EventConsumer) createTradingLogFromBalanceEvent(event *BalanceEvent, t
 
 // createTradingLogFromErrorEvent creates a trading log entry from an error event
 func (ec *EventConsumer) createTradingLogFromErrorEvent(event *ErrorEvent) error {
-	metadata, err := json.Marshal(map[string]interface{}{
+	metadataMap := map[string]interface{}{
 		"error_code":        event.ErrorCode,
 		"severity":          event.Severity,
 		"component":         event.Component,
 		"stack_trace":       event.StackTrace,
 		"event_id":          event.EventID,
 		"original_metadata": event.Metadata,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
 	message := fmt.Sprintf("[%s] %s: %s", event.Severity, event.Component, event.ErrorMessage)
@@ -123,7 +112,7 @@ func (ec *EventConsumer) createTradingLogFromErrorEvent(event *ErrorEvent) error
 		Type:         "system_error",
 		Source:       "bot",
 		Message:      message,
-		Info:         datatypes.JSON(metadata),
+		Info:         models.JSON(metadataMap),
 	}
 
 	return ec.repos.TradingLog.Create(ec.ctx, log)
@@ -131,7 +120,7 @@ func (ec *EventConsumer) createTradingLogFromErrorEvent(event *ErrorEvent) error
 
 // createTradingLogFromSignalEvent creates a trading log entry from a signal event
 func (ec *EventConsumer) createTradingLogFromSignalEvent(event *SignalEvent) error {
-	metadata, err := json.Marshal(map[string]interface{}{
+	metadataMap := map[string]interface{}{
 		"signal_type":       event.SignalType,
 		"symbol":            event.Symbol,
 		"confidence":        event.Confidence,
@@ -140,9 +129,6 @@ func (ec *EventConsumer) createTradingLogFromSignalEvent(event *SignalEvent) err
 		"reasoning":         event.Reasoning,
 		"event_id":          event.EventID,
 		"original_metadata": event.Metadata,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
 	message := fmt.Sprintf("Trading signal: %s %s (%.1f%% confidence) - %s",
@@ -156,7 +142,7 @@ func (ec *EventConsumer) createTradingLogFromSignalEvent(event *SignalEvent) err
 		Type:         "trading_signal",
 		Source:       "bot",
 		Message:      message,
-		Info:         datatypes.JSON(metadata),
+		Info:         models.JSON(metadataMap),
 	}
 
 	return ec.repos.TradingLog.Create(ec.ctx, log)

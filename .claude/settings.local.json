@@ -15,7 +15,12 @@
       "Bash(git commit:*)",
       "Bash(go fmt:*)",
       "Bash(go vet:*)",
-      "Bash(go tool cover:*)"
+      "Bash(go tool cover:*)",
+      "Bash(make:*)",
+      "Bash(TEST_DB_HOST=localhost TEST_DB_PORT=5433 TEST_DB_USER=tiris_test TEST_DB_PASSWORD=tiris_test TEST_DB_NAME=tiris_test go test -v ./internal/integration/... -run \"TestIntegrationSuite/TestHealthEndpoints/liveness_probe\")",
+      "Bash(TEST_DB_HOST=localhost TEST_DB_PORT=5433 TEST_DB_USER=tiris_test TEST_DB_PASSWORD=tiris_test TEST_DB_NAME=tiris_test go test -v ./internal/performance/... -run \"TestPerformanceSuite\" -timeout 10s)",
+      "Bash(TEST_DB_HOST=localhost TEST_DB_PORT=5433 TEST_DB_USER=tiris_test TEST_DB_PASSWORD=tiris_test TEST_DB_NAME=tiris_test go test -v ./internal/integration/... -run \"TestIntegrationSuite/TestHealthEndpoints|TestIntegrationSuite/TestErrorHandling|TestIntegrationSuite/TestMetrics|TestIntegrationSuite/TestRateLimiting\" -coverprofile=integration-coverage.out)",
+      "Bash(TEST_DB_HOST=localhost TEST_DB_PORT=5433 TEST_DB_USER=tiris_test TEST_DB_PASSWORD=tiris_test TEST_DB_NAME=tiris_test go test -v ./internal/integration/... -coverprofile=integration-coverage.out -run \"TestIntegrationSuite/TestHealthEndpoints/liveness_probe\")"
     ],
     "deny": [],
     "ask": [],

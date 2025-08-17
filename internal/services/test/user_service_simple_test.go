@@ -276,8 +276,8 @@ func TestUserService_GetUserStats(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, stats)
 		
-		assert.Equal(t, 2, stats["exchanges_count"])
-		assert.Equal(t, 3, stats["sub_accounts_count"])
+		assert.Equal(t, 2, stats["total_exchanges"])
+		assert.Equal(t, 3, stats["total_subaccounts"])
 		assert.Equal(t, 6000.0, stats["total_balance"]) // 1000 + 2000 + 3000
 		assert.Equal(t, 2, stats["active_exchanges"])
 		

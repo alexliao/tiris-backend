@@ -59,9 +59,11 @@ func Initialize(cfg config.DatabaseConfig) (*DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Enable TimescaleDB extension
+	// Enable TimescaleDB extension (optional in test environments)
 	if err := enableTimescaleDB(db); err != nil {
-		return nil, fmt.Errorf("failed to enable TimescaleDB: %w", err)
+		// In test environments, TimescaleDB might not be available
+		// Log the warning but continue
+		fmt.Printf("Warning: TimescaleDB not available: %v\n", err)
 	}
 
 	return &DB{db}, nil
@@ -72,7 +74,9 @@ func enableTimescaleDB(db *gorm.DB) error {
 	var extensionExists bool
 	err := db.Raw("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'timescaledb')").Scan(&extensionExists).Error
 	if err != nil {
-		return fmt.Errorf("failed to check TimescaleDB extension: %w", err)
+		// In test environments, this query might fail if TimescaleDB is not available
+		fmt.Printf("Warning: Unable to check TimescaleDB extension availability: %v\n", err)
+		return nil
 	}
 
 	// Create extension if it doesn't exist (requires superuser privileges)
@@ -80,9 +84,13 @@ func enableTimescaleDB(db *gorm.DB) error {
 		err = db.Exec("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE").Error
 		if err != nil {
 			// Log warning but don't fail if we can't create the extension
-			// This might happen in managed database environments
-			fmt.Printf("Warning: Could not create TimescaleDB extension: %v\n", err)
+			// This is expected in test environments and managed database environments
+			fmt.Printf("Info: TimescaleDB extension not available (normal in test environments): %v\n", err)
+		} else {
+			fmt.Println("Info: TimescaleDB extension enabled successfully")
 		}
+	} else {
+		fmt.Println("Info: TimescaleDB extension already enabled")
 	}
 
 	return nil

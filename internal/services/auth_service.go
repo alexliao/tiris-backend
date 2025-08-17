@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
-	"gorm.io/datatypes"
 )
 
 // AuthService handles authentication business logic
@@ -129,7 +127,9 @@ func (s *AuthService) HandleCallback(ctx context.Context, req *CallbackRequest, 
 	}
 
 	var userInfoMap map[string]interface{}
-	if err := json.Unmarshal(user.Info, &userInfoMap); err != nil {
+	if len(user.Info) > 0 {
+		userInfoMap = user.Info
+	} else {
 		userInfoMap = make(map[string]interface{})
 	}
 
@@ -180,7 +180,9 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *RefreshRequest) (*A
 	}
 
 	var userInfoMap map[string]interface{}
-	if err := json.Unmarshal(user.Info, &userInfoMap); err != nil {
+	if len(user.Info) > 0 {
+		userInfoMap = user.Info
+	} else {
 		userInfoMap = make(map[string]interface{})
 	}
 
@@ -236,8 +238,7 @@ func (s *AuthService) findOrCreateUser(ctx context.Context, oauthUser *auth.OAut
 				"avatar": oauthUser.Avatar,
 			},
 		}
-		infoJSON, _ := json.Marshal(infoMap)
-		existingToken.Info = datatypes.JSON(infoJSON)
+		existingToken.Info = models.JSON(infoMap)
 
 		if err := s.repos.OAuthToken.Update(ctx, existingToken); err != nil {
 			return nil, fmt.Errorf("failed to update OAuth token: %w", err)
@@ -276,15 +277,14 @@ func (s *AuthService) findOrCreateUser(ctx context.Context, oauthUser *auth.OAut
 			Username: s.generateUsername(oauthUser.Name, oauthUser.Email),
 			Email:    oauthUser.Email,
 			Avatar:   &oauthUser.Avatar,
-			Settings: datatypes.JSON{},
-			Info: func() datatypes.JSON {
+			Settings: models.JSON{},
+			Info: func() models.JSON {
 				infoMap := map[string]interface{}{
 					"oauth_provider": oauthUser.Provider,
 					"created_via":    "oauth",
 					"first_login":    time.Now(),
 				}
-				infoJSON, _ := json.Marshal(infoMap)
-				return datatypes.JSON(infoJSON)
+				return models.JSON(infoMap)
 			}(),
 		}
 
@@ -301,7 +301,7 @@ func (s *AuthService) findOrCreateUser(ctx context.Context, oauthUser *auth.OAut
 		AccessToken:    token.AccessToken,
 		RefreshToken:   &token.RefreshToken,
 		ExpiresAt:      &token.Expiry,
-		Info: func() datatypes.JSON {
+		Info: func() models.JSON {
 			infoMap := map[string]interface{}{
 				"provider_data": map[string]interface{}{
 					"name":   oauthUser.Name,
@@ -309,8 +309,7 @@ func (s *AuthService) findOrCreateUser(ctx context.Context, oauthUser *auth.OAut
 				},
 				"first_auth": time.Now(),
 			}
-			infoJSON, _ := json.Marshal(infoMap)
-			return datatypes.JSON(infoJSON)
+			return models.JSON(infoMap)
 		}(),
 	}
 

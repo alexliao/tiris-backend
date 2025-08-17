@@ -2,14 +2,12 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"tiris-backend/internal/models"
 	"tiris-backend/internal/repositories"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes"
 )
 
 // SubAccountService handles sub-account business logic
@@ -82,16 +80,11 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 		}
 	}
 
-	// Create info JSON with metadata
-	infoData := map[string]interface{}{
+	// Create info map with metadata
+	infoMap := map[string]interface{}{
 		"created_by":    "api",
 		"api_version":   "v1",
 		"exchange_type": exchange.Type,
-	}
-
-	infoJSON, err := json.Marshal(infoData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode info: %w", err)
 	}
 
 	// Create sub-account model
@@ -102,7 +95,7 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 		Name:       req.Name,
 		Symbol:     req.Symbol,
 		Balance:    0.0, // Start with zero balance
-		Info:       datatypes.JSON(infoJSON),
+		Info:       models.JSON(infoMap),
 	}
 
 	// Save to database
@@ -293,7 +286,9 @@ func (s *SubAccountService) GetSubAccountsBySymbol(ctx context.Context, userID u
 // convertToSubAccountResponse converts a sub-account model to response format
 func (s *SubAccountService) convertToSubAccountResponse(subAccount *models.SubAccount) *SubAccountResponse {
 	var info map[string]interface{}
-	if err := json.Unmarshal(subAccount.Info, &info); err != nil {
+	if len(subAccount.Info) > 0 {
+		info = subAccount.Info
+	} else {
 		info = make(map[string]interface{})
 	}
 
