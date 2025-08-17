@@ -534,8 +534,7 @@ func TestLogLevels(t *testing.T) {
 			assert.Equal(t, tc.statusCode, w.Code)
 			
 			// Parse log entry
-			logLines := strings.Split(strings.TrimSpace(logBuffer.String()), "\n")
-			entry, err := parseLogEntry(logLines[len(logLines)-1])
+			entry, err := getLastValidLogEntry(logBuffer)
 			require.NoError(t, err)
 			
 			assert.Equal(t, tc.expectedLevel, entry.Level)
