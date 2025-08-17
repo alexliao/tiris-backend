@@ -144,29 +144,56 @@ create_test_user() {
     
     # Build and run the JWT token generator
     local jwt_token=""
-    if command -v go > /dev/null; then
-        # Change to script directory to access the Go module
-        local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        local project_dir="$(dirname "$script_dir")"
+    local jwt_error=""
+    
+    if ! command -v go > /dev/null; then
+        print_error "Go not found. Go is required to generate JWT tokens."
+        print_error "Please install Go and try again."
+        exit 1
+    fi
+    
+    # Change to script directory to access the Go module
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local project_dir="$(dirname "$script_dir")"
+    
+    cd "$project_dir" || {
+        print_error "Failed to change to project directory: $project_dir"
+        exit 1
+    }
+    
+    # Generate JWT token with detailed error handling
+    print_status "Running JWT token generator..."
+    jwt_error=$(go run scripts/generate-jwt-token.go \
+        --user-id "$user_id" \
+        --username "$username" \
+        --email "$email" \
+        --role "user" \
+        --duration "8760h" \
+        --output "token" 2>&1)
+    
+    local exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && [ -n "$jwt_error" ]; then
+        jwt_token="$jwt_error"
+        print_success "JWT token generated successfully"
         
-        cd "$project_dir"
-        jwt_token=$(go run scripts/generate-jwt-token.go \
-            --user-id "$user_id" \
-            --username "$username" \
-            --email "$email" \
-            --role "user" \
-            --duration "8760h" \
-            --output "token" 2>/dev/null)
-        
-        if [ $? -eq 0 ] && [ -n "$jwt_token" ]; then
-            print_success "JWT token generated successfully"
-        else
-            print_warning "Failed to generate JWT token, using OAuth token instead"
-            jwt_token="$access_token"
+        # Validate JWT token format (should have 3 parts separated by dots)
+        local jwt_parts=$(echo "$jwt_token" | tr '.' '\n' | wc -l)
+        if [ "$jwt_parts" -ne 3 ]; then
+            print_error "Generated token is not in valid JWT format (expected 3 parts, got $jwt_parts)"
+            print_error "Token: $jwt_token"
+            exit 1
         fi
     else
-        print_warning "Go not found, using OAuth token instead of JWT"
-        jwt_token="$access_token"
+        print_error "Failed to generate JWT token"
+        print_error "Exit code: $exit_code"
+        print_error "Error output: $jwt_error"
+        print_error ""
+        print_error "Common causes:"
+        print_error "  - Missing .env file with JWT_SECRET and REFRESH_SECRET"
+        print_error "  - Invalid environment variables"
+        print_error "  - Go module dependencies not installed (run 'go mod download')"
+        exit 1
     fi
 
     # Display summary
@@ -181,9 +208,18 @@ create_test_user() {
     echo "Email:         $email"
     echo "User ID:       $user_id"
     echo "Provider:      $provider"
-    echo "OAuth Token:   $access_token"
-    echo "JWT Token:     $jwt_token"
     echo "Expires:       1 year from now"
+    echo
+    echo "==============================================="
+    echo "🔑 TOKEN INFORMATION"
+    echo "==============================================="
+    echo "OAuth Token:   $access_token"
+    echo "  ↳ Purpose:   Stored in database for OAuth provider integration"
+    echo "  ↳ Usage:     Internal record keeping only"
+    echo
+    echo "JWT Token:     $jwt_token"
+    echo "  ↳ Purpose:   API authentication and authorization"
+    echo "  ↳ Usage:     Use this token for all API requests"
     echo
     echo "==============================================="
     echo "🔧 API TESTING"
