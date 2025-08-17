@@ -37,10 +37,10 @@ type ExchangeResponse struct {
 
 // CreateExchangeRequest represents exchange creation request
 type CreateExchangeRequest struct {
-	Name      string `json:"name" binding:"required,min=1,max=100"`
-	Type      string `json:"type" binding:"required,oneof=binance okx bybit"`
-	APIKey    string `json:"api_key" binding:"required,min=1"`
-	APISecret string `json:"api_secret" binding:"required,min=1"`
+	Name      string `json:"name" binding:"required,min=1,max=100" example:"My Exchange Account"`
+	Type      string `json:"type" binding:"required" example:"binance"`
+	APIKey    string `json:"api_key" binding:"required,min=1" example:"your_api_key_here"`
+	APISecret string `json:"api_secret" binding:"required,min=1" example:"your_api_secret_here"`
 }
 
 // UpdateExchangeRequest represents exchange update request

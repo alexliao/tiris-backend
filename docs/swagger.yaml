@@ -111,20 +111,20 @@ definitions:
   services.CreateExchangeRequest:
     properties:
       api_key:
+        example: your_api_key_here
         minLength: 1
         type: string
       api_secret:
+        example: your_api_secret_here
         minLength: 1
         type: string
       name:
+        example: My Exchange Account
         maxLength: 100
         minLength: 1
         type: string
       type:
-        enum:
-        - binance
-        - okx
-        - bybit
+        example: binance
         type: string
     required:
     - api_key

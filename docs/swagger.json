@@ -2994,24 +2994,23 @@
             "properties": {
                 "api_key": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "your_api_key_here"
                 },
                 "api_secret": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "your_api_secret_here"
                 },
                 "name": {
                     "type": "string",
                     "maxLength": 100,
-                    "minLength": 1
+                    "minLength": 1,
+                    "example": "My Exchange Account"
                 },
                 "type": {
                     "type": "string",
-                    "enum": [
-                        "binance",
-                        "okx",
-                        "bybit"
-                    ]
+                    "example": "binance"
                 }
             }
         },
