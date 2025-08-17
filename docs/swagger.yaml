@@ -1,0 +1,2295 @@
+basePath: /v1
+definitions:
+  api.ErrorDetail:
+    properties:
+      code:
+        type: string
+      details:
+        type: string
+      message:
+        type: string
+    type: object
+  api.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/api.ErrorDetail'
+      metadata:
+        $ref: '#/definitions/api.ResponseMetadata'
+      success:
+        type: boolean
+    type: object
+  api.HealthResponse:
+    properties:
+      dependencies:
+        additionalProperties:
+          $ref: '#/definitions/api.HealthStatus'
+        type: object
+      status:
+        type: string
+      timestamp:
+        type: string
+      version:
+        type: string
+    type: object
+  api.HealthStatus:
+    properties:
+      details:
+        additionalProperties: true
+        type: object
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  api.PaginatedResponse:
+    properties:
+      data: {}
+      metadata:
+        $ref: '#/definitions/api.ResponseMetadata'
+      pagination:
+        $ref: '#/definitions/api.PaginationMetadata'
+      success:
+        type: boolean
+    type: object
+  api.PaginationMetadata:
+    properties:
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      next_offset:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  api.ResponseMetadata:
+    properties:
+      timestamp:
+        type: string
+      trace_id:
+        type: string
+    type: object
+  api.SuccessResponse:
+    properties:
+      data: {}
+      metadata:
+        $ref: '#/definitions/api.ResponseMetadata'
+      success:
+        type: boolean
+    type: object
+  services.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/services.UserInfo'
+    type: object
+  services.CallbackRequest:
+    properties:
+      code:
+        type: string
+      provider:
+        enum:
+        - google
+        - wechat
+        type: string
+      state:
+        type: string
+    required:
+    - code
+    - provider
+    - state
+    type: object
+  services.CreateExchangeRequest:
+    properties:
+      api_key:
+        minLength: 1
+        type: string
+      api_secret:
+        minLength: 1
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      type:
+        enum:
+        - binance
+        - okx
+        - bybit
+        type: string
+    required:
+    - api_key
+    - api_secret
+    - name
+    - type
+    type: object
+  services.CreateSubAccountRequest:
+    properties:
+      exchange_id:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      symbol:
+        maxLength: 20
+        minLength: 1
+        type: string
+    required:
+    - exchange_id
+    - name
+    - symbol
+    type: object
+  services.CreateTradingLogRequest:
+    properties:
+      exchange_id:
+        type: string
+      info:
+        additionalProperties: true
+        type: object
+      message:
+        minLength: 1
+        type: string
+      source:
+        enum:
+        - manual
+        - bot
+        type: string
+      sub_account_id:
+        type: string
+      transaction_id:
+        type: string
+      type:
+        maxLength: 50
+        minLength: 1
+        type: string
+    required:
+    - exchange_id
+    - message
+    - source
+    - type
+    type: object
+  services.ExchangeResponse:
+    properties:
+      api_key:
+        description: Masked in production
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      info:
+        additionalProperties: true
+        type: object
+      name:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  services.LoginRequest:
+    properties:
+      provider:
+        enum:
+        - google
+        - wechat
+        type: string
+      redirect_uri:
+        type: string
+    required:
+    - provider
+    - redirect_uri
+    type: object
+  services.LoginResponse:
+    properties:
+      auth_url:
+        type: string
+      state:
+        type: string
+    type: object
+  services.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  services.SubAccountResponse:
+    properties:
+      balance:
+        type: number
+      created_at:
+        type: string
+      exchange_id:
+        type: string
+      id:
+        type: string
+      info:
+        additionalProperties: true
+        type: object
+      name:
+        type: string
+      symbol:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  services.TradingLogQueryResponse:
+    properties:
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+      trading_logs:
+        items:
+          $ref: '#/definitions/services.TradingLogResponse'
+        type: array
+    type: object
+  services.TradingLogResponse:
+    properties:
+      exchange_id:
+        type: string
+      id:
+        type: string
+      info:
+        additionalProperties: true
+        type: object
+      message:
+        type: string
+      source:
+        type: string
+      sub_account_id:
+        type: string
+      timestamp:
+        type: string
+      transaction_id:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: string
+    type: object
+  services.TransactionQueryResponse:
+    properties:
+      has_more:
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+      transactions:
+        items:
+          $ref: '#/definitions/services.TransactionResponse'
+        type: array
+    type: object
+  services.TransactionResponse:
+    properties:
+      amount:
+        type: number
+      closing_balance:
+        type: number
+      direction:
+        type: string
+      exchange_id:
+        type: string
+      id:
+        type: string
+      info:
+        additionalProperties: true
+        type: object
+      price:
+        type: number
+      quote_symbol:
+        type: string
+      reason:
+        type: string
+      sub_account_id:
+        type: string
+      timestamp:
+        type: string
+      user_id:
+        type: string
+    type: object
+  services.UpdateBalanceRequest:
+    properties:
+      amount:
+        type: number
+      direction:
+        enum:
+        - credit
+        - debit
+        type: string
+      info:
+        additionalProperties: true
+        type: object
+      reason:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - amount
+    - direction
+    - reason
+    type: object
+  services.UpdateExchangeRequest:
+    properties:
+      api_key:
+        minLength: 1
+        type: string
+      api_secret:
+        minLength: 1
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      status:
+        enum:
+        - active
+        - inactive
+        type: string
+    type: object
+  services.UpdateSubAccountRequest:
+    properties:
+      balance:
+        minimum: 0
+        type: number
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      symbol:
+        maxLength: 20
+        minLength: 1
+        type: string
+    type: object
+  services.UpdateUserRequest:
+    properties:
+      avatar:
+        type: string
+      settings:
+        additionalProperties: true
+        type: object
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    type: object
+  services.UserInfo:
+    properties:
+      avatar:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      info:
+        additionalProperties: true
+        type: object
+      username:
+        type: string
+    type: object
+  services.UserResponse:
+    properties:
+      avatar:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      info:
+        additionalProperties: true
+        type: object
+      settings:
+        additionalProperties: true
+        type: object
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@tiris.ai
+    name: Tiris API Support
+    url: https://tiris.ai/support
+  description: A Go-based microservice for quantitative trading data management, providing
+    RESTful APIs for user management, exchange integration, and trading operations.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://tiris.ai/terms
+  title: Tiris Backend API
+  version: "1.0"
+paths:
+  /admin/exchanges:
+    get:
+      description: Lists all exchange configurations with pagination (admin only)
+      parameters:
+      - default: 100
+        description: Number of exchanges to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of exchanges to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all exchanges
+      tags:
+      - Exchanges
+  /admin/exchanges/{id}:
+    get:
+      description: Retrieves an exchange by ID (admin only)
+      parameters:
+      - description: Exchange ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ExchangeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get exchange by ID
+      tags:
+      - Exchanges
+  /admin/trading-logs:
+    get:
+      description: Lists all trading logs with filtering and pagination (admin only)
+      parameters:
+      - description: Filter by log type
+        in: query
+        name: type
+        type: string
+      - description: Filter by source
+        enum:
+        - manual
+        - bot
+        in: query
+        name: source
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - default: 100
+        description: Number of logs to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of logs to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingLogQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all trading logs
+      tags:
+      - TradingLogs
+  /admin/trading-logs/{id}:
+    get:
+      description: Retrieves a trading log by ID (admin only)
+      parameters:
+      - description: Trading Log ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingLogResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get trading log by ID
+      tags:
+      - TradingLogs
+  /admin/transactions:
+    get:
+      description: Lists all transactions with filtering and pagination (admin only)
+      parameters:
+      - description: Filter by direction
+        enum:
+        - debit
+        - credit
+        in: query
+        name: direction
+        type: string
+      - description: Filter by reason
+        in: query
+        name: reason
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - description: Minimum amount filter
+        in: query
+        name: min_amount
+        type: number
+      - description: Maximum amount filter
+        in: query
+        name: max_amount
+        type: number
+      - default: 100
+        description: Number of transactions to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of transactions to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TransactionQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all transactions
+      tags:
+      - Transactions
+  /admin/transactions/{id}:
+    get:
+      description: Retrieves a transaction by ID (admin only)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TransactionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get transaction by ID
+      tags:
+      - Transactions
+  /auth/callback:
+    post:
+      consumes:
+      - application/json
+      description: Handles OAuth callback and returns JWT tokens
+      parameters:
+      - description: Callback request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.CallbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Handle OAuth callback
+      tags:
+      - Authentication
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Initiates OAuth login flow and returns authorization URL
+      parameters:
+      - description: Login request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Initiate OAuth login
+      tags:
+      - Authentication
+  /auth/logout:
+    post:
+      description: Logs out the current user and invalidates session
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - Authentication
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refreshes access token using refresh token
+      parameters:
+      - description: Refresh request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Refresh access token
+      tags:
+      - Authentication
+  /exchanges:
+    get:
+      description: Retrieves all exchange configurations for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/services.ExchangeResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user exchanges
+      tags:
+      - Exchanges
+    post:
+      consumes:
+      - application/json
+      description: Creates a new exchange configuration for the authenticated user
+      parameters:
+      - description: Create exchange request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateExchangeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.ExchangeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create new exchange
+      tags:
+      - Exchanges
+  /exchanges/{id}:
+    delete:
+      description: Deletes an exchange configuration (must belong to authenticated
+        user)
+      parameters:
+      - description: Exchange ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete exchange
+      tags:
+      - Exchanges
+    get:
+      description: Retrieves a specific exchange configuration by ID (must belong
+        to authenticated user)
+      parameters:
+      - description: Exchange ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ExchangeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get exchange by ID
+      tags:
+      - Exchanges
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing exchange configuration (must belong to authenticated
+        user)
+      parameters:
+      - description: Exchange ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update exchange request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateExchangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ExchangeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update exchange
+      tags:
+      - Exchanges
+  /health:
+    get:
+      description: Provides detailed health information about the service and its
+        dependencies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Detailed health check
+      tags:
+      - Health
+  /health/live:
+    get:
+      description: Kubernetes liveness probe - checks if the application is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SuccessResponse'
+      summary: Liveness probe
+      tags:
+      - Health
+  /health/ready:
+    get:
+      description: Kubernetes readiness probe - checks if the application is ready
+        to serve traffic
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Readiness probe
+      tags:
+      - Health
+  /sub-accounts:
+    get:
+      description: Retrieves all sub-account configurations for the authenticated
+        user, optionally filtered by exchange
+      parameters:
+      - description: Filter by exchange ID
+        in: query
+        name: exchange_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/services.SubAccountResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user sub-accounts
+      tags:
+      - SubAccounts
+    post:
+      consumes:
+      - application/json
+      description: Creates a new sub-account for the authenticated user
+      parameters:
+      - description: Create sub-account request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateSubAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.SubAccountResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create new sub-account
+      tags:
+      - SubAccounts
+  /sub-accounts/{id}:
+    delete:
+      description: Deletes a sub-account configuration (must belong to authenticated
+        user)
+      parameters:
+      - description: Sub-account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete sub-account
+      tags:
+      - SubAccounts
+    get:
+      description: Retrieves a specific sub-account configuration by ID (must belong
+        to authenticated user)
+      parameters:
+      - description: Sub-account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.SubAccountResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get sub-account by ID
+      tags:
+      - SubAccounts
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing sub-account configuration (must belong to authenticated
+        user)
+      parameters:
+      - description: Sub-account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update sub-account request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateSubAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.SubAccountResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update sub-account
+      tags:
+      - SubAccounts
+  /sub-accounts/{id}/balance:
+    put:
+      consumes:
+      - application/json
+      description: Updates sub-account balance with proper logging (must belong to
+        authenticated user)
+      parameters:
+      - description: Sub-account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update balance request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateBalanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.SubAccountResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update sub-account balance
+      tags:
+      - SubAccounts
+  /sub-accounts/symbol/{symbol}:
+    get:
+      description: Retrieves all sub-accounts for a specific trading symbol (must
+        belong to authenticated user)
+      parameters:
+      - description: Trading symbol
+        in: path
+        name: symbol
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/services.SubAccountResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get sub-accounts by symbol
+      tags:
+      - SubAccounts
+  /trading-logs:
+    get:
+      description: Retrieves trading log history for the authenticated user with filtering
+        and pagination
+      parameters:
+      - description: Filter by log type
+        in: query
+        name: type
+        type: string
+      - description: Filter by source
+        enum:
+        - manual
+        - bot
+        in: query
+        name: source
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - default: 100
+        description: Number of logs to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of logs to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingLogQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user trading logs
+      tags:
+      - TradingLogs
+    post:
+      consumes:
+      - application/json
+      description: Creates a new trading log entry for the authenticated user
+      parameters:
+      - description: Create trading log request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateTradingLogRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.TradingLogResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create trading log
+      tags:
+      - TradingLogs
+  /trading-logs/{id}:
+    delete:
+      description: Deletes a trading log entry (must belong to authenticated user
+        and be manual)
+      parameters:
+      - description: Trading Log ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete trading log
+      tags:
+      - TradingLogs
+    get:
+      description: Retrieves a specific trading log by ID (must belong to authenticated
+        user)
+      parameters:
+      - description: Trading Log ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingLogResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get trading log by ID
+      tags:
+      - TradingLogs
+  /trading-logs/exchange/{exchange_id}:
+    get:
+      description: Retrieves trading log history for a specific exchange (must belong
+        to authenticated user)
+      parameters:
+      - description: Exchange ID
+        in: path
+        name: exchange_id
+        required: true
+        type: string
+      - description: Filter by log type
+        in: query
+        name: type
+        type: string
+      - description: Filter by source
+        enum:
+        - manual
+        - bot
+        in: query
+        name: source
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - default: 100
+        description: Number of logs to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of logs to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingLogQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get exchange trading logs
+      tags:
+      - TradingLogs
+  /trading-logs/sub-account/{sub_account_id}:
+    get:
+      description: Retrieves trading log history for a specific sub-account (must
+        belong to authenticated user)
+      parameters:
+      - description: Sub-account ID
+        in: path
+        name: sub_account_id
+        required: true
+        type: string
+      - description: Filter by log type
+        in: query
+        name: type
+        type: string
+      - description: Filter by source
+        enum:
+        - manual
+        - bot
+        in: query
+        name: source
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - default: 100
+        description: Number of logs to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of logs to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingLogQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get sub-account trading logs
+      tags:
+      - TradingLogs
+  /trading-logs/time-range:
+    get:
+      description: Retrieves trading logs within a specific time range for the authenticated
+        user
+      parameters:
+      - description: Start time (RFC3339 format)
+        in: query
+        name: start_time
+        required: true
+        type: string
+      - description: End time (RFC3339 format)
+        in: query
+        name: end_time
+        required: true
+        type: string
+      - description: Filter by log type
+        in: query
+        name: type
+        type: string
+      - description: Filter by source
+        enum:
+        - manual
+        - bot
+        in: query
+        name: source
+        type: string
+      - default: 100
+        description: Number of logs to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of logs to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingLogQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get trading logs by time range
+      tags:
+      - TradingLogs
+  /transactions:
+    get:
+      description: Retrieves transaction history for the authenticated user with filtering
+        and pagination
+      parameters:
+      - description: Filter by direction
+        enum:
+        - debit
+        - credit
+        in: query
+        name: direction
+        type: string
+      - description: Filter by reason
+        in: query
+        name: reason
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - description: Minimum amount filter
+        in: query
+        name: min_amount
+        type: number
+      - description: Maximum amount filter
+        in: query
+        name: max_amount
+        type: number
+      - default: 100
+        description: Number of transactions to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of transactions to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TransactionQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user transactions
+      tags:
+      - Transactions
+  /transactions/{id}:
+    get:
+      description: Retrieves a specific transaction by ID (must belong to authenticated
+        user)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TransactionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get transaction by ID
+      tags:
+      - Transactions
+  /transactions/exchange/{exchange_id}:
+    get:
+      description: Retrieves transaction history for a specific exchange (must belong
+        to authenticated user)
+      parameters:
+      - description: Exchange ID
+        in: path
+        name: exchange_id
+        required: true
+        type: string
+      - description: Filter by direction
+        enum:
+        - debit
+        - credit
+        in: query
+        name: direction
+        type: string
+      - description: Filter by reason
+        in: query
+        name: reason
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - description: Minimum amount filter
+        in: query
+        name: min_amount
+        type: number
+      - description: Maximum amount filter
+        in: query
+        name: max_amount
+        type: number
+      - default: 100
+        description: Number of transactions to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of transactions to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TransactionQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get exchange transactions
+      tags:
+      - Transactions
+  /transactions/sub-account/{sub_account_id}:
+    get:
+      description: Retrieves transaction history for a specific sub-account (must
+        belong to authenticated user)
+      parameters:
+      - description: Sub-account ID
+        in: path
+        name: sub_account_id
+        required: true
+        type: string
+      - description: Filter by direction
+        enum:
+        - debit
+        - credit
+        in: query
+        name: direction
+        type: string
+      - description: Filter by reason
+        in: query
+        name: reason
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - description: Minimum amount filter
+        in: query
+        name: min_amount
+        type: number
+      - description: Maximum amount filter
+        in: query
+        name: max_amount
+        type: number
+      - default: 100
+        description: Number of transactions to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of transactions to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TransactionQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get sub-account transactions
+      tags:
+      - Transactions
+  /transactions/time-range:
+    get:
+      description: Retrieves transactions within a specific time range for the authenticated
+        user
+      parameters:
+      - description: Start time (RFC3339 format)
+        in: query
+        name: start_time
+        required: true
+        type: string
+      - description: End time (RFC3339 format)
+        in: query
+        name: end_time
+        required: true
+        type: string
+      - description: Filter by direction
+        enum:
+        - debit
+        - credit
+        in: query
+        name: direction
+        type: string
+      - description: Filter by reason
+        in: query
+        name: reason
+        type: string
+      - description: Minimum amount filter
+        in: query
+        name: min_amount
+        type: number
+      - description: Maximum amount filter
+        in: query
+        name: max_amount
+        type: number
+      - default: 100
+        description: Number of transactions to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of transactions to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TransactionQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get transactions by time range
+      tags:
+      - Transactions
+  /users:
+    get:
+      description: Lists all users with pagination (admin only)
+      parameters:
+      - default: 100
+        description: Number of users to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of users to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all users
+      tags:
+      - Users
+  /users/{id}:
+    get:
+      description: Retrieves a user by their ID (admin only)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - Users
+  /users/{id}/disable:
+    put:
+      description: Disables a user account by ID (admin only)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Disable user account
+      tags:
+      - Users
+  /users/me:
+    get:
+      description: Retrieves the profile of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Updates the profile of the currently authenticated user
+      parameters:
+      - description: Update user request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update current user profile
+      tags:
+      - Users
+  /users/me/stats:
+    get:
+      description: Retrieves statistics for the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user statistics
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: 'Enter JWT Bearer token in the format: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
+x-extension-openapi:
+  info:
+    x-logo:
+      url: https://tiris.ai/logo.png

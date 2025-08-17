@@ -3,6 +3,7 @@ package api
 import (
 	"time"
 
+	_ "tiris-backend/docs"
 	"tiris-backend/internal/config"
 	"tiris-backend/internal/database"
 	"tiris-backend/internal/metrics"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Server represents the API server
@@ -110,6 +113,9 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// Metrics endpoint (no authentication required)
 	s.setupMetricsRoutes(router)
+
+	// API documentation endpoint (no authentication required)
+	s.setupDocsRoutes(router)
 
 	// API routes with rate limiting
 	api := router.Group("/v1")
@@ -274,6 +280,21 @@ func (s *Server) setupTradingLogRoutes(protected *gin.RouterGroup) {
 // setupMetricsRoutes sets up Prometheus metrics endpoints
 func (s *Server) setupMetricsRoutes(router *gin.Engine) {
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+}
+
+// setupDocsRoutes sets up API documentation endpoints
+func (s *Server) setupDocsRoutes(router *gin.Engine) {
+	// Swagger UI with custom handling for root path
+	router.GET("/docs/*any", func(c *gin.Context) {
+		path := c.Param("any")
+		// Handle root path by redirecting to index.html
+		if path == "/" {
+			c.Redirect(301, "/docs/index.html")
+			return
+		}
+		// Use default ginSwagger handler for all other paths
+		ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
+	})
 }
 
 // GetRouter returns the configured router

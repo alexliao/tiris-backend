@@ -1,4 +1,4 @@
-.PHONY: build build-migrate run test test-unit test-integration test-integration-docker test-coverage clean dev deps migrate-up migrate-down migrate-version docker-build docker-run check-ports create-test-user setup-test-db clean-test-db setup-test-db-docker stop-test-db-docker clean-test-db-docker
+.PHONY: build build-migrate run test test-unit test-integration test-integration-docker test-coverage clean dev deps migrate-up migrate-down migrate-version docker-build docker-run check-ports create-test-user setup-test-db clean-test-db setup-test-db-docker stop-test-db-docker clean-test-db-docker docs-generate docs-serve docs-validate docs-clean
 
 # Build the application
 build:
@@ -132,6 +132,25 @@ clean-test-db-docker:
 create-test-user:
 	@./scripts/create-test-user.sh $(ARGS)
 
+# Documentation generation
+docs-generate:
+	@echo "Generating API documentation..."
+	@which swag > /dev/null || (echo "Installing swag..." && go install github.com/swaggo/swag/cmd/swag@latest)
+	@$(shell go env GOPATH)/bin/swag init -g cmd/server/main.go --output docs/
+
+docs-serve: docs-generate
+	@echo "Starting server with documentation at http://localhost:8080/docs"
+	@make run
+
+docs-validate:
+	@echo "Validating Swagger annotations..."
+	@which swag > /dev/null || (echo "Installing swag..." && go install github.com/swaggo/swag/cmd/swag@latest)
+	@$(shell go env GOPATH)/bin/swag init -g cmd/server/main.go --output docs/ --parseVendor
+
+docs-clean:
+	@echo "Cleaning generated documentation..."
+	@rm -f docs/docs.go docs/swagger.json docs/swagger.yaml
+
 # Help
 help:
 	@echo "Available commands:"
@@ -163,4 +182,8 @@ help:
 	@echo "  stop-test-db-docker - Stop Docker test database"
 	@echo "  clean-test-db-docker - Clean Docker test database volumes"
 	@echo "  create-test-user - Create a test user (use ARGS for options)"
+	@echo "  docs-generate - Generate API documentation from code annotations"
+	@echo "  docs-serve   - Generate docs and start server (docs at /docs)"
+	@echo "  docs-validate - Validate Swagger annotations"
+	@echo "  docs-clean   - Clean generated documentation files"
 	@echo "  help         - Show this help message"

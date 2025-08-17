@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 
 	"tiris-backend/pkg/auth"
 
@@ -303,7 +304,14 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 		c.Header("X-XSS-Protection", "1; mode=block")
 		c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
-		c.Header("Content-Security-Policy", "default-src 'self'")
+		
+		// Use relaxed CSP for documentation routes to allow Swagger UI
+		if strings.HasPrefix(c.Request.URL.Path, "/docs") {
+			c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:")
+		} else {
+			c.Header("Content-Security-Policy", "default-src 'self'")
+		}
+		
 		c.Next()
 	}
 }

@@ -19,6 +19,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @title Tiris Backend API
+// @version 1.0
+// @description A Go-based microservice for quantitative trading data management, providing RESTful APIs for user management, exchange integration, and trading operations.
+// @termsOfService https://tiris.ai/terms
+
+// @contact.name Tiris API Support
+// @contact.url https://tiris.ai/support
+// @contact.email support@tiris.ai
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Enter JWT Bearer token in the format: Bearer {token}
+
+// @x-extension-openapi {"info":{"x-logo":{"url":"https://tiris.ai/logo.png"}}}
+
 func main() {
 	// Load configuration
 	cfg, err := config.Load()
