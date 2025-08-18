@@ -71,6 +71,24 @@ func (h *ExchangeHandler) CreateExchange(c *gin.Context) {
 			))
 			return
 		}
+		if err.Error() == "api key already exists" {
+			c.JSON(http.StatusConflict, CreateErrorResponse(
+				"API_KEY_EXISTS",
+				"API key already exists",
+				err.Error(),
+				getTraceID(c),
+			))
+			return
+		}
+		if err.Error() == "api secret already exists" {
+			c.JSON(http.StatusConflict, CreateErrorResponse(
+				"API_SECRET_EXISTS",
+				"API secret already exists",
+				err.Error(),
+				getTraceID(c),
+			))
+			return
+		}
 		if err.Error() == "maximum number of exchanges reached (10)" {
 			c.JSON(http.StatusBadRequest, CreateErrorResponse(
 				"EXCHANGE_LIMIT_REACHED",
@@ -260,6 +278,24 @@ func (h *ExchangeHandler) UpdateExchange(c *gin.Context) {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
 				"EXCHANGE_NAME_EXISTS",
 				"Exchange name already exists",
+				err.Error(),
+				getTraceID(c),
+			))
+			return
+		}
+		if err.Error() == "api key already exists" {
+			c.JSON(http.StatusConflict, CreateErrorResponse(
+				"API_KEY_EXISTS",
+				"API key already exists",
+				err.Error(),
+				getTraceID(c),
+			))
+			return
+		}
+		if err.Error() == "api secret already exists" {
+			c.JSON(http.StatusConflict, CreateErrorResponse(
+				"API_SECRET_EXISTS",
+				"API secret already exists",
 				err.Error(),
 				getTraceID(c),
 			))

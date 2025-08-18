@@ -1037,14 +1037,20 @@ Authorization: Bearer {admin_jwt_token}
 - `INVALID_REQUEST`: Invalid request format (400)
 - `MISSING_FIELD`: Required field missing (400)
 - `INVALID_VALUE`: Field value invalid (400)
-- `DUPLICATE_RESOURCE`: Resource already exists (409)
 
-### 9.3 Resource Errors
+### 9.3 Uniqueness Constraint Errors (409 Conflict)
+- `EXCHANGE_NAME_EXISTS`: Exchange name already exists for this user
+- `API_KEY_EXISTS`: API key already exists for this user  
+- `API_SECRET_EXISTS`: API secret already exists for this user
+- `SUBACCOUNT_NAME_EXISTS`: Sub-account name already exists for this exchange
+- `EMAIL_EXISTS`: Email address already exists (global uniqueness)
+
+### 9.4 Resource Errors
 - `NOT_FOUND`: Resource not found (404)
 - `INSUFFICIENT_BALANCE`: Not enough balance (400)
 - `EXCHANGE_ERROR`: Exchange API error (502)
 
-### 9.4 System Errors
+### 9.5 System Errors
 - `INTERNAL_ERROR`: Internal server error (500)
 - `DATABASE_ERROR`: Database operation failed (500)
 - `SERVICE_UNAVAILABLE`: Service temporarily unavailable (503)

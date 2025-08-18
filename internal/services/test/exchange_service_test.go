@@ -139,6 +139,71 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		// Verify mock expectations
 		mockExchangeRepo.AssertExpectations(t)
 	})
+
+	// Test duplicate API key error
+	t.Run("duplicate_api_key", func(t *testing.T) {
+		existingAPIKey := "existing_api_key_123"
+		request := &services.CreateExchangeRequest{
+			Name:      "new-exchange",
+			Type:      "binance",
+			APIKey:    existingAPIKey,
+			APISecret: "new_api_secret",
+		}
+		
+		// Create existing exchange with same API key
+		existingExchange := exchangeFactory.Build()
+		existingExchange.UserID = userID
+		existingExchange.Name = "different-name"
+		existingExchange.APIKey = existingAPIKey
+		
+		// Setup mock expectations
+		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
+			Return([]*models.Exchange{existingExchange}, nil).Once()
+		
+		// Execute test
+		result, err := exchangeService.CreateExchange(context.Background(), userID, request)
+		
+		// Verify results
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "api key already exists")
+		
+		// Verify mock expectations
+		mockExchangeRepo.AssertExpectations(t)
+	})
+
+	// Test duplicate API secret error
+	t.Run("duplicate_api_secret", func(t *testing.T) {
+		existingAPISecret := "existing_api_secret_789"
+		request := &services.CreateExchangeRequest{
+			Name:      "new-exchange",
+			Type:      "binance",
+			APIKey:    "new_api_key",
+			APISecret: existingAPISecret,
+		}
+		
+		// Create existing exchange with same API secret
+		existingExchange := exchangeFactory.Build()
+		existingExchange.UserID = userID
+		existingExchange.Name = "different-name"
+		existingExchange.APIKey = "different_api_key"
+		existingExchange.APISecret = existingAPISecret
+		
+		// Setup mock expectations
+		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
+			Return([]*models.Exchange{existingExchange}, nil).Once()
+		
+		// Execute test
+		result, err := exchangeService.CreateExchange(context.Background(), userID, request)
+		
+		// Verify results
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "api secret already exists")
+		
+		// Verify mock expectations
+		mockExchangeRepo.AssertExpectations(t)
+	})
 }
 
 // TestExchangeService_GetUserExchanges tests the GetUserExchanges functionality
@@ -396,6 +461,9 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Setup mock expectations
 		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
+		// When API key is provided, service checks for uniqueness
+		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
+			Return([]*models.Exchange{testExchange}, nil).Once() // Only current exchange
 		mockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Exchange")).
 			Return(nil).Once()
 		
@@ -411,6 +479,95 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		
 		// Verify mock expectations
 		mockExchangeRepo.AssertExpectations(t)
+	})
+
+	// Test API key conflict with another exchange
+	t.Run("api_key_conflict", func(t *testing.T) {
+		// Create fresh mocks for this test
+		freshMockExchangeRepo := &mocks.MockExchangeRepository{}
+		freshRepos := &repositories.Repositories{
+			User:            &mocks.MockUserRepository{},
+			Exchange:        freshMockExchangeRepo,
+			SubAccount:      &mocks.MockSubAccountRepository{},
+			Transaction:     &mocks.MockTransactionRepository{},
+			TradingLog:      &mocks.MockTradingLogRepository{},
+			OAuthToken:      &mocks.MockOAuthTokenRepository{},
+			EventProcessing: &mocks.MockEventProcessingRepository{},
+		}
+		freshExchangeService := services.NewExchangeService(freshRepos)
+		
+		conflictingAPIKey := "existing_api_key_456"
+		request := &services.UpdateExchangeRequest{
+			APIKey: &conflictingAPIKey,
+		}
+		
+		// Create another exchange with conflicting API key
+		anotherExchange := exchangeFactory.WithUserID(userID)
+		anotherExchange.ID = uuid.New()
+		anotherExchange.Name = "different-name"
+		anotherExchange.APIKey = conflictingAPIKey
+		
+		// Setup mock expectations
+		freshMockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
+			Return(testExchange, nil).Once()
+		freshMockExchangeRepo.On("GetByUserID", mock.Anything, userID).
+			Return([]*models.Exchange{testExchange, anotherExchange}, nil).Once()
+		
+		// Execute test
+		result, err := freshExchangeService.UpdateExchange(context.Background(), userID, exchangeID, request)
+		
+		// Verify results
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "api key already exists")
+		
+		// Verify mock expectations
+		freshMockExchangeRepo.AssertExpectations(t)
+	})
+
+	// Test API secret conflict with another exchange
+	t.Run("api_secret_conflict", func(t *testing.T) {
+		// Create fresh mocks for this test
+		freshMockExchangeRepo := &mocks.MockExchangeRepository{}
+		freshRepos := &repositories.Repositories{
+			User:            &mocks.MockUserRepository{},
+			Exchange:        freshMockExchangeRepo,
+			SubAccount:      &mocks.MockSubAccountRepository{},
+			Transaction:     &mocks.MockTransactionRepository{},
+			TradingLog:      &mocks.MockTradingLogRepository{},
+			OAuthToken:      &mocks.MockOAuthTokenRepository{},
+			EventProcessing: &mocks.MockEventProcessingRepository{},
+		}
+		freshExchangeService := services.NewExchangeService(freshRepos)
+		
+		conflictingAPISecret := "existing_api_secret_456"
+		request := &services.UpdateExchangeRequest{
+			APISecret: &conflictingAPISecret,
+		}
+		
+		// Create another exchange with conflicting API secret
+		anotherExchange := exchangeFactory.WithUserID(userID)
+		anotherExchange.ID = uuid.New()
+		anotherExchange.Name = "different-name"
+		anotherExchange.APIKey = "different_api_key"
+		anotherExchange.APISecret = conflictingAPISecret
+		
+		// Setup mock expectations
+		freshMockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
+			Return(testExchange, nil).Once()
+		freshMockExchangeRepo.On("GetByUserID", mock.Anything, userID).
+			Return([]*models.Exchange{testExchange, anotherExchange}, nil).Once()
+		
+		// Execute test
+		result, err := freshExchangeService.UpdateExchange(context.Background(), userID, exchangeID, request)
+		
+		// Verify results
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "api secret already exists")
+		
+		// Verify mock expectations
+		freshMockExchangeRepo.AssertExpectations(t)
 	})
 }
 

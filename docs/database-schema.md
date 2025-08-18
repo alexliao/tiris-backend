@@ -84,7 +84,9 @@ CREATE TABLE exchanges (
     
     -- Constraints
     CONSTRAINT exchanges_type_valid CHECK (type IN ('binance', 'kraken', 'gate', 'virtual')),
-    CONSTRAINT exchanges_user_name_unique UNIQUE (user_id, name)
+    CONSTRAINT exchanges_user_name_unique UNIQUE (user_id, name),
+    CONSTRAINT exchanges_user_api_key_unique UNIQUE (user_id, api_key),
+    CONSTRAINT exchanges_user_api_secret_unique UNIQUE (user_id, api_secret)
 );
 
 -- Indexes
@@ -125,7 +127,7 @@ CREATE TABLE sub_accounts (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- Constraints
-    CONSTRAINT sub_accounts_user_exchange_name_unique UNIQUE (user_id, exchange_id, name)
+    CONSTRAINT sub_accounts_exchange_name_unique UNIQUE (exchange_id, name)
 );
 
 -- Indexes
@@ -635,14 +637,38 @@ ALTER TABLE transactions ADD CONSTRAINT transactions_closing_balance_positive
 CHECK (closing_balance >= 0);
 ```
 
-### 7.2 Referential Integrity
+### 7.2 Uniqueness Constraints
+
+**Global Uniqueness:**
+- `users.email`: Emails must be globally unique across all users
+- `users.username`: Usernames must be globally unique across all users
+
+**Per-User Uniqueness:**
+- `exchanges.name`: Exchange names must be unique within each user's account
+- `exchanges.api_key`: API keys must be unique within each user's account (prevents accidental reuse)
+- `exchanges.api_secret`: API secrets must be unique within each user's account (prevents accidental reuse)
+
+**Per-Exchange Uniqueness:**
+- `sub_accounts.name`: Sub-account names must be unique within each exchange
+
+```sql
+-- Exchange uniqueness constraints (per user)
+ALTER TABLE exchanges ADD CONSTRAINT exchanges_user_name_unique UNIQUE (user_id, name);
+ALTER TABLE exchanges ADD CONSTRAINT exchanges_user_api_key_unique UNIQUE (user_id, api_key);
+ALTER TABLE exchanges ADD CONSTRAINT exchanges_user_api_secret_unique UNIQUE (user_id, api_secret);
+
+-- Sub-account uniqueness constraints (per exchange)  
+ALTER TABLE sub_accounts ADD CONSTRAINT sub_accounts_exchange_name_unique UNIQUE (exchange_id, name);
+```
+
+### 7.3 Referential Integrity
 
 **Foreign Key Policies:**
 - `CASCADE`: Delete child records when parent is deleted (users -> exchanges -> sub_accounts)
 - `SET NULL`: Set foreign key to NULL when referenced record is deleted (optional references)
 - `RESTRICT`: Prevent deletion if child records exist (where appropriate)
 
-### 7.3 Data Validation
+### 7.4 Data Validation
 
 ```sql
 -- Email format validation

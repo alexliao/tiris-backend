@@ -684,6 +684,15 @@ func (suite *IntegrationTestSuite) TestTradingLogManagement() {
 
 // Test Error Handling and Edge Cases
 func (suite *IntegrationTestSuite) TestErrorHandling() {
+	// Create a baseline exchange first to test uniqueness constraints against
+	baselineExchangeRequest := map[string]interface{}{
+		"name":       "binance-main",
+		"type":       "binance",
+		"api_key":    "test_api_key_12345",
+		"api_secret": "test_api_secret_67890",
+	}
+	suite.makeRequest("POST", "/v1/exchanges", baselineExchangeRequest, suite.userToken)
+
 	suite.T().Run("unauthorized_access", func(t *testing.T) {
 		w := suite.makeRequest("GET", "/v1/users/me", nil, "") // No token
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -727,6 +736,58 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 		suite.parseResponse(w, &response)
 		assert.False(t, response.Success)
 		assert.Contains(t, response.Error.Code, "INVALID")
+	})
+
+	// Test uniqueness constraints
+	suite.T().Run("duplicate_exchange_name", func(t *testing.T) {
+		duplicateNameRequest := map[string]interface{}{
+			"name":       "binance-main", // Same name as first exchange
+			"type":       "kraken",
+			"api_key":    "different_api_key",
+			"api_secret": "different_api_secret",
+		}
+
+		w := suite.makeRequest("POST", "/v1/exchanges", duplicateNameRequest, suite.userToken)
+		assert.Equal(t, http.StatusConflict, w.Code)
+
+		var response api.ErrorResponse
+		suite.parseResponse(w, &response)
+		assert.False(t, response.Success)
+		assert.Equal(t, "EXCHANGE_NAME_EXISTS", response.Error.Code)
+	})
+
+	suite.T().Run("duplicate_api_key", func(t *testing.T) {
+		duplicateAPIKeyRequest := map[string]interface{}{
+			"name":       "different-exchange-name",
+			"type":       "kraken",
+			"api_key":    "test_api_key_12345", // Same API key as first exchange
+			"api_secret": "different_api_secret",
+		}
+
+		w := suite.makeRequest("POST", "/v1/exchanges", duplicateAPIKeyRequest, suite.userToken)
+		assert.Equal(t, http.StatusConflict, w.Code)
+
+		var response api.ErrorResponse
+		suite.parseResponse(w, &response)
+		assert.False(t, response.Success)
+		assert.Equal(t, "API_KEY_EXISTS", response.Error.Code)
+	})
+
+	suite.T().Run("duplicate_api_secret", func(t *testing.T) {
+		duplicateAPISecretRequest := map[string]interface{}{
+			"name":       "another-exchange-name",
+			"type":       "gate",
+			"api_key":    "another_different_api_key",
+			"api_secret": "test_api_secret_67890", // Same API secret as first exchange
+		}
+
+		w := suite.makeRequest("POST", "/v1/exchanges", duplicateAPISecretRequest, suite.userToken)
+		assert.Equal(t, http.StatusConflict, w.Code)
+
+		var response api.ErrorResponse
+		suite.parseResponse(w, &response)
+		assert.False(t, response.Success)
+		assert.Equal(t, "API_SECRET_EXISTS", response.Error.Code)
 	})
 }
 

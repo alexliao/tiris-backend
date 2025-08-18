@@ -71,6 +71,20 @@ func (s *ExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, 
 		}
 	}
 
+	// Check if API key is unique for this user
+	for _, exchange := range existingExchanges {
+		if exchange.APIKey == req.APIKey {
+			return nil, fmt.Errorf("api key already exists")
+		}
+	}
+
+	// Check if API secret is unique for this user  
+	for _, exchange := range existingExchanges {
+		if exchange.APISecret == req.APISecret {
+			return nil, fmt.Errorf("api secret already exists")
+		}
+	}
+
 	// Create info map with metadata
 	infoMap := map[string]interface{}{
 		"created_by":  "api",
@@ -164,10 +178,34 @@ func (s *ExchangeService) UpdateExchange(ctx context.Context, userID, exchangeID
 	}
 
 	if req.APIKey != nil {
+		// Check if new API key is unique for this user
+		userExchanges, err := s.repos.Exchange.GetByUserID(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check api keys: %w", err)
+		}
+
+		for _, userExchange := range userExchanges {
+			if userExchange.ID != exchangeID && userExchange.APIKey == *req.APIKey {
+				return nil, fmt.Errorf("api key already exists")
+			}
+		}
+
 		exchange.APIKey = *req.APIKey
 	}
 
 	if req.APISecret != nil {
+		// Check if new API secret is unique for this user
+		userExchanges, err := s.repos.Exchange.GetByUserID(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check api secrets: %w", err)
+		}
+
+		for _, userExchange := range userExchanges {
+			if userExchange.ID != exchangeID && userExchange.APISecret == *req.APISecret {
+				return nil, fmt.Errorf("api secret already exists")
+			}
+		}
+
 		exchange.APISecret = *req.APISecret
 	}
 
