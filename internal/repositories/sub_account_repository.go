@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"tiris-backend/internal/models"
 
@@ -97,14 +98,20 @@ func (r *subAccountRepository) UpdateBalance(ctx context.Context, subAccountID u
 	}
 
 	// Call the database function
-	var transactionID uuid.UUID
+	var transactionIDStr string
 	err := r.db.WithContext(ctx).Raw(
 		"SELECT update_sub_account_balance(?, ?, ?, ?, ?, ?::jsonb)",
 		subAccountID, newBalance, amount, direction, reason, infoJSON,
-	).Scan(&transactionID).Error
+	).Row().Scan(&transactionIDStr)
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Parse the string result to UUID
+	transactionID, err := uuid.Parse(transactionIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse transaction ID: %w", err)
 	}
 
 	return &transactionID, nil
