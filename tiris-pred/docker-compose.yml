@@ -1,0 +1,53 @@
+# Tiris Prediction Service - ML/AI Backend
+# Serves prediction endpoints on pred.dev.tiris.ai
+
+services:
+  prediction:
+    # Replace with your prediction service image/build
+    image: python:3.11-slim  # Placeholder - replace with actual prediction service
+    container_name: tiris-pred
+    restart: always
+    ports:
+      - "8082:8000"  # Internal port mapping for reverse proxy
+    volumes:
+      # Mount your prediction service code here
+      - ./app:/app
+      - ./models:/app/models:ro  # ML models directory
+    working_dir: /app
+    command: python -m uvicorn main:app --host 0.0.0.0 --port 8000  # Example for FastAPI
+    environment:
+      # Prediction service environment variables
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - MODEL_PATH=/app/models
+      - PREDICTION_TIMEOUT=30
+      - MAX_BATCH_SIZE=100
+      
+      # Database connection (if needed)
+      - DB_URL=postgresql://tiris_user:${DB_PASSWORD}@host.docker.internal:5432/tiris
+      
+      # API Keys (if needed for external services)
+      - ML_API_KEY=${ML_API_KEY:-}
+      - EXTERNAL_SERVICE_URL=${EXTERNAL_SERVICE_URL:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - tiris-pred-network
+    extra_hosts:
+      # Allow connection to main database
+      - "host.docker.internal:host-gateway"
+
+# Prediction service volumes
+volumes:
+  model-cache:
+    driver: local
+
+# Prediction network
+networks:
+  tiris-pred-network:
+    name: tiris-pred-network
+    driver: bridge

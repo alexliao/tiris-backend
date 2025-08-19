@@ -1,0 +1,37 @@
+# Tiris Reverse Proxy - Central routing for all applications
+# Handles subdomain-based routing to different services
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: tiris-reverse-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    extra_hosts:
+      # Allow nginx to reach host services
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tiris-proxy-network
+
+# SSL certificates directory (for future HTTPS setup)
+volumes:
+  ssl-certs:
+    driver: local
+
+# Shared network for all Tiris applications
+networks:
+  tiris-proxy-network:
+    name: tiris-proxy-network
+    driver: bridge
+    external: false
