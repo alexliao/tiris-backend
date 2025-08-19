@@ -162,11 +162,25 @@ if ! id "$DEPLOY_USER" &>/dev/null; then
     log "Creating deployment user: $DEPLOY_USER"
     useradd -m -s /bin/bash "$DEPLOY_USER"
     usermod -aG docker "$DEPLOY_USER"
-    usermod -aG sudo "$DEPLOY_USER"
+    
+    # Add to admin group (sudo for Ubuntu/Debian, wheel for CentOS/RHEL)
+    if [[ "$PKG_MANAGER" == "apt" ]]; then
+        usermod -aG sudo "$DEPLOY_USER"
+        log "Added $DEPLOY_USER to sudo group"
+    elif [[ "$PKG_MANAGER" == "dnf" ]]; then
+        usermod -aG wheel "$DEPLOY_USER"
+        log "Added $DEPLOY_USER to wheel group"
+    fi
 else
     log "User $DEPLOY_USER already exists"
     usermod -aG docker "$DEPLOY_USER"
-    usermod -aG sudo "$DEPLOY_USER"
+    
+    # Add to admin group (sudo for Ubuntu/Debian, wheel for CentOS/RHEL)
+    if [[ "$PKG_MANAGER" == "apt" ]]; then
+        usermod -aG sudo "$DEPLOY_USER" 2>/dev/null || log "User already in sudo group"
+    elif [[ "$PKG_MANAGER" == "dnf" ]]; then
+        usermod -aG wheel "$DEPLOY_USER" 2>/dev/null || log "User already in wheel group"
+    fi
 fi
 
 # Set up SSH directory for deployment user
@@ -261,8 +275,22 @@ sysctl -p
 
 # Install Node.js (for potential frontend builds)
 log "Installing Node.js..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt-get install -y nodejs
+if [[ "$PKG_MANAGER" == "apt" ]]; then
+    # Ubuntu/Debian - NodeSource repository
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    apt-get install -y nodejs
+elif [[ "$PKG_MANAGER" == "dnf" ]]; then
+    # CentOS/RHEL - NodeSource repository
+    curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+    dnf install -y nodejs
+fi
+
+# Verify Node.js installation
+if command -v node &> /dev/null; then
+    log "Node.js installed successfully: $(node --version)"
+else
+    warn "Node.js installation failed, but this won't affect the backend deployment"
+fi
 
 # Create basic deployment script
 log "Creating deployment helper script..."
