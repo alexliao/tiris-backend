@@ -38,6 +38,58 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Function to check server connectivity
+check_server_connectivity() {
+    print_header "🔍 Checking Server Connectivity"
+    echo "Testing connection to $BASE_URL..."
+    
+    # Try to connect to the health endpoint with timeout
+    HEALTH_RESPONSE=$(curl -s -f --connect-timeout 5 --max-time 10 "$BASE_URL/../health" 2>/dev/null)
+    local curl_exit_code=$?
+    
+    if [ $curl_exit_code -eq 0 ]; then
+        echo -e "${GREEN}✅ Server is responding${NC}"
+        echo "Health check response: $HEALTH_RESPONSE"
+        return 0
+    else
+        echo -e "${RED}❌ Server is not responding${NC}"
+        echo "Connection failed with exit code: $curl_exit_code"
+        echo "Common reasons:"
+        echo "  - Server is not running (run 'make run' first)"
+        echo "  - Server is starting up (wait a few seconds)"
+        echo "  - Wrong port or URL configuration"
+        echo ""
+        return 1
+    fi
+}
+
+# Function to make API requests with proper error handling
+api_request() {
+    local method="$1"
+    local endpoint="$2"
+    local data="$3"
+    
+    if [ "$method" = "GET" ]; then
+        curl -s -f --connect-timeout 10 --max-time 30 \
+            -H "$AUTH_HEADER" -H "$CONTENT_HEADER" \
+            "$BASE_URL$endpoint" 2>/dev/null
+    elif [ "$method" = "POST" ]; then
+        curl -s -f --connect-timeout 10 --max-time 30 \
+            -X POST -H "$AUTH_HEADER" -H "$CONTENT_HEADER" \
+            -d "$data" "$BASE_URL$endpoint" 2>/dev/null
+    elif [ "$method" = "PUT" ]; then
+        curl -s -f --connect-timeout 10 --max-time 30 \
+            -X PUT -H "$AUTH_HEADER" -H "$CONTENT_HEADER" \
+            -d "$data" "$BASE_URL$endpoint" 2>/dev/null
+    elif [ "$method" = "DELETE" ]; then
+        curl -s -f --connect-timeout 10 --max-time 30 \
+            -X DELETE -H "$AUTH_HEADER" \
+            "$BASE_URL$endpoint" 2>/dev/null
+    fi
+    
+    return $?
+}
+
 # Parse command line arguments
 CLEAN_DATABASE=false
 RUN_TESTS=true
@@ -136,6 +188,17 @@ cleanup_database() {
     echo "- Bot-generated trading logs cannot be deleted (API restriction)"
     echo "- Sub-accounts must have zero balance before deletion"
     echo "- Exchanges can only be deleted after all sub-accounts are removed"
+    echo ""
+    
+    # Check server connectivity before cleanup
+    check_server_connectivity
+    if [ $? -ne 0 ]; then
+        echo -e "${YELLOW}⚠️ Server connectivity issues detected - cleanup may fail${NC}"
+        echo -e "${YELLOW}Consider starting the server first with 'make run'${NC}"
+        echo ""
+        echo -e "${BLUE}Press Enter to continue with cleanup anyway, or Ctrl+C to cancel...${NC}"
+        read
+    fi
     echo ""
     
     # Step 1: Get user profile to identify current user
@@ -310,20 +373,38 @@ if [ "$RUN_TESTS" = false ]; then
     # Don't continue with tests
 else
 
+# Check server connectivity before running tests
+check_server_connectivity
+if [ $? -ne 0 ]; then
+    echo -e "${YELLOW}⚠️ Server connectivity issues detected - tests may fail${NC}"
+    echo -e "${YELLOW}Consider starting the server first with 'make run'${NC}"
+    echo ""
+    echo -e "${BLUE}Press Enter to continue with tests anyway, or Ctrl+C to cancel...${NC}"
+    read
+fi
+echo ""
+
 # Test 1: Show User Profile
 print_header "👤 Getting User Profile"
 echo "Endpoint: GET /v1/users/me"
 echo ""
 
-USER_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/users/me")
-echo "$USER_RESPONSE" | jq . 2>/dev/null || echo "$USER_RESPONSE"
+USER_RESPONSE=$(api_request "GET" "/users/me")
+api_exit_code=$?
 
-if echo "$USER_RESPONSE" | jq -e '.success == true and .data.id' > /dev/null 2>&1; then
+if [ $api_exit_code -eq 0 ] && echo "$USER_RESPONSE" | jq -e '.success == true and .data.id' > /dev/null 2>&1; then
+    echo "$USER_RESPONSE" | jq . 2>/dev/null || echo "$USER_RESPONSE"
     echo -e "${GREEN}✅ User profile retrieved successfully${NC}"
     USER_PROFILE_SUCCESS=true
 else
-    echo -e "${RED}❌ User profile retrieval failed${NC}"
+    if [ $api_exit_code -ne 0 ]; then
+        echo -e "${RED}❌ API request failed (HTTP error or connection issue)${NC}"
+    else
+        echo "$USER_RESPONSE" | jq . 2>/dev/null || echo "$USER_RESPONSE"
+        echo -e "${RED}❌ User profile retrieval failed - invalid response${NC}"
+    fi
     USER_PROFILE_SUCCESS=false
+    echo -e "${RED}❌ User profile test failed - this may affect subsequent tests${NC}"
 fi
 
 # Test 2: Add Kraken Exchange or Get Kraken Exchange
@@ -782,13 +863,39 @@ echo "- If you get 401 Unauthorized, the JWT token may be expired"
 echo "- Create a new test user to get a fresh JWT token: ./scripts/create-test-user.sh"
 echo "- Check the API documentation at http://localhost:8080/docs for more details"
 
-# Final status message (don't exit to keep output visible)
+# Final status summary for human review
 echo ""
 if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$EXCHANGE_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$BALANCE_UPDATE_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
-    echo -e "${GREEN}🎯 All tests completed successfully! Terminal will remain open.${NC}"
+    echo -e "${GREEN}🎯 All tests completed successfully!${NC}"
+    echo -e "${GREEN}✅ The API and business logic are working correctly.${NC}"
 else
-    echo -e "${RED}⚠️ Some tests failed. Terminal will remain open for review.${NC}"
+    echo -e "${YELLOW}📋 Test Summary - Some areas need attention:${NC}"
+    
+    if [ "$USER_PROFILE_SUCCESS" != true ]; then
+        echo "  • User profile: ❌ Failed"
+    fi
+    if [ "$EXCHANGE_SUCCESS" != true ]; then
+        echo "  • Exchange management: ❌ Failed" 
+    fi
+    if [ "$SUBACCOUNT_SUCCESS" != true ]; then
+        echo "  • USDT sub-account: ❌ Failed"
+    fi
+    if [ "$ETH_SUBACCOUNT_SUCCESS" != true ]; then
+        echo "  • ETH sub-account: ❌ Failed"
+    fi
+    if [ "$BALANCE_UPDATE_SUCCESS" != true ]; then
+        echo "  • Balance updates: ❌ Failed"
+    fi
+    if [ "$TRANSACTION_HISTORY_SUCCESS" != true ]; then
+        echo "  • Transaction history: ❌ Failed"
+    fi
+    if [ "$TRADING_LOG_SUCCESS" != true ]; then
+        echo "  • Trading log & business logic: ❌ Failed"
+    fi
 fi
+
 echo ""
+echo -e "${BLUE}💡 Review the test results above. Terminal will stay open.${NC}"
+echo -e "${BLUE}   Press Ctrl+C to close when you're done reviewing.${NC}"
 
 fi # End of RUN_TESTS condition
