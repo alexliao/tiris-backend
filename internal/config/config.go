@@ -84,7 +84,7 @@ func Load() (*Config, error) {
 		Database: DatabaseConfig{
 			Host:         getEnvOrDefault("DB_HOST", "localhost"),
 			Port:         getEnvOrDefault("DB_PORT", "5432"),
-			Username:     getEnvOrDefault("DB_USERNAME", "postgres"),
+			Username:     getEnvOrDefault("DB_USER", "postgres"),
 			Password:     getEnvOrDefault("DB_PASSWORD", ""),
 			DatabaseName: getEnvOrDefault("DB_NAME", "tiris"),
 			SSLMode:      getEnvOrDefault("DB_SSL_MODE", "disable"),
