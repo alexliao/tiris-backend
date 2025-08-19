@@ -1,8 +1,6 @@
 # Simple Docker Compose for Quick Deployment
 # Minimal setup to get Tiris Backend online quickly
 
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:

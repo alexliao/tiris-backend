@@ -1,8 +1,6 @@
 # Docker Compose configuration for monitoring stack
 # This can be used alongside the main docker-compose.yml for development monitoring
 
-version: '3.8'
-
 services:
   # Prometheus for metrics collection
   prometheus:
