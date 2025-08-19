@@ -1,0 +1,107 @@
+# Simple Docker Compose for Quick Deployment
+# Minimal setup to get Tiris Backend online quickly
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: tiris-postgres-simple
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tiris}
+      POSTGRES_USER: ${DB_USER:-tiris_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tiris_user} -d ${DB_NAME:-tiris}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tiris-network
+
+  # Main Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tiris/backend:simple
+    container_name: tiris-app-simple
+    restart: always
+    environment:
+      # Application settings
+      ENV: production
+      GIN_MODE: release
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      
+      # Database configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-tiris}
+      DB_USER: ${DB_USER:-tiris_user}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      DB_SSL_MODE: disable
+      
+      # JWT configuration
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-change-in-production}
+      REFRESH_SECRET: ${REFRESH_SECRET:-your-refresh-secret-change-in-production}
+      JWT_EXPIRATION: 3600
+      REFRESH_EXPIRATION: 604800
+      
+      # OAuth configuration (optional)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      
+      # CORS configuration
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,https://localhost:3000}
+      
+      # Disable unused services for simple setup
+      REDIS_ENABLED: false
+      NATS_ENABLED: false
+      METRICS_ENABLED: false
+      
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - tiris-network
+
+  # Simple Nginx Reverse Proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: tiris-nginx-simple
+    restart: always
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./nginx.simple.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - tiris-network
+    profiles:
+      - proxy
+
+# Simple volume configuration
+volumes:
+  postgres_data:
+    driver: local
+
+# Simple network configuration
+networks:
+  tiris-network:
+    driver: bridge

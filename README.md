@@ -34,7 +34,35 @@ A Go-based microservice for quantitative trading data management, providing REST
 └── docs/              # Project documentation
 ```
 
-## Quick Start
+## Deployment
+
+### 🚀 Quick Deploy (5 minutes)
+Perfect for development, testing, or getting started quickly:
+
+```bash
+./scripts/quick-deploy.sh
+```
+
+Your application will be running at `http://localhost:8080`
+
+[📖 Quick Deploy Guide](./QUICK_DEPLOY.md)
+
+### 🏭 Production Deploy (30 minutes)
+Full production deployment with monitoring, backups, and security:
+
+```bash
+./deployment/scripts/deploy-production.sh
+```
+
+[📖 Production Deploy Guide](./deployment/docs/PRODUCTION_DEPLOYMENT.md)
+
+### 📊 Choose Your Deployment
+- **Quick Deploy**: Development, testing, demos → [QUICK_DEPLOY.md](./QUICK_DEPLOY.md)
+- **Production Deploy**: Production, high-traffic → [deployment/README.md](./deployment/README.md)
+
+---
+
+## Development Setup
 
 ### Prerequisites
 
