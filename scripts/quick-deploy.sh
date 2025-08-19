@@ -122,10 +122,10 @@ setup_environment() {
     REFRESH_SECRET=$(openssl rand -base64 32 2>/dev/null || echo "CHANGE_ME_GENERATE_SECURE_REFRESH_SECRET")
     DB_PASSWORD=$(openssl rand -base64 16 2>/dev/null | tr -d "=+/" | cut -c1-12 || echo "changeme123")
     
-    # Update environment file with generated values
-    sed -i.bak "s/change_me_in_production/$DB_PASSWORD/g" .env.simple
-    sed -i.bak "s/change_me_very_strong_jwt_secret_32_chars_minimum/$JWT_SECRET/g" .env.simple
-    sed -i.bak "s/change_me_very_strong_refresh_secret_32_chars_minimum/$REFRESH_SECRET/g" .env.simple
+    # Update environment file with generated values (using | as delimiter to avoid issues with / in base64)
+    sed -i.bak "s|change_me_in_production|$DB_PASSWORD|g" .env.simple
+    sed -i.bak "s|change_me_very_strong_jwt_secret_32_chars_minimum|$JWT_SECRET|g" .env.simple
+    sed -i.bak "s|change_me_very_strong_refresh_secret_32_chars_minimum|$REFRESH_SECRET|g" .env.simple
     
     # Clean up backup file
     rm -f .env.simple.bak
