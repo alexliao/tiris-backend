@@ -63,6 +63,22 @@ func main() {
 			fmt.Printf("Current migration version: %d\n", version)
 		}
 
+	case "force":
+		if len(os.Args) < 3 {
+			fmt.Println("force command requires a version number")
+			printUsage()
+			os.Exit(1)
+		}
+		version, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			log.Fatalf("Invalid version argument: %v", err)
+		}
+		err = database.ForceMigrationVersion(db.DB, version)
+		if err != nil {
+			log.Fatalf("Force migration failed: %v", err)
+		}
+		fmt.Printf("Forced migration version to: %d\n", version)
+
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printUsage()
@@ -77,10 +93,12 @@ func printUsage() {
 	fmt.Println("  up                 Run all pending migrations")
 	fmt.Println("  down [steps]       Rollback migrations (default: 1 step)")
 	fmt.Println("  version            Show current migration version")
+	fmt.Println("  force <version>    Force migration version (resolves dirty state)")
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  migrate up")
 	fmt.Println("  migrate down")
 	fmt.Println("  migrate down 3")
 	fmt.Println("  migrate version")
+	fmt.Println("  migrate force 0")
 }

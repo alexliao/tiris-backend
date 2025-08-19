@@ -142,3 +142,36 @@ func GetMigrationVersion(db *gorm.DB) (uint, bool, error) {
 
 	return version, dirty, nil
 }
+
+func ForceMigrationVersion(db *gorm.DB, version int) error {
+	// Get the underlying sql.DB
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get underlying SQL DB: %w", err)
+	}
+
+	// Create postgres driver instance
+	driver, err := postgres.WithInstance(sqlDB, &postgres.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to create postgres driver: %w", err)
+	}
+
+	// Create migrate instance
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations",
+		"postgres",
+		driver,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+	defer m.Close()
+
+	// Force the version
+	err = m.Force(version)
+	if err != nil {
+		return fmt.Errorf("failed to force migration version: %w", err)
+	}
+
+	return nil
+}

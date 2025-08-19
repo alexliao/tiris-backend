@@ -141,7 +141,7 @@ type Transaction struct {
 	User       User        `gorm:"foreignKey:UserID" json:"-"`
 	Exchange   Exchange    `gorm:"foreignKey:ExchangeID" json:"-"`
 	SubAccount SubAccount  `gorm:"foreignKey:SubAccountID" json:"-"`
-	TradingLog *TradingLog `json:"-"`
+	TradingLog *TradingLog `gorm:"-" json:"-"`
 }
 
 // TradingLog represents a trading operation log entry
@@ -161,7 +161,7 @@ type TradingLog struct {
 	User        User         `gorm:"foreignKey:UserID" json:"-"`
 	Exchange    Exchange     `gorm:"foreignKey:ExchangeID" json:"-"`
 	SubAccount  *SubAccount  `gorm:"foreignKey:SubAccountID" json:"-"`
-	Transaction *Transaction `gorm:"foreignKey:TransactionID" json:"-"`
+	Transaction *Transaction `gorm:"-" json:"-"`
 }
 
 // EventProcessing represents NATS event processing tracking

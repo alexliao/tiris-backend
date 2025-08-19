@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Production Docker Compose configuration for Tiris Backend
 # Optimized for production deployment with security, performance, and reliability
 

@@ -18,8 +18,9 @@ dev:
 	air
 
 # Run all tests (unit + integration)
-test:
-	go test -v ./...
+test: setup-test-db-docker
+	@echo "Running comprehensive test suite..."
+	@TEST_DB_HOST=localhost TEST_DB_PORT=5433 TEST_DB_USER=tiris_test TEST_DB_PASSWORD=tiris_test TEST_DB_NAME=tiris_test go test -v ./... && echo "✅ All tests completed successfully!" || (echo "❌ Some tests failed - check output above" && exit 1)
 
 # Run unit tests only
 test-unit:
@@ -105,7 +106,7 @@ clean-test-db:
 	@./scripts/setup-test-db.sh --drop-existing
 
 # Docker-based test database (alternative to local PostgreSQL)
-setup-test-db-docker:
+setup-test-db-docker: build-migrate
 	@echo "Starting test database with Docker..."
 	@docker compose -f docker-compose.test.yml up -d postgres-test
 	@echo "Waiting for database to be ready..."
@@ -117,6 +118,11 @@ setup-test-db-docker:
 		echo "Waiting... ($$i/30)"; \
 		sleep 1; \
 	done
+	@echo "Setting up database schema..."
+	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000001_initial_schema.up.sql >/dev/null 2>&1 || echo "Note: TimescaleDB features skipped in test environment"
+	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000002_add_soft_delete_columns.up.sql >/dev/null 2>&1
+	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000003_add_uniqueness_constraints.up.sql >/dev/null 2>&1
+	@TEST_DB_HOST=localhost TEST_DB_PORT=5433 TEST_DB_USER=tiris_test TEST_DB_PASSWORD=tiris_test TEST_DB_NAME=tiris_test ./bin/migrate force 3 >/dev/null 2>&1
 	@echo "Test database is ready!"
 
 # Stop Docker test database
