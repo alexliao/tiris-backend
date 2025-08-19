@@ -58,16 +58,20 @@ func main() {
 	// Initialize repositories
 	repos := repositories.NewRepositories(db.DB)
 
-	// Initialize NATS manager
-	natsManager, err := nats.NewManager(cfg.NATS, repos)
-	if err != nil {
-		log.Fatalf("Failed to initialize NATS: %v", err)
-	}
-	defer natsManager.Stop()
+	// Initialize NATS manager only if enabled
+	var natsManager *nats.Manager
+	if cfg.NATS.Enabled {
+		var err error
+		natsManager, err = nats.NewManager(cfg.NATS, repos)
+		if err != nil {
+			log.Fatalf("Failed to initialize NATS: %v", err)
+		}
+		defer natsManager.Stop()
 
-	// Start NATS event consumers
-	if err := natsManager.Start(); err != nil {
-		log.Fatalf("Failed to start NATS consumers: %v", err)
+		// Start NATS event consumers
+		if err := natsManager.Start(); err != nil {
+			log.Fatalf("Failed to start NATS consumers: %v", err)
+		}
 	}
 
 	// Set Gin mode

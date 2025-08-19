@@ -44,6 +44,7 @@ type AuthConfig struct {
 }
 
 type NATSConfig struct {
+	Enabled     bool
 	URL         string
 	ClusterID   string
 	ClientID    string
@@ -99,6 +100,7 @@ func Load() (*Config, error) {
 			RefreshExpiration: getEnvAsIntOrDefault("REFRESH_EXPIRATION", 604800),
 		},
 		NATS: NATSConfig{
+			Enabled:     getEnvAsBoolOrDefault("NATS_ENABLED", true),
 			URL:         getEnvOrDefault("NATS_URL", "nats://localhost:4222"),
 			ClusterID:   getEnvOrDefault("NATS_CLUSTER_ID", "tiris-cluster"),
 			ClientID:    getEnvOrDefault("NATS_CLIENT_ID", "tiris-backend"),
@@ -132,6 +134,15 @@ func getEnvAsIntOrDefault(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func getEnvAsBoolOrDefault(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
 		}
 	}
 	return defaultValue

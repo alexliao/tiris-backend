@@ -208,13 +208,13 @@ deploy_application() {
     
     # Build and start services
     log "Building Docker images..."
-    docker-compose -f docker-compose.simple.yml build --quiet
+    docker compose -f docker-compose.simple.yml --env-file .env.simple build --quiet
     
     log "Starting services..."
     if [[ "$USE_PROXY" == "true" ]]; then
-        docker-compose -f docker-compose.simple.yml --env-file .env.simple --profile proxy up -d
+        docker compose -f docker-compose.simple.yml --env-file .env.simple --profile proxy up -d
     else
-        docker-compose -f docker-compose.simple.yml --env-file .env.simple up -d
+        docker compose -f docker-compose.simple.yml --env-file .env.simple up -d
     fi
     
     log "Services started successfully"
@@ -286,10 +286,10 @@ show_success_info() {
     
     echo ""
     echo "=== Quick Commands ==="
-    echo "📊 View logs: docker-compose -f docker-compose.simple.yml logs -f"
-    echo "🔄 Restart: docker-compose -f docker-compose.simple.yml restart"
-    echo "🛑 Stop: docker-compose -f docker-compose.simple.yml down"
-    echo "📋 Status: docker-compose -f docker-compose.simple.yml ps"
+    echo "📊 View logs: docker compose -f docker-compose.simple.yml --env-file .env.simple logs -f"
+    echo "🔄 Restart: docker compose -f docker-compose.simple.yml --env-file .env.simple restart"
+    echo "🛑 Stop: docker compose -f docker-compose.simple.yml --env-file .env.simple down"
+    echo "📋 Status: docker compose -f docker-compose.simple.yml --env-file .env.simple ps"
     echo ""
     echo "=== Next Steps ==="
     echo "1. Test your API endpoints"

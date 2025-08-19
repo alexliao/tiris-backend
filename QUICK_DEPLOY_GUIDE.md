@@ -123,24 +123,24 @@ docker logs tiris-postgres-simple -f
 ### **Restart Services:**
 ```bash
 # Restart backend only
-docker-compose -f docker-compose.simple.yml restart app
+docker compose -f docker-compose.simple.yml --env-file .env.simple restart app
 
 # Restart reverse proxy
-cd proxy && docker-compose restart
+cd proxy && docker compose restart
 
 # Full restart
-cd proxy && docker-compose restart && cd .. && docker-compose -f docker-compose.simple.yml restart
+cd proxy && docker compose restart && cd .. && docker-compose -f docker-compose.simple.yml restart
 ```
 
 ### **Stop/Start Everything:**
 ```bash
 # Stop all services
-cd proxy && docker-compose down
-docker-compose -f docker-compose.simple.yml down
+cd proxy && docker compose down
+docker compose -f docker-compose.simple.yml --env-file .env.simple down
 
 # Start all services
-cd proxy && docker-compose up -d
-docker-compose -f docker-compose.simple.yml up -d
+cd proxy && docker compose up -d
+docker compose -f docker-compose.simple.yml --env-file .env.simple up -d
 ```
 
 ## 📊 **Monitoring & Health Checks**
@@ -190,7 +190,7 @@ docker logs tiris-app-simple | grep ERROR
 git pull origin main
 
 # Rebuild and restart
-docker-compose -f docker-compose.simple.yml up -d --build app
+docker compose -f docker-compose.simple.yml --env-file .env.simple up -d --build app
 
 # Validate deployment
 ./scripts/validate-deployment.sh
@@ -202,7 +202,7 @@ docker-compose -f docker-compose.simple.yml up -d --build app
 nano .env.simple
 
 # Restart to apply changes
-docker-compose -f docker-compose.simple.yml restart app
+docker compose -f docker-compose.simple.yml --env-file .env.simple restart app
 ```
 
 ### **Database Backup:**
@@ -236,7 +236,7 @@ docker logs tiris-app-simple --tail 50
 docker exec tiris-app-simple env | grep -E "(DB_|JWT_)"
 
 # Restart specific container
-docker-compose -f docker-compose.simple.yml restart app
+docker compose -f docker-compose.simple.yml --env-file .env.simple restart app
 ```
 
 #### **3. Database Connection Issues:**
@@ -248,8 +248,8 @@ docker exec tiris-postgres-simple pg_isready -U tiris_user -d tiris
 docker logs tiris-postgres-simple --tail 20
 
 # Reset database (⚠️ Data loss)
-docker-compose -f docker-compose.simple.yml down -v
-docker-compose -f docker-compose.simple.yml up -d postgres
+docker compose -f docker-compose.simple.yml --env-file .env.simple down -v
+docker compose -f docker-compose.simple.yml --env-file .env.simple up -d postgres
 ```
 
 #### **4. Port Conflicts:**
@@ -275,13 +275,13 @@ sudo ./scripts/quick-deploy-multiapp.sh
 ### **Emergency Rollback:**
 ```bash
 # Quick rollback to previous version
-docker-compose -f docker-compose.simple.yml down
+docker compose -f docker-compose.simple.yml --env-file .env.simple down
 docker tag tiris/backend:backup-$(date +%Y%m%d) tiris/backend:simple
-docker-compose -f docker-compose.simple.yml up -d
+docker compose -f docker-compose.simple.yml --env-file .env.simple up -d
 
 # Or rollback to simple deployment
-docker-compose -f docker-compose.simple.yml down
-cd proxy && docker-compose down
+docker compose -f docker-compose.simple.yml --env-file .env.simple down
+cd proxy && docker compose down
 ./scripts/quick-deploy.sh --simple
 ```
 
@@ -361,10 +361,10 @@ curl http://backend.dev.tiris.ai/health/live
 docker logs tiris-app-simple -f
 
 # Update application
-git pull && docker-compose -f docker-compose.simple.yml up -d --build app
+git pull && docker compose -f docker-compose.simple.yml --env-file .env.simple up -d --build app
 
 # Emergency stop
-cd proxy && docker-compose down && cd .. && docker-compose -f docker-compose.simple.yml down
+cd proxy && docker compose down && cd .. && docker compose -f docker-compose.simple.yml --env-file .env.simple down
 ```
 
 Your Tiris Backend is now deployed with professional multi-application architecture! 🎉

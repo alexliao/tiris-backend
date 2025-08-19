@@ -57,8 +57,13 @@ check_prerequisites() {
     fi
     
     # Check Docker Compose
-    if ! command -v docker-compose &> /dev/null; then
-        print_error "Docker Compose is not installed. Please install Docker Compose first."
+    if ! command -v docker &> /dev/null; then
+        print_error "Docker is not installed. Please install Docker first."
+        exit 1
+    fi
+    
+    if ! docker compose version &> /dev/null; then
+        print_error "Docker Compose plugin is not available. Please install Docker Compose plugin."
         exit 1
     fi
     
@@ -150,10 +155,10 @@ deploy_reverse_proxy() {
     cd proxy
     
     # Stop existing proxy if running
-    docker-compose down 2>/dev/null || true
+    docker compose down 2>/dev/null || true
     
     # Start reverse proxy
-    docker-compose up -d
+    docker compose up -d
     
     # Wait for proxy to be ready
     sleep 5
@@ -170,7 +175,7 @@ deploy_reverse_proxy() {
         fi
     else
         print_error "Failed to deploy reverse proxy"
-        docker-compose logs
+        docker compose logs
         exit 1
     fi
     
@@ -181,10 +186,10 @@ deploy_backend() {
     print_step "Deploying backend API..."
     
     # Stop existing backend deployment
-    docker-compose -f docker-compose.simple.yml down 2>/dev/null || true
+    docker compose -f docker-compose.simple.yml --env-file .env.simple down 2>/dev/null || true
     
     # Start backend with new architecture
-    docker-compose -f docker-compose.simple.yml up -d --build
+    docker compose -f docker-compose.simple.yml --env-file .env.simple up -d --build
     
     # Wait for backend to be ready
     print_step "Waiting for backend to be ready..."
@@ -286,8 +291,8 @@ show_deployment_summary() {
     echo
     echo -e "${BLUE}🔧 Management Commands:${NC}"
     echo "• View logs: docker logs tiris-app-simple -f"
-    echo "• Stop all: docker-compose -f docker-compose.simple.yml down && cd proxy && docker-compose down"
-    echo "• Restart backend: docker-compose -f docker-compose.simple.yml restart app"
+    echo "• Stop all: docker compose -f docker-compose.simple.yml --env-file .env.simple down && cd proxy && docker compose down"
+    echo "• Restart backend: docker compose -f docker-compose.simple.yml --env-file .env.simple restart app"
     echo "• Health check: curl http://$BACKEND_SUBDOMAIN/health/live"
     echo
     echo -e "${YELLOW}📝 Next Steps:${NC}"
@@ -304,8 +309,8 @@ show_rollback_info() {
     echo -e "${YELLOW}🔄 Rollback Information:${NC}"
     echo "If you need to rollback to single-app deployment:"
     echo "1. Stop multi-app deployment:"
-    echo "   cd proxy && docker-compose down"
-    echo "   docker-compose -f docker-compose.simple.yml down"
+    echo "   cd proxy && docker compose down"
+    echo "   docker compose -f docker-compose.simple.yml --env-file .env.simple down"
     echo
     echo "2. Use original deployment method:"
     echo "   ./scripts/quick-deploy.sh"
