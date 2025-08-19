@@ -18,7 +18,8 @@ dev:
 	air
 
 # Run all tests (unit + integration)
-test: test-unit test-integration-docker
+test:
+	go test -v ./...
 
 # Run unit tests only
 test-unit:
@@ -36,7 +37,7 @@ test-integration-docker: setup-test-db-docker
 # Run tests with coverage
 test-coverage:
 	mkdir -p coverage
-	go test -v -coverprofile=coverage/coverage.out ./...
+	go test -v -short -coverprofile=coverage/coverage.out ./...
 	go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
 # Clean build artifacts

@@ -9,17 +9,22 @@ import (
 	"tiris-backend/internal/repositories"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // TradingLogService handles trading log business logic
 type TradingLogService struct {
-	repos *repositories.Repositories
+	repos     *repositories.Repositories
+	db        *gorm.DB
+	processor *TradingLogProcessor
 }
 
 // NewTradingLogService creates a new trading log service
-func NewTradingLogService(repos *repositories.Repositories) *TradingLogService {
+func NewTradingLogService(repos *repositories.Repositories, db *gorm.DB) *TradingLogService {
 	return &TradingLogService{
-		repos: repos,
+		repos:     repos,
+		db:        db,
+		processor: NewTradingLogProcessor(repos),
 	}
 }
 
@@ -67,69 +72,35 @@ type TradingLogQueryResponse struct {
 	HasMore     bool                  `json:"has_more"`
 }
 
-// CreateTradingLog creates a new trading log entry
+// CreateTradingLog creates a new trading log entry with business logic processing
 func (s *TradingLogService) CreateTradingLog(ctx context.Context, userID uuid.UUID, req *CreateTradingLogRequest) (*TradingLogResponse, error) {
-	// Verify user owns the exchange
-	exchange, err := s.repos.Exchange.GetByID(ctx, req.ExchangeID)
+	// Process the trading log using the processor
+	result, err := s.processor.ProcessTradingLog(ctx, s.db, userID, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify exchange: %w", err)
-	}
-	if exchange == nil || exchange.UserID != userID {
-		return nil, fmt.Errorf("exchange not found")
+		return nil, fmt.Errorf("failed to process trading log: %w", err)
 	}
 
-	// Verify sub-account ownership if provided
-	if req.SubAccountID != nil {
-		subAccount, err := s.repos.SubAccount.GetByID(ctx, *req.SubAccountID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to verify sub-account: %w", err)
+	// Convert the created trading log to response format
+	response := s.convertToTradingLogResponse(result.TradingLogRecord)
+	
+	// Add processing summary to the response if business logic was applied
+	if len(result.CreatedTransactions) > 0 {
+		// Add metadata about the processed transactions
+		if response.Info == nil {
+			response.Info = make(map[string]interface{})
 		}
-		if subAccount == nil || subAccount.UserID != userID {
-			return nil, fmt.Errorf("sub-account not found")
+		response.Info["processed_transactions"] = len(result.CreatedTransactions)
+		response.Info["updated_accounts"] = len(result.UpdatedSubAccounts)
+		
+		// Add transaction IDs for audit trail
+		var transactionIDs []string
+		for _, tx := range result.CreatedTransactions {
+			transactionIDs = append(transactionIDs, tx.ID.String())
 		}
+		response.Info["transaction_ids"] = transactionIDs
 	}
 
-	// Verify transaction ownership if provided
-	if req.TransactionID != nil {
-		transaction, err := s.repos.Transaction.GetByID(ctx, *req.TransactionID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to verify transaction: %w", err)
-		}
-		if transaction == nil || transaction.UserID != userID {
-			return nil, fmt.Errorf("transaction not found")
-		}
-	}
-
-	// Create info map with metadata
-	infoMap := req.Info
-	if infoMap == nil {
-		infoMap = make(map[string]interface{})
-	}
-	// Add metadata
-	infoMap["created_by"] = "api"
-	infoMap["api_version"] = "v1"
-	infoMap["exchange_type"] = exchange.Type
-
-	// Create trading log model
-	tradingLog := &models.TradingLog{
-		ID:            uuid.New(),
-		UserID:        userID,
-		ExchangeID:    req.ExchangeID,
-		SubAccountID:  req.SubAccountID,
-		TransactionID: req.TransactionID,
-		Timestamp:     time.Now().UTC(),
-		Type:          req.Type,
-		Source:        req.Source,
-		Message:       req.Message,
-		Info:          models.JSON(infoMap),
-	}
-
-	// Save to database
-	if err := s.repos.TradingLog.Create(ctx, tradingLog); err != nil {
-		return nil, fmt.Errorf("failed to create trading log: %w", err)
-	}
-
-	return s.convertToTradingLogResponse(tradingLog), nil
+	return response, nil
 }
 
 // GetUserTradingLogs retrieves trading logs for a user with filtering

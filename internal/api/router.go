@@ -70,7 +70,7 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories, db *databas
 	exchangeService := services.NewExchangeService(repos)
 	subAccountService := services.NewSubAccountService(repos)
 	transactionService := services.NewTransactionService(repos)
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, db.DB)
 
 	return &Server{
 		config:             cfg,

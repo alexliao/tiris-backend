@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 // TestTradingLogService_CreateTradingLog tests the CreateTradingLog functionality
@@ -40,8 +41,11 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	userID := uuid.New()
@@ -283,8 +287,11 @@ func TestTradingLogService_GetUserTradingLogs(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	userID := uuid.New()
@@ -445,8 +452,11 @@ func TestTradingLogService_GetSubAccountTradingLogs(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	userID := uuid.New()
@@ -534,8 +544,11 @@ func TestTradingLogService_GetExchangeTradingLogs(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	userID := uuid.New()
@@ -621,8 +634,11 @@ func TestTradingLogService_GetTradingLog(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	userID := uuid.New()
@@ -707,8 +723,11 @@ func TestTradingLogService_DeleteTradingLog(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	userID := uuid.New()
@@ -815,8 +834,11 @@ func TestTradingLogService_GetTradingLogsByTimeRange(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	userID := uuid.New()
@@ -903,8 +925,11 @@ func TestTradingLogService_ListAllTradingLogs(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	tradingLogFactory := helpers.NewTradingLogFactory()
@@ -955,8 +980,11 @@ func TestTradingLogService_GetTradingLogByID(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	tradingLogID := uuid.New()
@@ -1022,8 +1050,11 @@ func TestTradingLogService_Performance(t *testing.T) {
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
 	
+	// Create mock database
+	mockDB := &gorm.DB{}
+	
 	// Create service
-	tradingLogService := services.NewTradingLogService(repos)
+	tradingLogService := services.NewTradingLogService(repos, mockDB)
 	
 	// Create test data
 	userID := uuid.New()

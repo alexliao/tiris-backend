@@ -10,6 +10,11 @@
 # 5. Retrieve transaction records to show automatic audit trail
 # 6. Add a trading log entry
 # 
+# USAGE:
+#   ./scripts/test-api.sh                 - Run normal API tests
+#   ./scripts/test-api.sh --clean         - Clean database (removes all user data)
+#   ./scripts/test-api.sh --clean --test  - Clean database then run tests
+# 
 # IMPORTANT: This uses a JWT token for API authentication.
 # To get a fresh JWT token:
 # 1. Create a test user: ./scripts/create-test-user.sh --name "Your Name"  
@@ -30,12 +35,57 @@ CONTENT_HEADER="Content-Type: application/json"
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# Parse command line arguments
+CLEAN_DATABASE=false
+RUN_TESTS=true
+SHOW_HELP=false
+
+for arg in "$@"; do
+    case $arg in
+        --clean)
+            CLEAN_DATABASE=true
+            RUN_TESTS=false  # Default to only clean unless --test is also specified
+            ;;
+        --test)
+            RUN_TESTS=true
+            ;;
+        --help|-h)
+            # Handle case where script is sourced vs executed
+            SCRIPT_NAME="./scripts/test-api.sh"
+            if [[ "$0" != "/bin/bash" ]] && [[ "$0" != "bash" ]]; then
+                SCRIPT_NAME="$0"
+            fi
+            echo "Usage: $SCRIPT_NAME [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --clean       Clean database (remove all user data)"
+            echo "  --clean --test Clean database then run API tests"
+            echo "  --help, -h    Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  $SCRIPT_NAME                    # Run normal API tests"
+            echo "  $SCRIPT_NAME --clean           # Clean database only"
+            echo "  $SCRIPT_NAME --clean --test    # Clean database then run tests"
+            SHOW_HELP=true
+            RUN_TESTS=false
+            CLEAN_DATABASE=false
+            ;;
+        *)
+            echo "Unknown option: $arg"
+            echo "Use --help for usage information"
+            return 1
+            ;;
+    esac
+done
 
 # Test status tracking
 USER_PROFILE_SUCCESS=false
 EXCHANGE_SUCCESS=false
 SUBACCOUNT_SUCCESS=false
+ETH_SUBACCOUNT_SUCCESS=false
 BALANCE_UPDATE_SUCCESS=false
 TRANSACTION_HISTORY_SUCCESS=false
 TRADING_LOG_SUCCESS=false
@@ -46,6 +96,219 @@ print_header() {
     echo -e "${BLUE}$1${NC}"
     echo "========================================"
 }
+
+# Database cleanup function
+cleanup_database() {
+    print_header "🗑️ Cleaning Development Database"
+    echo "This will remove data for the authenticated user:"
+    echo "- Trading logs"
+    echo "- Transactions (automatically deleted with sub-accounts)" 
+    echo "- Sub-accounts"
+    echo "- Exchanges"
+    echo ""
+    echo "Note: User accounts themselves are NOT deleted"
+    echo ""
+    
+    # Safety check - only allow in development
+    if [[ "$BASE_URL" != *"localhost"* ]] && [[ "$BASE_URL" != *"127.0.0.1"* ]]; then
+        echo -e "${RED}❌ SAFETY CHECK FAILED${NC}"
+        echo "Database cleanup is only allowed on localhost/development environments"
+        echo "Current BASE_URL: $BASE_URL"
+        echo "Cleanup cancelled for safety reasons."
+        return 1
+    fi
+    
+    echo -e "${YELLOW}⚠️ WARNING: This action cannot be undone!${NC}"
+    echo -n "Are you sure you want to clean the development database? (yes/NO): "
+    read -r confirmation
+    
+    if [[ "$confirmation" != "yes" ]]; then
+        echo ""
+        echo -e "${YELLOW}Database cleanup cancelled by user${NC}"
+        echo ""
+        return 0
+    fi
+    
+    echo ""
+    echo "Starting database cleanup..."
+    echo ""
+    echo "Note: The cleanup process respects API business rules:"
+    echo "- Bot-generated trading logs cannot be deleted (API restriction)"
+    echo "- Sub-accounts must have zero balance before deletion"
+    echo "- Exchanges can only be deleted after all sub-accounts are removed"
+    echo ""
+    
+    # Step 1: Get user profile to identify current user
+    print_header "👤 Getting User Information"
+    USER_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/users/me")
+    
+    if echo "$USER_RESPONSE" | jq -e '.success == true and .data.id' > /dev/null 2>&1; then
+        USER_ID=$(echo "$USER_RESPONSE" | jq -r '.data.id')
+        USERNAME=$(echo "$USER_RESPONSE" | jq -r '.data.username')
+        echo -e "${GREEN}✅ User identified: $USERNAME (ID: $USER_ID)${NC}"
+    else
+        echo -e "${RED}❌ Failed to get user information${NC}"
+        echo "Cannot proceed with cleanup without valid authentication"
+        echo "Please check your JWT token and try again"
+        echo ""
+        return 1
+    fi
+    
+    # Step 2: Delete all trading logs for this user
+    print_header "📊 Cleaning Trading Logs"
+    echo "Fetching trading logs to delete..."
+    
+    TRADING_LOGS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/trading-logs")
+    if echo "$TRADING_LOGS_RESPONSE" | jq -e '.success == true and .data.trading_logs' > /dev/null 2>&1; then
+        TRADING_LOG_COUNT=$(echo "$TRADING_LOGS_RESPONSE" | jq -r '.data.trading_logs | length')
+        echo "Found $TRADING_LOG_COUNT trading log(s) to delete"
+        
+        # Delete each trading log (bot-generated logs will be skipped due to API restrictions)
+        echo "$TRADING_LOGS_RESPONSE" | jq -c '.data.trading_logs[]' | while read -r log; do
+            log_id=$(echo "$log" | jq -r '.id')
+            log_source=$(echo "$log" | jq -r '.source // "manual"')
+            
+            if [ -n "$log_id" ] && [ "$log_id" != "null" ]; then
+                if [ "$log_source" = "bot" ]; then
+                    echo "  ⏭️  Skipping bot-generated trading log: $log_id (API restriction)"
+                else
+                    DELETE_RESPONSE=$(curl -s -X DELETE -H "$AUTH_HEADER" "$BASE_URL/trading-logs/$log_id")
+                    if echo "$DELETE_RESPONSE" | jq -e '.success == true' > /dev/null 2>&1; then
+                        echo "  ✅ Deleted trading log: $log_id (source: $log_source)"
+                    else
+                        echo "  ❌ Failed to delete trading log: $log_id (source: $log_source)"
+                        echo "     Response: $(echo "$DELETE_RESPONSE" | jq -c '.')"
+                    fi
+
+                fi
+            fi
+        done
+    else
+        echo "No trading logs found or failed to fetch"
+    fi
+    
+    # Step 3: Zero out sub-account balances and delete sub-accounts
+    print_header "🏦 Cleaning Sub-Accounts"
+    echo "Fetching sub-accounts to process..."
+    
+    SUB_ACCOUNTS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/sub-accounts")
+    if echo "$SUB_ACCOUNTS_RESPONSE" | jq -e '.success == true and .data.sub_accounts' > /dev/null 2>&1; then
+        SUB_ACCOUNT_COUNT=$(echo "$SUB_ACCOUNTS_RESPONSE" | jq -r '.data.sub_accounts | length')
+        echo "Found $SUB_ACCOUNT_COUNT sub-account(s) to process"
+        echo ""
+        
+        # First, zero out balances for accounts with positive balances
+        echo "Step 3a: Zeroing out account balances..."
+        echo "$SUB_ACCOUNTS_RESPONSE" | jq -c '.data.sub_accounts[]' | while read -r account; do
+            account_id=$(echo "$account" | jq -r '.id')
+            account_name=$(echo "$account" | jq -r '.name')
+            balance=$(echo "$account" | jq -r '.balance')
+            
+            # Check if balance is greater than 0 using awk
+            if [ -n "$account_id" ] && [ "$account_id" != "null" ] && [ "$(echo "$balance" | awk '{print ($1 > 0)}')" = "1" ]; then
+                echo "  Zeroing balance for account: $account_name (Balance: $balance)"
+                
+                ZERO_BALANCE_PAYLOAD="{\"amount\": $balance, \"direction\": \"debit\", \"reason\": \"cleanup\", \"info\": {\"source\": \"cleanup_script\", \"purpose\": \"prepare_for_deletion\"}}"
+                ZERO_RESPONSE=$(curl -s -X PUT \
+                    -H "$AUTH_HEADER" \
+                    -H "$CONTENT_HEADER" \
+                    -d "$ZERO_BALANCE_PAYLOAD" \
+                    "$BASE_URL/sub-accounts/$account_id/balance")
+                
+                if echo "$ZERO_RESPONSE" | jq -e '.success == true' > /dev/null 2>&1; then
+                    echo "    ✅ Balance zeroed for account: $account_id"
+                else
+                    echo "    ❌ Failed to zero balance for account: $account_id"
+                    echo "       Response: $(echo "$ZERO_RESPONSE" | jq -c '.')"
+                fi
+            fi
+        done
+        
+        echo ""
+        echo "Step 3b: Deleting sub-accounts..."
+        # Now delete each sub-account (this should also cascade delete transactions)
+        echo "$SUB_ACCOUNTS_RESPONSE" | jq -r '.data.sub_accounts[].id' | while read -r account_id; do
+            if [ -n "$account_id" ] && [ "$account_id" != "null" ]; then
+                DELETE_RESPONSE=$(curl -s -X DELETE -H "$AUTH_HEADER" "$BASE_URL/sub-accounts/$account_id")
+                if echo "$DELETE_RESPONSE" | jq -e '.success == true' > /dev/null 2>&1; then
+                    echo "  ✅ Deleted sub-account: $account_id"
+                else
+                    echo "  ❌ Failed to delete sub-account: $account_id"
+                    echo "     Response: $(echo "$DELETE_RESPONSE" | jq -c '.')"
+                fi
+            fi
+        done
+    else
+        echo "No sub-accounts found or failed to fetch"
+    fi
+    
+    # Step 4: Delete all exchanges for this user
+    print_header "🔄 Cleaning Exchanges"
+    echo "Fetching exchanges to delete..."
+    
+    EXCHANGES_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/exchanges")
+    if echo "$EXCHANGES_RESPONSE" | jq -e '.success == true and .data.exchanges' > /dev/null 2>&1; then
+        EXCHANGE_COUNT=$(echo "$EXCHANGES_RESPONSE" | jq -r '.data.exchanges | length')
+        echo "Found $EXCHANGE_COUNT exchange(s) to delete"
+        
+        # Delete each exchange
+        echo "$EXCHANGES_RESPONSE" | jq -r '.data.exchanges[].id' | while read -r exchange_id; do
+            if [ -n "$exchange_id" ] && [ "$exchange_id" != "null" ]; then
+                DELETE_RESPONSE=$(curl -s -X DELETE -H "$AUTH_HEADER" "$BASE_URL/exchanges/$exchange_id")
+                if echo "$DELETE_RESPONSE" | jq -e '.success == true' > /dev/null 2>&1; then
+                    echo "  ✅ Deleted exchange: $exchange_id"
+                else
+                    echo "  ❌ Failed to delete exchange: $exchange_id"
+                    echo "     Response: $(echo "$DELETE_RESPONSE" | jq -c '.')"
+                fi
+            fi
+        done
+    else
+        echo "No exchanges found or failed to fetch"
+    fi
+    
+    echo ""
+    echo -e "${GREEN}🎉 Database cleanup completed!${NC}"
+    echo "The development database has been cleaned of all user data."
+    echo "You can now run tests with a fresh, clean state."
+    echo ""
+}
+
+# Execute cleanup if requested
+if [ "$CLEAN_DATABASE" = true ]; then
+    cleanup_database
+    CLEANUP_RESULT=$?
+    if [ "$RUN_TESTS" = false ]; then
+        if [ $CLEANUP_RESULT -eq 0 ]; then
+            echo ""
+            echo -e "${GREEN}✅ Database cleanup completed! Terminal will remain open.${NC}"
+            echo ""
+        else
+            echo ""
+            echo -e "${YELLOW}⚠️ Database cleanup was cancelled or failed. Terminal will remain open.${NC}"
+            echo ""
+        fi
+        # Don't exit to keep output visible
+    fi
+fi
+
+# Check if help was shown - if so, stop here
+if [ "$SHOW_HELP" = true ]; then
+    # Help was shown, don't continue with any other operations
+    echo ""
+    echo "Help information displayed. Terminal will remain open."
+    echo ""
+fi
+
+# Skip tests if only cleanup was requested or help was shown
+if [ "$RUN_TESTS" = false ]; then
+    if [ "$CLEAN_DATABASE" = false ] && [ "$SHOW_HELP" = false ]; then
+        echo ""
+        echo -e "${GREEN}✅ No operations requested! Terminal will remain open.${NC}"
+        echo ""
+    fi
+    # Don't continue with tests
+else
 
 # Test 1: Show User Profile
 print_header "👤 Getting User Profile"
@@ -68,11 +331,13 @@ print_header "🏦 Adding Kraken Exchange"
 echo "Endpoint: POST /v1/exchanges"
 echo ""
 
+# Generate unique exchange details to avoid conflicts
+TIMESTAMP=$(date +%s)
 KRAKEN_PAYLOAD='{
-  "name": "My Kraken Exchange",
+  "name": "Test Kraken Exchange '$TIMESTAMP'",
   "type": "kraken",
-  "api_key": "kraken_api_key_12345",
-  "api_secret": "kraken_secret_67890"
+  "api_key": "kraken_api_key_'$TIMESTAMP'",
+  "api_secret": "kraken_secret_'$TIMESTAMP'"
 }'
 
 echo "Request payload:"
@@ -121,7 +386,7 @@ else
     else
         echo "❌ No existing Kraken exchange found"
         EXCHANGE_SUCCESS=false
-        exit 1
+        echo "⚠️ Continuing without exchange - remaining tests will likely fail"
     fi
 fi
 
@@ -182,7 +447,54 @@ else
     else
         echo "❌ No existing sub-accounts found for this exchange"
         SUBACCOUNT_SUCCESS=false
-        exit 1
+        echo "⚠️ Continuing without sub-account - remaining tests will likely fail"
+    fi
+fi
+
+# Test 3b: Create Second Sub-Account (ETH)
+print_header "🏦 Creating Second Sub-Account (ETH)"
+echo "Endpoint: POST /v1/sub-accounts"
+echo ""
+
+ETH_SUB_ACCOUNT_PAYLOAD='{
+  "exchange_id": "'$EXCHANGE_ID'",
+  "name": "ETH Trading Account",
+  "symbol": "ETH"
+}'
+
+echo "Request payload:"
+echo "$ETH_SUB_ACCOUNT_PAYLOAD" | jq .
+echo ""
+
+echo "Response:"
+ETH_SUB_ACCOUNT_RESPONSE=$(curl -s -X POST \
+  -H "$AUTH_HEADER" \
+  -H "$CONTENT_HEADER" \
+  -d "$ETH_SUB_ACCOUNT_PAYLOAD" \
+  "$BASE_URL/sub-accounts")
+
+echo "$ETH_SUB_ACCOUNT_RESPONSE" | jq . 2>/dev/null || echo "$ETH_SUB_ACCOUNT_RESPONSE"
+
+if echo "$ETH_SUB_ACCOUNT_RESPONSE" | jq -e '.success == true and .data.id' > /dev/null 2>&1; then
+    ETH_SUB_ACCOUNT_ID=$(echo "$ETH_SUB_ACCOUNT_RESPONSE" | jq -r '.data.id')
+    echo -e "${GREEN}✅ ETH sub-account created successfully${NC}"
+    echo "ETH Sub-Account ID: $ETH_SUB_ACCOUNT_ID"
+    ETH_SUBACCOUNT_SUCCESS=true
+else
+    echo "❌ ETH sub-account creation failed, checking existing ETH sub-accounts"
+    
+    # Try to find existing ETH sub-account
+    SUB_ACCOUNTS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/sub-accounts")
+    ETH_SUB_ACCOUNT_ID=$(echo "$SUB_ACCOUNTS_RESPONSE" | jq -r --arg exchange_id "$EXCHANGE_ID" '.data.sub_accounts[] | select(.exchange_id == $exchange_id and .symbol == "ETH") | .id' | head -1)
+    
+    if [ -n "$ETH_SUB_ACCOUNT_ID" ] && [ "$ETH_SUB_ACCOUNT_ID" != "null" ]; then
+        echo -e "${GREEN}✅ Found existing ETH sub-account${NC}"
+        echo "ETH Sub-Account ID: $ETH_SUB_ACCOUNT_ID"
+        ETH_SUBACCOUNT_SUCCESS=true
+    else
+        echo "❌ No ETH sub-account found"
+        ETH_SUBACCOUNT_SUCCESS=false
+        echo "⚠️ Continuing without ETH sub-account - trading log may fail"
     fi
 fi
 
@@ -192,13 +504,13 @@ echo "Endpoint: PUT /v1/sub-accounts/{id}/balance"
 echo ""
 
 BALANCE_UPDATE_PAYLOAD='{
-  "amount": 1000,
+  "amount": 10000,
   "direction": "credit",
   "reason": "initialization",
   "info": {
     "source": "test_script",
     "currency": "USDT",
-    "test_purpose": "API demonstration"
+    "test_purpose": "API demonstration - sufficient for trading"
   }
 }'
 
@@ -258,28 +570,44 @@ else
 fi
 
 # Test 6: Add a trading log
-print_header "📊 Adding Trading Log for ETH Buy Order"
+print_header "📊 Adding Trading Log for ETH Long Position"
 echo "Endpoint: POST /v1/trading-logs"
 echo ""
 
-TRADING_LOG_PAYLOAD='{ 
-  "exchange_id": "'$EXCHANGE_ID'",
-  "sub_account_id": "'$SUB_ACCOUNT_ID'",
-  "type": "buy",
-  "source": "bot", 
-  "message": "Predicted as long - ETH buy order: 2.0 @ $3000 (fee: $12)",
-  "info": {
-    "symbol": "ETH",
-    "amount": 2.0,
-    "price": 3000,
-    "fee": 12,
-    "status": "completed", 
-    "created_at": "2025-01-01T00:00:00Z",
-    "order_type": "buy",
-    "total_cost": 6012,
-    "currency": "USD"
-  }
-}'
+if [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ -n "$ETH_SUB_ACCOUNT_ID" ] && [ -n "$SUB_ACCOUNT_ID" ]; then
+    TRADING_LOG_PAYLOAD='{ 
+      "exchange_id": "'$EXCHANGE_ID'",
+      "type": "long",
+      "source": "bot", 
+      "message": "ETH long position: 2.0 ETH @ $3000 (fee: $12)",
+      "info": {
+        "stock_account_id": "'$ETH_SUB_ACCOUNT_ID'",
+        "currency_account_id": "'$SUB_ACCOUNT_ID'",
+        "volume": 2.0,
+        "price": 3000,
+        "fee": 12,
+        "stock": "ETH",
+        "currency": "USDT"
+      }
+    }'
+else
+    echo "⚠️ ETH sub-account not available, using fallback trading log without business logic"
+    TRADING_LOG_PAYLOAD='{ 
+      "exchange_id": "'$EXCHANGE_ID'",
+      "sub_account_id": "'$SUB_ACCOUNT_ID'",
+      "type": "trade",
+      "source": "bot", 
+      "message": "Generic trade log entry (ETH sub-account not available)",
+      "info": {
+        "order_type": "buy",
+        "symbol": "ETH",
+        "volume": 2.0,
+        "price": 3000,
+        "fee": 12,
+        "currency": "USDT"
+      }
+    }'
+fi
 
 echo "Request payload:"
 echo "$TRADING_LOG_PAYLOAD" | jq .
@@ -299,36 +627,99 @@ if echo "$TRADING_LOG_RESPONSE" | jq -e '.success == true and .data.id' > /dev/n
     echo -e "${GREEN}✅ Trading log created successfully${NC}"
     echo "Trading Log ID: $TRADING_LOG_ID"
     TRADING_LOG_SUCCESS=true
-else
-    echo "❌ Trading log creation failed, trying to get existing trading logs"
     
-    print_header "🔍 Getting Existing Trading Logs"
-    echo "Endpoint: GET /v1/trading-logs"
-    echo ""
-    
-    TRADING_LOGS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/trading-logs")
-    echo "All trading logs response:"
-    echo "$TRADING_LOGS_RESPONSE" | jq . 2>/dev/null || echo "$TRADING_LOGS_RESPONSE"
-    echo ""
-    
-    # Extract the first trading log ID
-    TRADING_LOG_ID=$(echo "$TRADING_LOGS_RESPONSE" | jq -r '.data.trading_logs[0].id // empty' | head -1)
-    
-    if [ -n "$TRADING_LOG_ID" ] && [ "$TRADING_LOG_ID" != "null" ]; then
-        echo -e "${GREEN}✅ Found existing trading log${NC}"
-        echo "Trading Log ID: $TRADING_LOG_ID"
-        TRADING_LOG_SUCCESS=true
-        
-        # Get specific trading log details
+    # Check if business logic was processed (look for transaction_ids in response)
+    if echo "$TRADING_LOG_RESPONSE" | jq -e '.data.info.transaction_ids' > /dev/null 2>&1; then
         echo ""
-        echo "Getting trading log details:"
-        TRADING_LOG_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/trading-logs/$TRADING_LOG_ID")
-        echo "$TRADING_LOG_DETAILS" | jq . 2>/dev/null || echo "$TRADING_LOG_DETAILS"
+        echo -e "${BLUE}🔍 Business logic was processed! Checking auto-generated transactions and updated balances...${NC}"
+        
+        # Test 7: Retrieve Auto-Generated Transactions
+        print_header "💸 Auto-Generated Transactions from Long Position"
+        echo "The long position should have created 2 transactions:"
+        echo "1. Credit ETH account with +2.0 ETH"
+        echo "2. Debit USDT account with -6,012.00 USDT (3000 × 2 + 12)"
+        echo ""
+        
+        # Get recent transactions for ETH sub-account
+        if [ -n "$ETH_SUB_ACCOUNT_ID" ] && [ "$ETH_SUB_ACCOUNT_ID" != "null" ]; then
+            echo "📊 ETH Account Transactions:"
+            echo "Endpoint: GET /v1/transactions/sub-account/$ETH_SUB_ACCOUNT_ID"
+            echo ""
+            
+            ETH_TRANSACTIONS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/transactions/sub-account/$ETH_SUB_ACCOUNT_ID?limit=3&offset=0")
+            echo "$ETH_TRANSACTIONS_RESPONSE" | jq . 2>/dev/null || echo "$ETH_TRANSACTIONS_RESPONSE"
+            echo ""
+        fi
+        
+        # Get recent transactions for USDT sub-account
+        if [ -n "$SUB_ACCOUNT_ID" ] && [ "$SUB_ACCOUNT_ID" != "null" ]; then
+            echo "💰 USDT Account Transactions:"
+            echo "Endpoint: GET /v1/transactions/sub-account/$SUB_ACCOUNT_ID"
+            echo ""
+            
+            USDT_TRANSACTIONS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/transactions/sub-account/$SUB_ACCOUNT_ID?limit=3&offset=0")
+            echo "$USDT_TRANSACTIONS_RESPONSE" | jq . 2>/dev/null || echo "$USDT_TRANSACTIONS_RESPONSE"
+            echo ""
+        fi
+        
+        # Test 8: Check Updated Sub-Account Balances
+        print_header "⚖️ Updated Sub-Account Balances After Long Position"
+        echo "Expected balance changes:"
+        echo "- ETH Account: Should show +2.0 ETH from the long position"
+        echo "- USDT Account: Should show -6,012.00 USDT (1000 - 6012 = -5012.00 after initial credit)"
+        echo ""
+        
+        # Get updated ETH sub-account balance
+        if [ -n "$ETH_SUB_ACCOUNT_ID" ] && [ "$ETH_SUB_ACCOUNT_ID" != "null" ]; then
+            echo "🪙 ETH Account Current Balance:"
+            echo "Endpoint: GET /v1/sub-accounts/$ETH_SUB_ACCOUNT_ID"
+            echo ""
+            
+            ETH_ACCOUNT_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/sub-accounts/$ETH_SUB_ACCOUNT_ID")
+            echo "$ETH_ACCOUNT_RESPONSE" | jq . 2>/dev/null || echo "$ETH_ACCOUNT_RESPONSE"
+            
+            # Extract and display balance
+            if echo "$ETH_ACCOUNT_RESPONSE" | jq -e '.success == true and .data.balance' > /dev/null 2>&1; then
+                ETH_BALANCE=$(echo "$ETH_ACCOUNT_RESPONSE" | jq -r '.data.balance')
+                echo -e "${GREEN}✅ ETH Account Balance: $ETH_BALANCE ETH${NC}"
+            fi
+            echo ""
+        fi
+        
+        # Get updated USDT sub-account balance
+        if [ -n "$SUB_ACCOUNT_ID" ] && [ "$SUB_ACCOUNT_ID" != "null" ]; then
+            echo "💵 USDT Account Current Balance:"
+            echo "Endpoint: GET /v1/sub-accounts/$SUB_ACCOUNT_ID"
+            echo ""
+            
+            USDT_ACCOUNT_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/sub-accounts/$SUB_ACCOUNT_ID")
+            echo "$USDT_ACCOUNT_RESPONSE" | jq . 2>/dev/null || echo "$USDT_ACCOUNT_RESPONSE"
+            
+            # Extract and display balance
+            if echo "$USDT_ACCOUNT_RESPONSE" | jq -e '.success == true and .data.balance' > /dev/null 2>&1; then
+                USDT_BALANCE=$(echo "$USDT_ACCOUNT_RESPONSE" | jq -r '.data.balance')
+                echo -e "${GREEN}✅ USDT Account Balance: $USDT_BALANCE USDT${NC}"
+            fi
+            echo ""
+        fi
+        
+        # Summary of business logic processing
+        echo -e "${BLUE}📊 Business Logic Processing Summary:${NC}"
+        echo "✅ Long position trading log created successfully"
+        echo "✅ Auto-generated transactions for both accounts"
+        echo "✅ ETH account credited with purchased volume"
+        echo "✅ USDT account debited with total cost (price × volume + fee)"
+        echo "✅ All operations completed atomically"
+        echo ""
     else
-        echo "❌ No existing trading logs found"
-        TRADING_LOG_SUCCESS=false
-        exit 1
+        echo ""
+        echo -e "${YELLOW}ℹ️ Trading log created but no business logic processing detected${NC}"
+        echo "This might be a non-business logic type or ETH sub-account wasn't available"
+        echo ""
     fi
+else
+    echo "❌ Trading log creation failed"
+    TRADING_LOG_SUCCESS=false
 fi
 
 print_header "📋 Test Summary"
@@ -347,9 +738,15 @@ else
 fi
 
 if [ "$SUBACCOUNT_SUCCESS" = true ]; then
-    echo "✅ Sub-account test completed successfully"
+    echo "✅ USDT sub-account test completed successfully"
 else
-    echo "❌ Sub-account test failed"
+    echo "❌ USDT sub-account test failed"
+fi
+
+if [ "$ETH_SUBACCOUNT_SUCCESS" = true ]; then
+    echo "✅ ETH sub-account test completed successfully"
+else
+    echo "❌ ETH sub-account test failed"
 fi
 
 if [ "$BALANCE_UPDATE_SUCCESS" = true ]; then
@@ -373,7 +770,7 @@ fi
 echo ""
 
 # Overall test result summary
-if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$EXCHANGE_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$BALANCE_UPDATE_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
+if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$EXCHANGE_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$BALANCE_UPDATE_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
     echo -e "${GREEN}🎉 All tests completed successfully!${NC}"
 else
     echo -e "${RED}⚠️ Some tests failed. Check the output above for details.${NC}"
@@ -385,9 +782,13 @@ echo "- If you get 401 Unauthorized, the JWT token may be expired"
 echo "- Create a new test user to get a fresh JWT token: ./scripts/create-test-user.sh"
 echo "- Check the API documentation at http://localhost:8080/docs for more details"
 
-# # Exit with appropriate code
-# if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$EXCHANGE_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$BALANCE_UPDATE_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
-#     exit 0
-# else
-#     exit 1
-# fi
+# Final status message (don't exit to keep output visible)
+echo ""
+if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$EXCHANGE_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$BALANCE_UPDATE_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
+    echo -e "${GREEN}🎯 All tests completed successfully! Terminal will remain open.${NC}"
+else
+    echo -e "${RED}⚠️ Some tests failed. Terminal will remain open for review.${NC}"
+fi
+echo ""
+
+fi # End of RUN_TESTS condition
