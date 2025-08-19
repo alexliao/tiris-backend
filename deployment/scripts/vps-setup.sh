@@ -162,11 +162,25 @@ if ! id "$DEPLOY_USER" &>/dev/null; then
     log "Creating deployment user: $DEPLOY_USER"
     useradd -m -s /bin/bash "$DEPLOY_USER"
     usermod -aG docker "$DEPLOY_USER"
-    usermod -aG sudo "$DEPLOY_USER"
+    
+    # Add to admin group (sudo for Ubuntu/Debian, wheel for CentOS/RHEL)
+    if [[ "$PKG_MANAGER" == "apt" ]]; then
+        usermod -aG sudo "$DEPLOY_USER"
+        log "Added $DEPLOY_USER to sudo group"
+    elif [[ "$PKG_MANAGER" == "dnf" ]]; then
+        usermod -aG wheel "$DEPLOY_USER"
+        log "Added $DEPLOY_USER to wheel group"
+    fi
 else
     log "User $DEPLOY_USER already exists"
     usermod -aG docker "$DEPLOY_USER"
-    usermod -aG sudo "$DEPLOY_USER"
+    
+    # Add to admin group (sudo for Ubuntu/Debian, wheel for CentOS/RHEL)
+    if [[ "$PKG_MANAGER" == "apt" ]]; then
+        usermod -aG sudo "$DEPLOY_USER" 2>/dev/null || log "User already in sudo group"
+    elif [[ "$PKG_MANAGER" == "dnf" ]]; then
+        usermod -aG wheel "$DEPLOY_USER" 2>/dev/null || log "User already in wheel group"
+    fi
 fi
 
 # Set up SSH directory for deployment user
