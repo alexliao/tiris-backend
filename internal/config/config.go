@@ -106,14 +106,14 @@ func Load() (*Config, error) {
 		},
 		OAuth: OAuthConfig{
 			Google: GoogleOAuthConfig{
-				ClientID:     getRequiredEnv("GOOGLE_CLIENT_ID"),
-				ClientSecret: getRequiredEnv("GOOGLE_CLIENT_SECRET"),
-				RedirectURL:  getRequiredEnv("GOOGLE_REDIRECT_URL"),
+				ClientID:     getEnvOrDefault("GOOGLE_CLIENT_ID", ""),
+				ClientSecret: getEnvOrDefault("GOOGLE_CLIENT_SECRET", ""),
+				RedirectURL:  getEnvOrDefault("GOOGLE_REDIRECT_URL", ""),
 			},
 			WeChat: WeChatOAuthConfig{
-				AppID:       getRequiredEnv("WECHAT_APP_ID"),
-				AppSecret:   getRequiredEnv("WECHAT_APP_SECRET"),
-				RedirectURL: getRequiredEnv("WECHAT_REDIRECT_URL"),
+				AppID:       getEnvOrDefault("WECHAT_APP_ID", ""),
+				AppSecret:   getEnvOrDefault("WECHAT_APP_SECRET", ""),
+				RedirectURL: getEnvOrDefault("WECHAT_REDIRECT_URL", ""),
 			},
 		},
 	}
