@@ -54,8 +54,13 @@ run_migrations() {
 
 # Function to validate required environment variables
 validate_environment() {
-    required_vars="DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD NATS_URL JWT_SECRET REFRESH_SECRET"
+    required_vars="DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD JWT_SECRET REFRESH_SECRET"
     missing_vars=""
+    
+    # Add NATS_URL to required vars only if NATS is enabled
+    if [ "${NATS_ENABLED:-true}" = "true" ]; then
+        required_vars="$required_vars NATS_URL"
+    fi
     
     for var in $required_vars; do
         eval value=\$$var

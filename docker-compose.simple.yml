@@ -62,6 +62,7 @@ services:
       # Disable unused services for simple setup
       REDIS_ENABLED: false
       NATS_ENABLED: false
+      NATS_URL: nats://dummy:4222
       METRICS_ENABLED: false
       
     ports:
