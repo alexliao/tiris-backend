@@ -4,15 +4,84 @@ set -e
 # Quick Deploy Script for Tiris Backend
 # Gets the application online with minimal effort and configuration
 
-echo "🚀 Quick Deploy - Tiris Backend"
-echo "Getting your application online in under 5 minutes!"
-
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Show deployment options
+show_deployment_options() {
+    echo -e "${BLUE}🚀 Tiris Backend Quick Deploy${NC}"
+    echo "Choose your deployment architecture:"
+    echo
+    echo -e "${GREEN}1. Multi-App Architecture (Recommended)${NC}"
+    echo "   • Professional reverse proxy setup"
+    echo "   • Subdomain-based routing (backend.dev.tiris.ai)"
+    echo "   • Ready for multiple applications"
+    echo "   • SSL/HTTPS ready"
+    echo
+    echo -e "${YELLOW}2. Simple Single-App Deployment${NC}"
+    echo "   • Basic deployment on single port"
+    echo "   • Quick setup for development/testing"
+    echo "   • Direct port access only"
+    echo
+    echo -e "${BLUE}3. Help & Documentation${NC}"
+    echo "   • View deployment guides"
+    echo "   • Architecture information"
+    echo
+    read -p "Select option (1-3): " -n 1 -r
+    echo
+    
+    case $REPLY in
+        1)
+            echo -e "${GREEN}Starting Multi-App Architecture deployment...${NC}"
+            exec ./scripts/quick-deploy-multiapp.sh
+            ;;
+        2)
+            echo -e "${YELLOW}Starting Simple Single-App deployment...${NC}"
+            deploy_simple_app
+            ;;
+        3)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Invalid option. Please choose 1, 2, or 3.${NC}"
+            exit 1
+            ;;
+    esac
+}
+
+show_help() {
+    echo -e "${BLUE}📚 Tiris Backend Deployment Help${NC}"
+    echo
+    echo -e "${GREEN}Multi-App Architecture:${NC}"
+    echo "• Best for production environments"
+    echo "• Supports multiple applications on one VPS"
+    echo "• Professional subdomain routing"
+    echo "• Easy SSL/HTTPS setup"
+    echo "• Command: ./scripts/quick-deploy-multiapp.sh"
+    echo
+    echo -e "${YELLOW}Simple Deployment:${NC}"
+    echo "• Best for development/testing"
+    echo "• Single application setup"
+    echo "• Direct port access"
+    echo "• Minimal configuration"
+    echo "• Command: ./scripts/quick-deploy.sh (option 2)"
+    echo
+    echo -e "${BLUE}Documentation:${NC}"
+    echo "• Multi-app guide: MULTI_APP_DEPLOYMENT.md"
+    echo "• Architecture overview in README.md"
+    echo "• Configuration examples in .env templates"
+    echo
+}
+
+# Simple deployment function (original logic)
+deploy_simple_app() {
+    echo "🚀 Quick Deploy - Tiris Backend (Simple Mode)"
+    echo "Getting your application online in under 5 minutes!"
 
 # Configuration
 DOMAIN=${DOMAIN:-localhost}
@@ -324,5 +393,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Run main function
-main
+# Check for command line arguments to skip menu
+if [ "$1" = "--simple" ]; then
+    deploy_simple_app
+elif [ "$1" = "--multi-app" ]; then
+    exec ./scripts/quick-deploy-multiapp.sh
+elif [ "$1" = "--help" ]; then
+    show_help
+else
+    show_deployment_options
+fi
