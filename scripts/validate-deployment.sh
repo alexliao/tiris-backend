@@ -56,18 +56,22 @@ test_warning() {
 test_containers() {
     print_section "📦 Container Health Tests"
     
-    # Check reverse proxy
-    if docker ps | grep -q "tiris-reverse-proxy.*Up"; then
-        test_passed "Reverse proxy container is running"
-        
-        # Check proxy health endpoint
-        if curl -s http://localhost/nginx-health | grep -q "healthy"; then
-            test_passed "Reverse proxy health check"
+    # Check reverse proxy (multi-app architecture)
+    if docker ps | grep -q "tiris-reverse-proxy"; then
+        if docker ps | grep -q "tiris-reverse-proxy.*Up"; then
+            test_passed "Reverse proxy container is running"
+            
+            # Check proxy health endpoint
+            if curl -s http://localhost/nginx-health | grep -q "healthy"; then
+                test_passed "Reverse proxy health check"
+            else
+                test_failed "Reverse proxy health check"
+            fi
         else
-            test_failed "Reverse proxy health check"
+            test_failed "Reverse proxy container is not running properly"
         fi
     else
-        test_failed "Reverse proxy container is not running"
+        test_warning "Reverse proxy not deployed (simple architecture)"
     fi
     
     # Check backend application
