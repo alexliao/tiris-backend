@@ -58,7 +58,7 @@ test_containers() {
     
     # Check reverse proxy (multi-app architecture)
     if docker ps | grep -q "tiris-reverse-proxy"; then
-        if docker ps | grep -q "tiris-reverse-proxy.*Up"; then
+        if docker ps | grep "tiris-reverse-proxy" | grep -q "Up"; then
             test_passed "Reverse proxy container is running"
             
             # Check proxy health endpoint
@@ -75,7 +75,7 @@ test_containers() {
     fi
     
     # Check backend application
-    if docker ps | grep -q "tiris-app-simple.*Up"; then
+    if docker ps | grep "tiris-app-simple" | grep -q "Up"; then
         test_passed "Backend application container is running"
         
         # Check backend health
@@ -89,7 +89,7 @@ test_containers() {
     fi
     
     # Check database
-    if docker ps | grep -q "tiris-postgres-simple.*Up"; then
+    if docker ps | grep "tiris-postgres-simple" | grep -q "Up"; then
         test_passed "Database container is running"
         
         # Test database connectivity
