@@ -89,7 +89,7 @@ func (h *HealthHandler) ReadinessProbe(c *gin.Context) {
 	// Check NATS connectivity
 	natsStatus := h.checkNATS(ctx)
 	dependencies["nats"] = natsStatus
-	if natsStatus.Status != "healthy" {
+	if natsStatus.Status != "healthy" && natsStatus.Status != "disabled" {
 		overallHealthy = false
 	}
 
@@ -157,7 +157,7 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	// Check NATS with detailed info
 	natsStatus := h.checkNATSDetailed(ctx)
 	dependencies["nats"] = natsStatus
-	if natsStatus.Status != "healthy" {
+	if natsStatus.Status != "healthy" && natsStatus.Status != "disabled" {
 		overallHealthy = false
 	}
 
@@ -284,8 +284,8 @@ func (h *HealthHandler) checkDatabaseDetailed(ctx context.Context) HealthStatus 
 func (h *HealthHandler) checkNATS(ctx context.Context) HealthStatus {
 	if h.natsManager == nil {
 		return HealthStatus{
-			Status:  "unhealthy",
-			Message: "NATS manager not initialized",
+			Status:  "disabled",
+			Message: "NATS is disabled",
 		}
 	}
 
@@ -306,8 +306,8 @@ func (h *HealthHandler) checkNATS(ctx context.Context) HealthStatus {
 func (h *HealthHandler) checkNATSDetailed(ctx context.Context) HealthStatus {
 	if h.natsManager == nil {
 		return HealthStatus{
-			Status:  "unhealthy",
-			Message: "NATS manager not initialized",
+			Status:  "disabled",
+			Message: "NATS is disabled",
 		}
 	}
 
