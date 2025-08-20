@@ -218,6 +218,17 @@ create_test_user() {
     if ! command -v go > /dev/null; then
         print_error "Go not found. Go is required to generate JWT tokens."
         print_error "Please install Go and try again."
+        print_error "User was created successfully in database, but JWT token generation skipped."
+        print_status "You can generate JWT tokens later with:"
+        print_status "go run scripts/generate-jwt-token.go --user-id \"$user_id\" --username \"$username\" --email \"$email\" --role \"user\" --duration \"8760h\" --output \"token\""
+        exit 1
+    fi
+    
+    # Check if .env file exists
+    if [ ! -f ".env" ] && [ ! -f "../.env" ]; then
+        print_error "No .env file found. JWT generation requires JWT_SECRET and REFRESH_SECRET."
+        print_error "Please create .env file with required secrets."
+        print_error "User was created successfully in database, but JWT token generation skipped."
         exit 1
     fi
     
@@ -229,6 +240,15 @@ create_test_user() {
         print_error "Failed to change to project directory: $project_dir"
         exit 1
     }
+    
+    # Check if Go modules are ready
+    print_status "Checking Go module dependencies..."
+    if ! go mod download &>/dev/null; then
+        print_error "Failed to download Go module dependencies."
+        print_error "User was created successfully in database, but JWT token generation failed."
+        print_error "Try running: go mod download"
+        exit 1
+    fi
     
     # Generate JWT token with detailed error handling
     print_status "Running JWT token generator..."
@@ -256,12 +276,18 @@ create_test_user() {
     else
         print_error "Failed to generate JWT token"
         print_error "Exit code: $exit_code"
+        
         print_error "Error output: $jwt_error"
+        
         print_error ""
         print_error "Common causes:"
         print_error "  - Missing .env file with JWT_SECRET and REFRESH_SECRET"
         print_error "  - Invalid environment variables"
         print_error "  - Go module dependencies not installed (run 'go mod download')"
+        print_error "  - Network issues downloading dependencies"
+        print_error ""
+        print_error "User was created successfully in database. You can generate JWT tokens later with:"
+        print_error "go run scripts/generate-jwt-token.go --user-id \"$user_id\" --username \"$username\" --email \"$email\" --role \"user\" --duration \"8760h\" --output \"token\""
         exit 1
     fi
 
