@@ -15,6 +15,9 @@ NC='\033[0m' # No Color
 # Default values
 DEFAULT_PROVIDER="google"
 DEFAULT_EXPIRY="1 year"
+DEFAULT_CONTAINER="tiris-postgres-dev"
+DEFAULT_DATABASE="tiris_dev"
+DEFAULT_USER="tiris_user"
 
 # Function to print colored output
 print_status() {
@@ -46,6 +49,9 @@ OPTIONS:
     -e, --email EMAIL       Email address (auto-generated if not provided)
     -p, --provider PROVIDER OAuth provider (default: google)
     -t, --expiry EXPIRY     Token expiry (default: 1 year)
+    -c, --container NAME    PostgreSQL container name (default: tiris-postgres-dev)
+    -d, --database NAME     Database name (default: tiris_dev)
+    --db-user USER          Database user (default: tiris_user)
     -h, --help             Show this help message
 
 EXAMPLES:
@@ -60,17 +66,35 @@ EXAMPLES:
     
     # Create user with 6 month expiry
     $0 --name "Test User" --expiry "6 months"
+    
+    # Use with simple deployment (different container/database names)
+    $0 --name "Simple User" --container "tiris-postgres-simple" --database "tiris"
+    
+    # Use with custom database configuration
+    $0 --name "Custom User" --container "my-postgres" --database "my_db" --db-user "my_user"
 
 EOF
 }
 
 # Function to check if PostgreSQL is running
 check_postgres() {
-    print_status "Checking PostgreSQL connection..."
+    local container="$1"
+    local db_user="$2"
+    local database="$3"
     
-    if ! docker exec tiris-postgres-dev psql -U tiris_user -d tiris_dev -c "SELECT 1;" > /dev/null 2>&1; then
-        print_error "Cannot connect to PostgreSQL. Make sure the database is running:"
+    print_status "Checking PostgreSQL connection (container: $container, database: $database)..."
+    
+    if ! docker exec "$container" psql -U "$db_user" -d "$database" -c "SELECT 1;" > /dev/null 2>&1; then
+        print_error "Cannot connect to PostgreSQL container '$container'."
+        print_error "Make sure the database is running. Common commands:"
+        echo "  # For development:"
         echo "  docker compose -f docker-compose.dev.yml up -d postgres"
+        echo ""
+        echo "  # For simple deployment:"
+        echo "  docker compose -f docker-compose.simple.yml --env-file .env.simple up -d postgres"
+        echo ""
+        echo "  # Check available containers:"
+        echo "  docker ps | grep postgres"
         exit 1
     fi
     
@@ -111,6 +135,9 @@ create_test_user() {
     local email="$3"
     local provider="$4"
     local expiry="$5"
+    local container="$6"
+    local db_user="$7"
+    local database="$8"
     
     print_status "Creating test user: $name"
     
@@ -121,7 +148,7 @@ create_test_user() {
     
     # Create user record
     print_status "Creating user record..."
-    local user_id=$(docker exec tiris-postgres-dev psql -U tiris_user -d tiris_dev -t -A -c "INSERT INTO users (id, username, email, avatar, settings, info, created_at, updated_at) VALUES (gen_random_uuid(), '$username', '$email', 'https://lh3.googleusercontent.com/a/test-user-avatar', '{\"theme\": \"light\", \"notifications\": true}', '{\"display_name\": \"$name\", \"locale\": \"en\", \"test_user\": true}', NOW(), NOW()) RETURNING id;" | head -n 1)
+    local user_id=$(docker exec "$container" psql -U "$db_user" -d "$database" -t -A -c "INSERT INTO users (id, username, email, avatar, settings, info, created_at, updated_at) VALUES (gen_random_uuid(), '$username', '$email', 'https://lh3.googleusercontent.com/a/test-user-avatar', '{\"theme\": \"light\", \"notifications\": true}', '{\"display_name\": \"$name\", \"locale\": \"en\", \"test_user\": true}', NOW(), NOW()) RETURNING id;" | head -n 1)
     
     if [ -z "$user_id" ]; then
         print_error "Failed to create user record"
@@ -131,7 +158,7 @@ create_test_user() {
     
     # Create OAuth token record
     print_status "Creating OAuth token record..."
-    local token_id=$(docker exec tiris-postgres-dev psql -U tiris_user -d tiris_dev -t -A -c "INSERT INTO oauth_tokens (user_id, provider, provider_user_id, access_token, refresh_token, expires_at, info) VALUES ('$user_id', '$provider', '$provider_user_id', '$access_token', '$refresh_token', NOW() + INTERVAL '$expiry', '{\"email\": \"$email\", \"verified_email\": true, \"name\": \"$name\", \"test_user\": true}') RETURNING id;" | head -n 1)
+    local token_id=$(docker exec "$container" psql -U "$db_user" -d "$database" -t -A -c "INSERT INTO oauth_tokens (user_id, provider, provider_user_id, access_token, refresh_token, expires_at, info) VALUES ('$user_id', '$provider', '$provider_user_id', '$access_token', '$refresh_token', NOW() + INTERVAL '$expiry', '{\"email\": \"$email\", \"verified_email\": true, \"name\": \"$name\", \"test_user\": true}') RETURNING id;" | head -n 1)
     
     if [ -z "$token_id" ]; then
         print_error "Failed to create OAuth token record"
@@ -241,6 +268,9 @@ USERNAME=""
 EMAIL=""
 PROVIDER="$DEFAULT_PROVIDER"
 EXPIRY="$DEFAULT_EXPIRY"
+CONTAINER="$DEFAULT_CONTAINER"
+DATABASE="$DEFAULT_DATABASE"
+DB_USER="$DEFAULT_USER"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -262,6 +292,18 @@ while [[ $# -gt 0 ]]; do
             ;;
         -t|--expiry)
             EXPIRY="$2"
+            shift 2
+            ;;
+        -c|--container)
+            CONTAINER="$2"
+            shift 2
+            ;;
+        -d|--database)
+            DATABASE="$2"
+            shift 2
+            ;;
+        --db-user)
+            DB_USER="$2"
             shift 2
             ;;
         -h|--help)
@@ -301,9 +343,9 @@ if [ -z "$EMAIL" ]; then
 fi
 
 # Check PostgreSQL connection
-check_postgres
+check_postgres "$CONTAINER" "$DB_USER" "$DATABASE"
 
 # Create the test user
-create_test_user "$NAME" "$USERNAME" "$EMAIL" "$PROVIDER" "$EXPIRY"
+create_test_user "$NAME" "$USERNAME" "$EMAIL" "$PROVIDER" "$EXPIRY" "$CONTAINER" "$DB_USER" "$DATABASE"
 
 print_success "Script completed successfully!"
