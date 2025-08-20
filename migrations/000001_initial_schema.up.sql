@@ -1,11 +1,18 @@
--- Enable TimescaleDB extension
-CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+-- Enable TimescaleDB extension (optional for testing)
+-- Note: This will fail in test environments without TimescaleDB, which is expected
+DO $$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'TimescaleDB extension not available - hypertables will be skipped';
+END
+$$;
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Users table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -17,12 +24,12 @@ CREATE TABLE users (
 );
 
 -- Create indexes for users table
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_info ON users USING GIN(info);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_info ON users USING GIN(info);
 
 -- OAuth tokens table
-CREATE TABLE oauth_tokens (
+CREATE TABLE IF NOT EXISTS oauth_tokens (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     provider VARCHAR(20) NOT NULL,
@@ -36,13 +43,13 @@ CREATE TABLE oauth_tokens (
 );
 
 -- Create indexes for oauth_tokens table
-CREATE INDEX idx_oauth_tokens_user_id ON oauth_tokens(user_id);
-CREATE INDEX idx_oauth_tokens_provider ON oauth_tokens(provider);
+CREATE INDEX IF NOT EXISTS idx_oauth_tokens_user_id ON oauth_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_tokens_provider ON oauth_tokens(provider);
 CREATE UNIQUE INDEX idx_oauth_tokens_provider_user ON oauth_tokens(provider, provider_user_id);
-CREATE INDEX idx_oauth_tokens_info ON oauth_tokens USING GIN(info);
+CREATE INDEX IF NOT EXISTS idx_oauth_tokens_info ON oauth_tokens USING GIN(info);
 
 -- Exchanges table
-CREATE TABLE exchanges (
+CREATE TABLE IF NOT EXISTS exchanges (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
@@ -56,13 +63,13 @@ CREATE TABLE exchanges (
 );
 
 -- Create indexes for exchanges table
-CREATE INDEX idx_exchanges_user_id ON exchanges(user_id);
-CREATE INDEX idx_exchanges_type ON exchanges(type);
-CREATE INDEX idx_exchanges_status ON exchanges(status);
-CREATE INDEX idx_exchanges_info ON exchanges USING GIN(info);
+CREATE INDEX IF NOT EXISTS idx_exchanges_user_id ON exchanges(user_id);
+CREATE INDEX IF NOT EXISTS idx_exchanges_type ON exchanges(type);
+CREATE INDEX IF NOT EXISTS idx_exchanges_status ON exchanges(status);
+CREATE INDEX IF NOT EXISTS idx_exchanges_info ON exchanges USING GIN(info);
 
 -- Sub-accounts table
-CREATE TABLE sub_accounts (
+CREATE TABLE IF NOT EXISTS sub_accounts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     exchange_id UUID NOT NULL REFERENCES exchanges(id) ON DELETE CASCADE,
@@ -75,13 +82,13 @@ CREATE TABLE sub_accounts (
 );
 
 -- Create indexes for sub_accounts table
-CREATE INDEX idx_sub_accounts_user_id ON sub_accounts(user_id);
-CREATE INDEX idx_sub_accounts_exchange_id ON sub_accounts(exchange_id);
-CREATE INDEX idx_sub_accounts_symbol ON sub_accounts(symbol);
-CREATE INDEX idx_sub_accounts_info ON sub_accounts USING GIN(info);
+CREATE INDEX IF NOT EXISTS idx_sub_accounts_user_id ON sub_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_sub_accounts_exchange_id ON sub_accounts(exchange_id);
+CREATE INDEX IF NOT EXISTS idx_sub_accounts_symbol ON sub_accounts(symbol);
+CREATE INDEX IF NOT EXISTS idx_sub_accounts_info ON sub_accounts USING GIN(info);
 
 -- Transactions table (time-series data)
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
     id UUID DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id),
     exchange_id UUID NOT NULL REFERENCES exchanges(id),
@@ -97,19 +104,26 @@ CREATE TABLE transactions (
     PRIMARY KEY (id, timestamp)
 );
 
--- Convert transactions to hypertable for TimescaleDB
-SELECT create_hypertable('transactions', 'timestamp', chunk_time_interval => INTERVAL '1 day');
+-- Convert transactions to hypertable for TimescaleDB (conditional)
+DO $$
+BEGIN
+    PERFORM create_hypertable('transactions', 'timestamp', chunk_time_interval => INTERVAL '1 day');
+    RAISE NOTICE 'Created hypertable for transactions';
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'TimescaleDB not available - transactions table will be regular table';
+END
+$$;
 
 -- Create indexes for transactions table
-CREATE INDEX idx_transactions_user_id_timestamp ON transactions(user_id, timestamp DESC);
-CREATE INDEX idx_transactions_sub_account_id_timestamp ON transactions(sub_account_id, timestamp DESC);
-CREATE INDEX idx_transactions_exchange_id_timestamp ON transactions(exchange_id, timestamp DESC);
-CREATE INDEX idx_transactions_direction ON transactions(direction);
-CREATE INDEX idx_transactions_reason ON transactions(reason);
-CREATE INDEX idx_transactions_info ON transactions USING GIN(info);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id_timestamp ON transactions(user_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_sub_account_id_timestamp ON transactions(sub_account_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_exchange_id_timestamp ON transactions(exchange_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_direction ON transactions(direction);
+CREATE INDEX IF NOT EXISTS idx_transactions_reason ON transactions(reason);
+CREATE INDEX IF NOT EXISTS idx_transactions_info ON transactions USING GIN(info);
 
 -- Trading logs table (time-series data)
-CREATE TABLE trading_logs (
+CREATE TABLE IF NOT EXISTS trading_logs (
     id UUID DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id),
     exchange_id UUID NOT NULL REFERENCES exchanges(id),
@@ -123,20 +137,27 @@ CREATE TABLE trading_logs (
     PRIMARY KEY (id, timestamp)
 );
 
--- Convert trading_logs to hypertable for TimescaleDB
-SELECT create_hypertable('trading_logs', 'timestamp', chunk_time_interval => INTERVAL '1 day');
+-- Convert trading_logs to hypertable for TimescaleDB (conditional)
+DO $$
+BEGIN
+    PERFORM create_hypertable('trading_logs', 'timestamp', chunk_time_interval => INTERVAL '1 day');
+    RAISE NOTICE 'Created hypertable for trading_logs';
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'TimescaleDB not available - trading_logs table will be regular table';
+END
+$$;
 
 -- Create indexes for trading_logs table
-CREATE INDEX idx_trading_logs_user_id_timestamp ON trading_logs(user_id, timestamp DESC);
-CREATE INDEX idx_trading_logs_sub_account_id_timestamp ON trading_logs(sub_account_id, timestamp DESC);
-CREATE INDEX idx_trading_logs_exchange_id_timestamp ON trading_logs(exchange_id, timestamp DESC);
-CREATE INDEX idx_trading_logs_transaction_id ON trading_logs(transaction_id);
-CREATE INDEX idx_trading_logs_type ON trading_logs(type);
-CREATE INDEX idx_trading_logs_source ON trading_logs(source);
-CREATE INDEX idx_trading_logs_info ON trading_logs USING GIN(info);
+CREATE INDEX IF NOT EXISTS idx_trading_logs_user_id_timestamp ON trading_logs(user_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_trading_logs_sub_account_id_timestamp ON trading_logs(sub_account_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_trading_logs_exchange_id_timestamp ON trading_logs(exchange_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_trading_logs_transaction_id ON trading_logs(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_trading_logs_type ON trading_logs(type);
+CREATE INDEX IF NOT EXISTS idx_trading_logs_source ON trading_logs(source);
+CREATE INDEX IF NOT EXISTS idx_trading_logs_info ON trading_logs USING GIN(info);
 
 -- Event processing table for NATS message deduplication
-CREATE TABLE event_processing (
+CREATE TABLE IF NOT EXISTS event_processing (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_id VARCHAR(255) NOT NULL UNIQUE,
     event_type VARCHAR(100) NOT NULL,
@@ -150,12 +171,12 @@ CREATE TABLE event_processing (
 );
 
 -- Create indexes for event_processing table
-CREATE INDEX idx_event_processing_event_id ON event_processing(event_id);
-CREATE INDEX idx_event_processing_event_type ON event_processing(event_type);
-CREATE INDEX idx_event_processing_user_id ON event_processing(user_id);
-CREATE INDEX idx_event_processing_status ON event_processing(status);
-CREATE INDEX idx_event_processing_processed_at ON event_processing(processed_at);
-CREATE INDEX idx_event_processing_info ON event_processing USING GIN(info);
+CREATE INDEX IF NOT EXISTS idx_event_processing_event_id ON event_processing(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_processing_event_type ON event_processing(event_type);
+CREATE INDEX IF NOT EXISTS idx_event_processing_user_id ON event_processing(user_id);
+CREATE INDEX IF NOT EXISTS idx_event_processing_status ON event_processing(status);
+CREATE INDEX IF NOT EXISTS idx_event_processing_processed_at ON event_processing(processed_at);
+CREATE INDEX IF NOT EXISTS idx_event_processing_info ON event_processing USING GIN(info);
 
 -- Function to update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -167,16 +188,16 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers to automatically update updated_at columns
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users 
+CREATE OR REPLACE TRIGGER update_users_updated_at BEFORE UPDATE ON users 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_oauth_tokens_updated_at BEFORE UPDATE ON oauth_tokens 
+CREATE OR REPLACE TRIGGER update_oauth_tokens_updated_at BEFORE UPDATE ON oauth_tokens 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_exchanges_updated_at BEFORE UPDATE ON exchanges 
+CREATE OR REPLACE TRIGGER update_exchanges_updated_at BEFORE UPDATE ON exchanges 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_sub_accounts_updated_at BEFORE UPDATE ON sub_accounts 
+CREATE OR REPLACE TRIGGER update_sub_accounts_updated_at BEFORE UPDATE ON sub_accounts 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to update sub-account balance and create transaction record

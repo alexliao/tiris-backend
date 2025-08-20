@@ -108,7 +108,7 @@ clean-test-db:
 # Docker-based test database (alternative to local PostgreSQL)
 setup-test-db-docker: build-migrate
 	@echo "Starting test database with Docker..."
-	@docker compose -f docker-compose.test.yml up -d postgres-test
+	@docker compose -f docker-compose.test.yml up -d postgres-test --remove-orphans
 	@echo "Waiting for database to be ready..."
 	@echo "Waiting for PostgreSQL to be ready (max 30 seconds)..."
 	@for i in `seq 1 30`; do \
@@ -119,10 +119,13 @@ setup-test-db-docker: build-migrate
 		sleep 1; \
 	done
 	@echo "Setting up database schema..."
-	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000001_initial_schema.up.sql >/dev/null 2>&1 || echo "Note: TimescaleDB features skipped in test environment"
-	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000002_add_soft_delete_columns.up.sql >/dev/null 2>&1
-	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000003_add_uniqueness_constraints.up.sql >/dev/null 2>&1
-	@TEST_DB_HOST=localhost TEST_DB_PORT=5433 TEST_DB_USER=tiris_test TEST_DB_PASSWORD=tiris_test TEST_DB_NAME=tiris_test ./bin/migrate force 3 >/dev/null 2>&1
+	@echo "Applying initial schema migration..."
+	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000001_initial_schema.up.sql || { echo "Warning: Initial schema migration failed (possibly due to missing TimescaleDB)"; }
+	@echo "Applying soft delete columns migration..."
+	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000002_add_soft_delete_columns.up.sql || { echo "Error: Soft delete columns migration failed"; exit 1; }
+	@echo "Applying uniqueness constraints migration..."
+	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000003_add_uniqueness_constraints.up.sql || { echo "Error: Uniqueness constraints migration failed"; exit 1; }
+	@echo "Database schema setup completed successfully (migration tracking skipped for test environment)"
 	@echo "Test database is ready!"
 
 # Stop Docker test database
