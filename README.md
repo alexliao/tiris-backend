@@ -116,11 +116,15 @@ make run
 
 #### 5. Create a Test User (for API Testing)
 ```bash
-# Create a test user with OAuth authentication
+# Create a test user with OAuth authentication (development deployment)
 make create-test-user ARGS="--name 'Your Name'"
 
 # Or use the script directly
 ./scripts/create-test-user.sh --name "Developer User"
+
+# For simple deployment, specify the container and database
+./scripts/create-test-user.sh --name "Simple User" \
+  --container "tiris-postgres-simple" --database "tiris"
 
 # This creates a user with 1-year token validity for testing
 ```
@@ -196,7 +200,7 @@ make check-ports           # Check development ports (8080, 5432, 6379, 4222, 82
 make check-ports-all       # Check all ports including monitoring
 make check-ports-detailed  # Show detailed port usage information
 make kill-ports           # Kill processes on development ports
-make create-test-user     # Create OAuth test user (use ARGS for options)
+make create-test-user     # Create OAuth test user (use ARGS for options, supports different deployments)
 ```
 
 ### 🔧 Troubleshooting

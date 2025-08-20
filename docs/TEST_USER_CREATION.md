@@ -37,6 +37,9 @@ make create-test-user ARGS="--name 'John Doe'"
 | `--email` | `-e` | Email address (auto-generated if not provided) | `{username}@tiris.local` | ❌ |
 | `--provider` | `-p` | OAuth provider (`google` or `wechat`) | `google` | ❌ |
 | `--expiry` | `-t` | Token expiration period | `1 year` | ❌ |
+| `--container` | `-c` | PostgreSQL container name | `tiris-postgres-dev` | ❌ |
+| `--database` | `-d` | Database name | `tiris_dev` | ❌ |
+| `--db-user` | - | Database username | `tiris_user` | ❌ |
 | `--help` | `-h` | Show help message | - | ❌ |
 
 ## Examples
@@ -81,6 +84,65 @@ make create-test-user ARGS="--name 'Development User'"
 
 # Complex usage through make
 make create-test-user ARGS="--name 'API Tester' --provider wechat --expiry '3 months'"
+```
+
+### Deployment Configuration Examples
+
+The script supports different deployment configurations by specifying container and database details:
+
+#### Development Deployment (Default)
+```bash
+# Uses tiris-postgres-dev container with tiris_dev database
+./scripts/create-test-user.sh --name "Dev User"
+
+# Equivalent explicit version
+./scripts/create-test-user.sh --name "Dev User" \
+  --container "tiris-postgres-dev" \
+  --database "tiris_dev" \
+  --db-user "tiris_user"
+```
+
+#### Simple Deployment
+```bash
+# For simple deployment using tiris-postgres-simple container
+./scripts/create-test-user.sh --name "Simple User" \
+  --container "tiris-postgres-simple" \
+  --database "tiris"
+
+# With custom provider and expiry
+./scripts/create-test-user.sh --name "Simple API User" \
+  --container "tiris-postgres-simple" \
+  --database "tiris" \
+  --provider "wechat" \
+  --expiry "3 months"
+```
+
+#### Custom Deployment
+```bash
+# For custom PostgreSQL container setup
+./scripts/create-test-user.sh --name "Custom User" \
+  --container "my-postgres-container" \
+  --database "my_tiris_db" \
+  --db-user "my_db_user"
+
+# Production-like setup with specific configuration
+./scripts/create-test-user.sh --name "Staging User" \
+  --container "tiris-postgres-staging" \
+  --database "tiris_staging" \
+  --db-user "tiris_staging_user" \
+  --expiry "30 days"
+```
+
+#### Using with Makefile for Different Deployments
+```bash
+# Development (default)
+make create-test-user ARGS="--name 'Dev User'"
+
+# Simple deployment
+make create-test-user ARGS="--name 'Simple User' --container tiris-postgres-simple --database tiris"
+
+# Custom deployment
+make create-test-user ARGS="--name 'Custom User' --container my-postgres --database my_db --db-user my_user"
 ```
 
 ## Understanding the Output
@@ -163,9 +225,22 @@ The script creates records in two tables:
 
 ## Prerequisites
 
-1. **PostgreSQL Running**: The database must be accessible
+1. **PostgreSQL Running**: The database must be accessible. Choose the appropriate command for your deployment:
+
+   **Development Deployment:**
    ```bash
    docker compose -f docker-compose.dev.yml up -d postgres
+   ```
+
+   **Simple Deployment:**
+   ```bash
+   docker compose -f docker-compose.simple.yml --env-file .env.simple up -d postgres
+   ```
+
+   **Custom Deployment:**
+   ```bash
+   # Ensure your PostgreSQL container is running
+   docker ps | grep postgres
    ```
 
 2. **Database Migrations Applied**: Tables must exist
@@ -178,9 +253,21 @@ The script creates records in two tables:
    chmod +x scripts/create-test-user.sh
    ```
 
+4. **Go Installation** (Optional): Required for JWT token generation
+   ```bash
+   # Check if Go is available
+   go version
+   
+   # If not available, the script will create the database user but skip JWT generation
+   # You can generate JWT tokens separately on a machine with Go installed
+   ```
+
 ## Troubleshooting
 
 ### "Cannot connect to PostgreSQL"
+The script will show which container and database it's trying to connect to. Check the appropriate deployment:
+
+**For Development Deployment:**
 ```bash
 # Check if PostgreSQL is running
 docker compose -f docker-compose.dev.yml ps postgres
@@ -188,14 +275,75 @@ docker compose -f docker-compose.dev.yml ps postgres
 # Start PostgreSQL if needed
 docker compose -f docker-compose.dev.yml up -d postgres
 
-# Wait a moment for startup, then retry
+# Check available containers
+docker ps | grep tiris-postgres-dev
+```
+
+**For Simple Deployment:**
+```bash
+# Check if PostgreSQL is running
+docker compose -f docker-compose.simple.yml --env-file .env.simple ps postgres
+
+# Start PostgreSQL if needed
+docker compose -f docker-compose.simple.yml --env-file .env.simple up -d postgres
+
+# Check available containers
+docker ps | grep tiris-postgres-simple
+```
+
+**For Custom/Unknown Deployment:**
+```bash
+# List all postgres containers
+docker ps | grep postgres
+
+# Use the correct container name with --container option
+./scripts/create-test-user.sh --name "User" --container "your-container-name"
 ```
 
 ### "duplicate key value violates unique constraint"
 The username already exists. Either:
 - Use a different name: `--name "Different Name"`
 - Specify a unique username: `--username "unique_username"`
-- Check existing users: `docker exec tiris-postgres-dev psql -U tiris_user -d tiris_dev -c "SELECT username FROM users;"`
+- Check existing users in the appropriate database:
+  ```bash
+  # Development
+  docker exec tiris-postgres-dev psql -U tiris_user -d tiris_dev -c "SELECT username FROM users;"
+  
+  # Simple deployment
+  docker exec tiris-postgres-simple psql -U tiris_user -d tiris -c "SELECT username FROM users;"
+  
+  # Custom deployment
+  docker exec YOUR_CONTAINER psql -U YOUR_USER -d YOUR_DB -c "SELECT username FROM users;"
+  ```
+
+### "Go not found" Error
+The script creates the database user successfully but cannot generate JWT tokens:
+
+**Option 1: Generate JWT on Local Machine**
+```bash
+# On a machine with Go installed
+go run scripts/generate-jwt-token.go \
+  --user-id "USER_ID_FROM_SCRIPT_OUTPUT" \
+  --username "username" \
+  --email "email@domain.com" \
+  --role "user" \
+  --duration "8760h" \
+  --output "token"
+```
+
+**Option 2: Install Go on the Server**
+```bash
+# CentOS/RHEL
+sudo dnf install -y golang
+
+# Ubuntu/Debian
+sudo apt install -y golang-go
+
+# Then re-run the script
+```
+
+**Option 3: Skip JWT Generation**
+The database user is created successfully and can be used for testing database operations. JWT tokens can be generated later when needed.
 
 ### "Required environment variable not set"
 This error comes from the main application, not the test user script. The script works independently of OAuth configuration.

@@ -188,7 +188,7 @@ help:
 	@echo "  setup-test-db-docker - Start test database with Docker"
 	@echo "  stop-test-db-docker - Stop Docker test database"
 	@echo "  clean-test-db-docker - Clean Docker test database volumes"
-	@echo "  create-test-user - Create a test user (use ARGS for options)"
+	@echo "  create-test-user - Create a test user (use ARGS for options, supports different deployments)"
 	@echo "  docs-generate - Generate API documentation from code annotations"
 	@echo "  docs-serve   - Generate docs and start server (docs at /docs)"
 	@echo "  docs-validate - Validate Swagger annotations"
