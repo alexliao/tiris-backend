@@ -128,6 +128,27 @@ generate_access_token() {
     echo "${provider}_token_${username}_$(date +%s)"
 }
 
+# Function to check if user exists and get their details
+check_user_exists() {
+    local username="$1"
+    local email="$2"
+    local container="$3"
+    local db_user="$4"
+    local database="$5"
+    
+    # Query for existing user by username or email
+    local user_info=$(docker exec "$container" psql -U "$db_user" -d "$database" -t -A -c "SELECT id, username, email FROM users WHERE username = '$username' OR email = '$email';" 2>/dev/null)
+    
+    if [ -n "$user_info" ] && [ "$user_info" != "" ]; then
+        # User exists, parse the info
+        echo "$user_info"
+        return 0
+    else
+        # User doesn't exist
+        return 1
+    fi
+}
+
 # Function to create the test user
 create_test_user() {
     local name="$1"
@@ -141,30 +162,51 @@ create_test_user() {
     
     print_status "Creating test user: $name"
     
-    # Generate provider-specific details
-    local provider_user_id=$(generate_provider_user_id "$username" "$provider")
-    local access_token=$(generate_access_token "$username" "$provider")
-    local refresh_token="${provider}_refresh_${username}_$(date +%s)"
+    # Check if user already exists
+    local existing_user_info
+    local user_id
+    local user_exists=false
     
-    # Create user record
-    print_status "Creating user record..."
-    local user_id=$(docker exec "$container" psql -U "$db_user" -d "$database" -t -A -c "INSERT INTO users (id, username, email, avatar, settings, info, created_at, updated_at) VALUES (gen_random_uuid(), '$username', '$email', 'https://lh3.googleusercontent.com/a/test-user-avatar', '{\"theme\": \"light\", \"notifications\": true}', '{\"display_name\": \"$name\", \"locale\": \"en\", \"test_user\": true}', NOW(), NOW()) RETURNING id;" | head -n 1)
-    
-    if [ -z "$user_id" ]; then
-        print_error "Failed to create user record"
-        exit 1
+    if existing_user_info=$(check_user_exists "$username" "$email" "$container" "$db_user" "$database"); then
+        user_exists=true
+        # Parse existing user info (format: id|username|email)
+        user_id=$(echo "$existing_user_info" | cut -d'|' -f1 | xargs)
+        local existing_username=$(echo "$existing_user_info" | cut -d'|' -f2 | xargs)
+        local existing_email=$(echo "$existing_user_info" | cut -d'|' -f3 | xargs)
+        
+        print_warning "User with username '$username' or email '$email' already exists with ID: $user_id"
+        print_status "Existing details: $existing_username ($existing_email)"
+        print_status "Skipping user creation, proceeding to JWT token generation..."
+        
+        # Update username and email to match existing user (in case they were different)
+        username="$existing_username"
+        email="$existing_email"
+    else
+        # Generate provider-specific details
+        local provider_user_id=$(generate_provider_user_id "$username" "$provider")
+        local access_token=$(generate_access_token "$username" "$provider")
+        local refresh_token="${provider}_refresh_${username}_$(date +%s)"
+        
+        # Create user record
+        print_status "Creating user record..."
+        user_id=$(docker exec "$container" psql -U "$db_user" -d "$database" -t -A -c "INSERT INTO users (id, username, email, avatar, settings, info, created_at, updated_at) VALUES (gen_random_uuid(), '$username', '$email', 'https://lh3.googleusercontent.com/a/test-user-avatar', '{\"theme\": \"light\", \"notifications\": true}', '{\"display_name\": \"$name\", \"locale\": \"en\", \"test_user\": true}', NOW(), NOW()) RETURNING id;" | head -n 1)
+        
+        if [ -z "$user_id" ]; then
+            print_error "Failed to create user record"
+            exit 1
+        fi
+        print_success "User record created with ID: $user_id"
+        
+        # Create OAuth token record
+        print_status "Creating OAuth token record..."
+        local token_id=$(docker exec "$container" psql -U "$db_user" -d "$database" -t -A -c "INSERT INTO oauth_tokens (user_id, provider, provider_user_id, access_token, refresh_token, expires_at, info) VALUES ('$user_id', '$provider', '$provider_user_id', '$access_token', '$refresh_token', NOW() + INTERVAL '$expiry', '{\"email\": \"$email\", \"verified_email\": true, \"name\": \"$name\", \"test_user\": true}') RETURNING id;" | head -n 1)
+        
+        if [ -z "$token_id" ]; then
+            print_error "Failed to create OAuth token record"
+            exit 1
+        fi
+        print_success "OAuth token record created with ID: $token_id"
     fi
-    print_success "User record created with ID: $user_id"
-    
-    # Create OAuth token record
-    print_status "Creating OAuth token record..."
-    local token_id=$(docker exec "$container" psql -U "$db_user" -d "$database" -t -A -c "INSERT INTO oauth_tokens (user_id, provider, provider_user_id, access_token, refresh_token, expires_at, info) VALUES ('$user_id', '$provider', '$provider_user_id', '$access_token', '$refresh_token', NOW() + INTERVAL '$expiry', '{\"email\": \"$email\", \"verified_email\": true, \"name\": \"$name\", \"test_user\": true}') RETURNING id;" | head -n 1)
-    
-    if [ -z "$token_id" ]; then
-        print_error "Failed to create OAuth token record"
-        exit 1
-    fi
-    print_success "OAuth token record created with ID: $token_id"
     
     # Generate JWT token for API authentication
     print_status "Generating JWT token for API authentication..."
@@ -225,7 +267,11 @@ create_test_user() {
 
     # Display summary
     echo
-    print_success "Test user created successfully!"
+    if [ "$user_exists" = true ]; then
+        print_success "JWT token generated for existing user!"
+    else
+        print_success "Test user created successfully!"
+    fi
     echo
     echo "==============================================="
     echo "📋 USER DETAILS"
@@ -235,14 +281,25 @@ create_test_user() {
     echo "Email:         $email"
     echo "User ID:       $user_id"
     echo "Provider:      $provider"
+    if [ "$user_exists" = true ]; then
+        echo "Status:        Existing user (database records unchanged)"
+    else
+        echo "Status:        New user created"
+    fi
     echo "Expires:       1 year from now"
     echo
     echo "==============================================="
     echo "🔑 TOKEN INFORMATION"
     echo "==============================================="
-    echo "OAuth Token:   $access_token"
-    echo "  ↳ Purpose:   Stored in database for OAuth provider integration"
-    echo "  ↳ Usage:     Internal record keeping only"
+    if [ "$user_exists" = true ]; then
+        echo "OAuth Token:   (Existing token in database - unchanged)"
+        echo "  ↳ Purpose:   Stored in database for OAuth provider integration"
+        echo "  ↳ Usage:     Internal record keeping only"
+    else
+        echo "OAuth Token:   $access_token"
+        echo "  ↳ Purpose:   Stored in database for OAuth provider integration"
+        echo "  ↳ Usage:     Internal record keeping only"
+    fi
     echo
     echo "JWT Token:     $jwt_token"
     echo "  ↳ Purpose:   API authentication and authorization"
