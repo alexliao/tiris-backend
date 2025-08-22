@@ -115,8 +115,8 @@ if [[ "$RENEW_ONLY" != "true" ]]; then
         error "Email is required. Use --email EMAIL"
     fi
     
-    # Validate domain format
-    if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$ ]]; then
+    # Validate domain format (supports subdomains)
+    if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$ ]]; then
         error "Invalid domain format: $DOMAIN"
     fi
     
@@ -134,7 +134,7 @@ check_prerequisites() {
         error "Docker is not installed. Please install Docker first."
     fi
     
-    if ! command -v docker-compose &> /dev/null; then
+    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
         error "Docker Compose is not installed. Please install Docker Compose first."
     fi
     
@@ -262,7 +262,7 @@ generate_certificates() {
     fi
     
     # Prepare certbot command
-    local certbot_cmd="certbot certonly --webroot -w /var/www/certbot"
+    local certbot_cmd="certonly --webroot -w /var/www/certbot"
     
     if [[ "$STAGING" == "true" ]]; then
         certbot_cmd="$certbot_cmd --staging"
@@ -296,24 +296,29 @@ generate_wildcard_certificate() {
     echo ""
     
     # Prepare certbot command for DNS challenge
-    local certbot_cmd="certbot certonly --manual --preferred-challenges=dns"
+    local certbot_cmd="certonly --manual --preferred-challenges=dns"
     
     if [[ "$STAGING" == "true" ]]; then
         certbot_cmd="$certbot_cmd --staging"
         warn "Using Let's Encrypt staging server (test certificates)"
     fi
     
-    echo -e "${BLUE}📋 Instructions for DNS Challenge:${NC}"
-    echo "1. Certbot will ask you to add a TXT record to your DNS"
+    echo -e "${BLUE}📋 DNS Challenge Process (2 Steps):${NC}"
+    echo ""
+    echo -e "${GREEN}Step 1: GET the TXT record details${NC}"
+    info "Press Enter below to start Certbot and get the TXT record details"
+    echo ""
+    echo -e "${YELLOW}Step 2: VERIFY after adding DNS record${NC}"
+    echo "1. Certbot will show you a TXT record to add"
     echo "2. Log into your GoDaddy DNS management console"
     echo "3. Add the TXT record as instructed"
-    echo "4. Wait for DNS propagation (usually 1-2 minutes)"
-    echo "5. Press Enter in certbot to continue verification"
+    echo "4. Wait for DNS propagation (1-2 minutes)"
+    echo "5. Then press Enter in Certbot to verify"
     echo ""
-    warn "⚠️  Do NOT press Enter until you've added the TXT record and it has propagated!"
+    warn "⚠️  In Step 2, do NOT press Enter in Certbot until the TXT record has propagated!"
     echo ""
     
-    read -p "Press Enter to start the DNS challenge process..." -r
+    read -p "➤ Press Enter now to start Step 1 (get TXT record details)..." -r
     echo ""
     
     # Generate wildcard certificate

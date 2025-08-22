@@ -149,7 +149,7 @@ deploy_simple_app() {
             error "Docker is not installed. Please install Docker first."
         fi
         
-        if ! command -v docker-compose &> /dev/null; then
+        if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
             error "Docker Compose is not installed. Please install Docker Compose first."
         fi
         
@@ -261,6 +261,10 @@ deploy_simple_app() {
                         warn "You'll need to add a TXT record to your GoDaddy DNS console"
                     fi
                     
+                    echo ""
+                    info "Generating SSL certificates requires administrator privileges"
+                    info "Please enter your sudo password when prompted:"
+                    echo ""
                     sudo ./scripts/setup-letsencrypt.sh $ssl_args
                     log "Let's Encrypt certificates generated successfully"
                 else
@@ -416,9 +420,15 @@ deploy_simple_app() {
         info "Perfect for development, testing, or getting started quickly"
         echo ""
         
-        # Interactive setup
-        ask_domain
-        ask_proxy_setup
+        # Interactive setup (skip if SSL is already configured)
+        if [[ "$USE_SSL" != "true" ]]; then
+            ask_domain
+            ask_proxy_setup
+        else
+            # Use SSL domain and enable SSL mode
+            DOMAIN="$SSL_DOMAIN"
+            USE_PROXY=false  # SSL mode uses nginx directly
+        fi
         
         echo ""
         info "Starting deployment with domain: $DOMAIN"
@@ -437,6 +447,8 @@ deploy_simple_app() {
         log "🎯 Quick deployment completed! Your application is online."
     }
 
+    # Execute the main deployment logic
+    main
 }
 
 # Handle interrupts
