@@ -22,16 +22,21 @@ show_deployment_options() {
     echo "   • Ready for multiple applications"
     echo "   • SSL/HTTPS ready"
     echo
-    echo -e "${YELLOW}2. Simple Single-App Deployment${NC}"
+    echo -e "${YELLOW}2. Simple Single-App Deployment (HTTP)${NC}"
     echo "   • Basic deployment on single port"
     echo "   • Quick setup for development/testing"
     echo "   • Direct port access only"
+    echo
+    echo -e "${YELLOW}4. Simple Single-App Deployment (HTTPS)${NC}"
+    echo "   • SSL-enabled deployment with Let's Encrypt"
+    echo "   • Production-ready HTTPS certificates"
+    echo "   • HTTP redirects to HTTPS"
     echo
     echo -e "${BLUE}3. Help & Documentation${NC}"
     echo "   • View deployment guides"
     echo "   • Architecture information"
     echo
-    read -p "Select option (1-3): " -n 1 -r
+    read -p "Select option (1-4): " -n 1 -r
     echo
     
     case $REPLY in
@@ -40,15 +45,45 @@ show_deployment_options() {
             exec ./scripts/quick-deploy-multiapp.sh
             ;;
         2)
-            echo -e "${YELLOW}Starting Simple Single-App deployment...${NC}"
+            echo -e "${YELLOW}Starting Simple Single-App deployment (HTTP)...${NC}"
             deploy_simple_app
             ;;
         3)
             show_help
             exit 0
             ;;
+        4)
+            echo -e "${YELLOW}Starting Simple Single-App deployment (HTTPS)...${NC}"
+            echo ""
+            read -p "Enter your domain name (e.g., example.com): " DOMAIN
+            read -p "Enter your email for Let's Encrypt: " EMAIL
+            echo ""
+            echo "SSL Certificate options:"
+            echo "1. Single domain certificate (HTTP challenge)"
+            echo "2. Wildcard certificate - covers all subdomains (DNS challenge)"
+            read -p "Choose certificate type (1 or 2): " -n 1 -r CERT_TYPE
+            echo ""
+            
+            if [[ -z "$DOMAIN" || -z "$EMAIL" ]]; then
+                error "Domain and email are required for SSL setup"
+            fi
+            
+            export USE_SSL=true
+            export SSL_DOMAIN="$DOMAIN"
+            export SSL_EMAIL="$EMAIL"
+            
+            if [[ "$CERT_TYPE" == "2" ]]; then
+                export SSL_WILDCARD=true
+                info "Wildcard certificate selected - this will require DNS challenge"
+            else
+                export SSL_WILDCARD=false
+                info "Single domain certificate selected"
+            fi
+            
+            deploy_simple_app
+            ;;
         *)
-            echo -e "${RED}Invalid option. Please choose 1, 2, or 3.${NC}"
+            echo -e "${RED}Invalid option. Please choose 1-4.${NC}"
             exit 1
             ;;
     esac
@@ -86,6 +121,7 @@ deploy_simple_app() {
 # Configuration
 DOMAIN=${DOMAIN:-localhost}
 USE_PROXY=${USE_PROXY:-false}
+USE_SSL=${USE_SSL:-false}
 
 # Helper functions
 log() {
@@ -202,6 +238,45 @@ setup_environment() {
     log "Environment file created with secure secrets"
 }
 
+# Setup Let's Encrypt SSL certificates if SSL is enabled
+setup_ssl_certificates() {
+    if [[ "$USE_SSL" == "true" ]]; then
+        info "Setting up Let's Encrypt SSL certificates..."
+        
+        if [[ -z "$SSL_DOMAIN" || -z "$SSL_EMAIL" ]]; then
+            error "Domain and email are required for SSL setup. Use --ssl --domain DOMAIN --email EMAIL"
+        fi
+        
+        # Check if certificates already exist
+        if [ -d "/etc/letsencrypt/live/$SSL_DOMAIN" ]; then
+            warn "SSL certificates already exist for $SSL_DOMAIN. Skipping generation."
+        else
+            # Run the Let's Encrypt setup script
+            if [ -f "scripts/setup-letsencrypt.sh" ]; then
+                local ssl_args="--domain $SSL_DOMAIN --email $SSL_EMAIL"
+                
+                if [[ "$SSL_WILDCARD" == "true" ]]; then
+                    ssl_args="$ssl_args --wildcard"
+                    warn "Wildcard certificate generation requires DNS challenge"
+                    warn "You'll need to add a TXT record to your GoDaddy DNS console"
+                fi
+                
+                sudo ./scripts/setup-letsencrypt.sh $ssl_args
+                log "Let's Encrypt certificates generated successfully"
+            else
+                error "Let's Encrypt setup script not found"
+            fi
+        fi
+        
+        # Update environment file for HTTPS
+        if grep -q "CORS_ALLOWED_ORIGINS=http://localhost:8080" .env.simple; then
+            sed -i.bak "s|CORS_ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080|CORS_ALLOWED_ORIGINS=https://$SSL_DOMAIN|g" .env.simple
+            rm -f .env.simple.bak
+            log "Updated CORS origins for HTTPS"
+        fi
+    fi
+}
+
 # Deploy application
 deploy_application() {
     info "Deploying application..."
@@ -211,7 +286,9 @@ deploy_application() {
     docker compose -f docker-compose.simple.yml --env-file .env.simple build --quiet
     
     log "Starting services..."
-    if [[ "$USE_PROXY" == "true" ]]; then
+    if [[ "$USE_SSL" == "true" ]]; then
+        docker compose -f docker-compose.simple.yml --env-file .env.simple --profile ssl up -d
+    elif [[ "$USE_PROXY" == "true" ]]; then
         docker compose -f docker-compose.simple.yml --env-file .env.simple --profile proxy up -d
     else
         docker compose -f docker-compose.simple.yml --env-file .env.simple up -d
@@ -350,6 +427,7 @@ main() {
     check_prerequisites
     quick_system_setup
     setup_environment
+    setup_ssl_certificates
     deploy_application
     wait_for_application
     run_basic_tests
@@ -377,13 +455,38 @@ while [[ $# -gt 0 ]]; do
             USE_PROXY=false
             shift
             ;;
+        --ssl)
+            USE_SSL=true
+            shift
+            ;;
+        --ssl-domain)
+            SSL_DOMAIN="$2"
+            shift 2
+            ;;
+        --ssl-email)
+            SSL_EMAIL="$2"
+            shift 2
+            ;;
+        --ssl-wildcard)
+            SSL_WILDCARD=true
+            shift
+            ;;
+        --no-ssl)
+            USE_SSL=false
+            shift
+            ;;
         --help)
             echo "Usage: $0 [OPTIONS]"
             echo "Options:"
-            echo "  --domain DOMAIN    Set domain name (default: localhost)"
-            echo "  --proxy           Enable Nginx reverse proxy"
-            echo "  --no-proxy        Disable Nginx reverse proxy"
-            echo "  --help            Show this help message"
+            echo "  --domain DOMAIN       Set domain name (default: localhost)"
+            echo "  --proxy              Enable Nginx reverse proxy"
+            echo "  --no-proxy           Disable Nginx reverse proxy"
+            echo "  --ssl                Enable SSL/HTTPS with Let's Encrypt"
+            echo "  --ssl-domain DOMAIN  Domain for SSL certificate (required with --ssl)"
+            echo "  --ssl-email EMAIL    Email for Let's Encrypt (required with --ssl)"
+            echo "  --ssl-wildcard       Use wildcard certificate (covers all subdomains)"
+            echo "  --no-ssl             Disable SSL/HTTPS (default)"
+            echo "  --help               Show this help message"
             exit 0
             ;;
         *)

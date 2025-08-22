@@ -56,8 +56,8 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       
-      # CORS configuration (updated for subdomain setup)
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://www.dev.tiris.ai,https://pred.dev.tiris.ai}
+      # CORS configuration (updated for HTTPS)
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://localhost:443,https://127.0.0.1:443}
       
       # Disable unused services for simple setup
       REDIS_ENABLED: "false"
@@ -78,6 +78,42 @@ services:
       start_period: 60s
     networks:
       - tiris-backend-network
+
+  # Nginx Reverse Proxy with Let's Encrypt SSL
+  nginx:
+    image: nginx:alpine
+    container_name: tiris-nginx-simple
+    restart: always
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx.simple.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tiris-backend-network
+    profiles:
+      - ssl
+
+  # Certbot for Let's Encrypt certificates
+  certbot:
+    image: certbot/certbot:latest
+    container_name: tiris-certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    profiles:
+      - ssl
 
 # Simple volume configuration
 volumes:

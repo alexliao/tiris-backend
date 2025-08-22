@@ -147,6 +147,57 @@ test_networking() {
     echo
 }
 
+# SSL/HTTPS connectivity tests
+test_ssl_functionality() {
+    print_section "🔒 SSL/HTTPS Tests"
+    
+    # Check if SSL profile is deployed (nginx container with SSL)
+    if docker ps | grep -q "tiris-nginx-simple"; then
+        if docker ps | grep "tiris-nginx-simple" | grep -q "Up"; then
+            test_passed "SSL-enabled nginx container is running"
+            
+            # Check Let's Encrypt certificate files exist
+            if [ -d "/etc/letsencrypt/live" ] && [ "$(ls -A /etc/letsencrypt/live)" ]; then
+                local domain=$(ls /etc/letsencrypt/live | head -n 1)
+                test_passed "Let's Encrypt certificates exist for: $domain"
+                
+                # Test HTTPS connectivity
+                if curl -s --max-time 5 "https://$domain/nginx-health" &> /dev/null; then
+                    test_passed "HTTPS connectivity ($domain:443)"
+                    
+                    # Test HTTP to HTTPS redirect
+                    local redirect_response=$(curl -s -I --max-time 5 "http://$domain/" | head -n 1)
+                    if echo "$redirect_response" | grep -q "301\|302"; then
+                        test_passed "HTTP to HTTPS redirect working"
+                    else
+                        test_warning "HTTP to HTTPS redirect not working as expected"
+                    fi
+                else
+                    test_failed "HTTPS connectivity ($domain:443)"
+                fi
+                
+                # Test SSL certificate validity
+                local cert_path="/etc/letsencrypt/live/$domain/fullchain.pem"
+                if [ -f "$cert_path" ] && openssl x509 -in "$cert_path" -noout -dates &> /dev/null; then
+                    local cert_expiry=$(openssl x509 -in "$cert_path" -noout -enddate | cut -d= -f2)
+                    test_passed "SSL certificate is valid (expires: $cert_expiry)"
+                else
+                    test_failed "SSL certificate is invalid or corrupted"
+                fi
+                
+            else
+                test_failed "Let's Encrypt certificate files missing in /etc/letsencrypt/live"
+            fi
+        else
+            test_failed "SSL-enabled nginx container is not running properly"
+        fi
+    else
+        test_warning "SSL not deployed (run with --profile ssl for HTTPS support)"
+    fi
+    
+    echo
+}
+
 # API functionality tests
 test_api_functionality() {
     print_section "🔌 API Functionality Tests"
@@ -404,6 +455,7 @@ main() {
     # Run all validation tests
     test_containers
     test_networking
+    test_ssl_functionality
     test_api_functionality
     test_configuration
     test_dns
