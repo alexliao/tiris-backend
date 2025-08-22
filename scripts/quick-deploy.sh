@@ -11,6 +11,24 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Helper functions
+log() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+warn() {
+    echo -e "${YELLOW}⚠ $1${NC}"
+}
+
+error() {
+    echo -e "${RED}✗ $1${NC}"
+    exit 1
+}
+
+info() {
+    echo -e "${BLUE}ℹ $1${NC}"
+}
+
 # Show deployment options
 show_deployment_options() {
     echo -e "${BLUE}🚀 Tiris Backend Quick Deploy${NC}"
@@ -122,24 +140,6 @@ deploy_simple_app() {
     DOMAIN=${DOMAIN:-localhost}
     USE_PROXY=${USE_PROXY:-false}
     USE_SSL=${USE_SSL:-false}
-
-    # Helper functions
-    log() {
-        echo -e "${GREEN}✓ $1${NC}"
-    }
-
-    warn() {
-        echo -e "${YELLOW}⚠ $1${NC}"
-    }
-
-    error() {
-        echo -e "${RED}✗ $1${NC}"
-        exit 1
-    }
-
-    info() {
-        echo -e "${BLUE}ℹ $1${NC}"
-    }
 
     # Check prerequisites
     check_prerequisites() {
