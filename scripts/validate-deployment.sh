@@ -277,7 +277,7 @@ test_configuration() {
             test_failed "Backend subdomain not configured in proxy"
         fi
         
-        if grep -q "host.docker.internal:8080" proxy/nginx.conf; then
+        if grep -q ":8080" proxy/nginx.conf && (grep -q "host.docker.internal:8080" proxy/nginx.conf || grep -q "172\..*\..*\..*:8080" proxy/nginx.conf); then
             test_passed "Backend upstream configured correctly"
         else
             test_failed "Backend upstream not configured correctly"

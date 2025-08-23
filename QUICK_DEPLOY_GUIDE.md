@@ -63,6 +63,43 @@ cd tiris-backend
 curl http://backend.dev.tiris.ai/health/live
 ```
 
+## 🔒 **SSL/HTTPS Setup (Post-Deployment)**
+
+### **Quick SSL Setup:**
+```bash
+# After basic deployment is running, add SSL/HTTPS support
+./scripts/setup-letsencrypt.sh --domain dev.tiris.ai --email your@email.com
+
+# Verify SSL deployment
+curl https://backend.dev.tiris.ai/health
+curl https://pred.dev.tiris.ai/version
+```
+
+### **SSL Setup Options:**
+```bash
+# Option 1: Production certificates
+./scripts/setup-letsencrypt.sh --domain dev.tiris.ai --email admin@dev.tiris.ai
+
+# Option 2: Testing certificates (no rate limits)
+./scripts/setup-letsencrypt.sh --domain dev.tiris.ai --email admin@dev.tiris.ai --staging
+
+# Option 3: Wildcard certificate (covers all subdomains)
+./scripts/setup-letsencrypt.sh --domain dev.tiris.ai --wildcard --email admin@dev.tiris.ai
+```
+
+### **Linux VPS Compatibility Fix:**
+If you encounter nginx startup issues on Linux VPS:
+```bash
+# Check Docker network gateway
+GATEWAY_IP=$(docker network inspect tiris-backend-network | grep Gateway | cut -d'"' -f4)
+
+# Fix host.docker.internal compatibility
+sed -i "s/host.docker.internal/${GATEWAY_IP}/g" nginx.simple.conf
+
+# Restart with SSL
+docker-compose -f docker-compose.simple.yml --profile ssl restart nginx
+```
+
 ## 🏗️ **Architecture Comparison**
 
 | Feature | Multi-App | Simple |
@@ -70,7 +107,7 @@ curl http://backend.dev.tiris.ai/health/live
 | **Deployment Time** | 5 minutes | 3 minutes |
 | **Subdomain Routing** | ✅ Yes | ❌ No |
 | **Reverse Proxy** | ✅ Nginx | ❌ Direct |
-| **SSL Ready** | ✅ Yes | ⚠️ Manual |
+| **SSL Ready** | ✅ Automated | ✅ Script-based |
 | **Multiple Apps** | ✅ Yes | ❌ No |
 | **Production Ready** | ✅ Yes | ⚠️ Dev/Test |
 | **Port Access** | 80, 443 | 8080 |

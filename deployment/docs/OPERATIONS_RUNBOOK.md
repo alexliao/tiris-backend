@@ -296,21 +296,63 @@ curl http://localhost:8080/metrics | grep -E "(memory|cpu)"
 
 **Diagnosis:**
 ```bash
-# Check certificate expiry
-openssl x509 -in /opt/tiris/ssl/fullchain.pem -noout -dates
+# Check certificate expiry (updated paths)
+openssl x509 -in /etc/letsencrypt/live/dev.tiris.ai/fullchain.pem -noout -dates
 
 # Test SSL configuration
-openssl s_client -connect your-domain.com:443 -servername your-domain.com
+openssl s_client -connect backend.dev.tiris.ai:443 -servername backend.dev.tiris.ai
 
 # Check certificate renewal
 sudo certbot certificates
+
+# Check nginx container SSL status
+docker logs tiris-nginx-simple --tail 20 | grep -i ssl
+
+# Verify SSL profile deployment
+docker-compose -f docker-compose.simple.yml --profile ssl ps
 ```
 
 **Solutions:**
-1. Renew certificate manually: `sudo certbot renew`
+1. Renew certificate manually: `./scripts/setup-letsencrypt.sh --renew`
 2. Check auto-renewal cron job
 3. Verify DNS configuration
-4. Update certificate files in container
+4. Restart nginx container: `docker-compose -f docker-compose.simple.yml --profile ssl restart nginx`
+5. Redeploy with SSL: `docker-compose -f docker-compose.simple.yml --profile ssl up -d`
+
+### Linux VPS Docker Networking Issues
+
+**Symptoms:**
+- nginx container restarting continuously
+- "host not found in upstream host.docker.internal" errors
+- 502 Bad Gateway errors
+
+**Diagnosis:**
+```bash
+# Check nginx container logs
+docker logs tiris-nginx-simple --tail 50
+
+# Check Docker network gateway
+docker network inspect tiris-backend-network | grep Gateway
+
+# Check if host.docker.internal is in config
+grep "host.docker.internal" nginx.simple.conf
+```
+
+**Solutions:**
+```bash
+# 1. Fix host.docker.internal compatibility (Linux VPS)
+GATEWAY_IP=$(docker network inspect tiris-backend-network | grep Gateway | cut -d'"' -f4)
+sed -i "s/host.docker.internal/${GATEWAY_IP}/g" nginx.simple.conf
+
+# 2. Replace domain placeholders if needed
+sed -i "s/DOMAIN_PLACEHOLDER/dev.tiris.ai/g" nginx.simple.conf
+
+# 3. Restart nginx container
+docker-compose -f docker-compose.simple.yml --profile ssl restart nginx
+
+# 4. Test connectivity from container to host
+docker exec tiris-nginx-simple nc -zv $GATEWAY_IP 8082
+```
 
 ### Network Connectivity Issues
 
@@ -352,15 +394,28 @@ git pull origin master
 # 2. Backup current deployment
 cp .env.prod .env.prod.backup.$(date +%Y%m%d)
 
-# 3. Build and deploy
-docker-compose -f docker-compose.prod.yml build
-docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --force-recreate
+# 3. Check for Linux VPS specific configurations
+GATEWAY_IP=$(docker network inspect tiris-backend-network | grep Gateway | cut -d'"' -f4)
+if grep -q "host.docker.internal" nginx.simple.conf; then
+    echo "Fixing Linux VPS Docker network compatibility..."
+    sed -i "s/host.docker.internal/${GATEWAY_IP}/g" nginx.simple.conf
+fi
 
-# 4. Validate deployment
-/opt/tiris/tiris-backend/scripts/validate-deployment.sh
+# 4. Build and deploy
+docker-compose -f docker-compose.simple.yml build
+docker-compose -f docker-compose.simple.yml --env-file .env.simple up -d --force-recreate
 
-# 5. Monitor for issues
-docker-compose -f docker-compose.prod.yml logs -f
+# 5. Deploy SSL version if certificates exist
+if [ -d "/etc/letsencrypt/live" ] && [ "$(ls -A /etc/letsencrypt/live 2>/dev/null)" ]; then
+    echo "SSL certificates found, deploying with SSL profile..."
+    docker-compose -f docker-compose.simple.yml --env-file .env.simple --profile ssl up -d
+fi
+
+# 6. Validate deployment
+./scripts/validate-deployment.sh 2>/dev/null || echo "Validation script not found, continuing..."
+
+# 7. Monitor for issues
+docker-compose -f docker-compose.simple.yml logs -f
 ```
 
 ### Rolling Update (Zero Downtime)

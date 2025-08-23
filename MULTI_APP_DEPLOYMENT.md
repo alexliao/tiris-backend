@@ -183,27 +183,61 @@ docker-compose -f docker-compose.simple.yml down
 docker-compose -f docker-compose.simple.yml up -d --build
 ```
 
-## SSL/HTTPS Setup (Optional)
+## SSL/HTTPS Setup (Recommended for Production)
 
-### Install Certbot
+### Automated SSL Setup with Let's Encrypt
+The project includes a comprehensive SSL setup script that handles certificate generation and nginx configuration:
+
+```bash
+# Generate SSL certificates and configure nginx
+./scripts/setup-letsencrypt.sh --domain dev.tiris.ai --email your@email.com
+
+# For testing (uses staging certificates - no rate limits)
+./scripts/setup-letsencrypt.sh --domain dev.tiris.ai --email your@email.com --staging
+```
+
+### Manual SSL Setup (Alternative)
+
+#### 1. Install Certbot
 ```bash
 sudo apt install certbot python3-certbot-nginx  # Ubuntu
 sudo dnf install certbot python3-certbot-nginx  # CentOS
 ```
 
-### Generate Certificates
+#### 2. Generate Certificates
 ```bash
 sudo certbot certonly --standalone -d dev.tiris.ai -d backend.dev.tiris.ai -d www.dev.tiris.ai -d pred.dev.tiris.ai
 ```
 
-### Update Nginx for HTTPS
+#### 3. Configure Nginx for SSL
 ```bash
-# Copy certificates to proxy/ssl/
-sudo cp /etc/letsencrypt/live/dev.tiris.ai/* proxy/ssl/
+# Replace domain placeholders in nginx.simple.conf
+sed -i "s/DOMAIN_PLACEHOLDER/dev.tiris.ai/g" nginx.simple.conf
 
-# Update nginx.conf to include SSL configuration
-# Restart proxy
-cd proxy && docker-compose restart
+# For Linux VPS: Fix Docker network connectivity
+# Check your Docker network gateway
+GATEWAY_IP=$(docker network inspect tiris-backend-network | grep Gateway | cut -d'"' -f4)
+sed -i "s/host.docker.internal/${GATEWAY_IP}/g" nginx.simple.conf
+```
+
+#### 4. Deploy with SSL
+```bash
+# Deploy using SSL profile
+docker-compose -f docker-compose.simple.yml --env-file .env.simple --profile ssl up -d
+
+# Verify SSL setup
+curl https://backend.dev.tiris.ai/health
+curl https://pred.dev.tiris.ai/version
+```
+
+### SSL Certificate Renewal
+```bash
+# Automatic renewal (configured via cron)
+./scripts/setup-letsencrypt.sh --renew
+
+# Manual renewal
+sudo certbot renew
+docker-compose -f docker-compose.simple.yml --profile ssl restart nginx
 ```
 
 ## Troubleshooting
@@ -224,14 +258,42 @@ nslookup backend.dev.tiris.ai
 dig backend.dev.tiris.ai
 ```
 
-3. **Container Communication Issues**:
+3. **SSL/HTTPS Issues**:
+```bash
+# Check nginx container logs for SSL errors
+docker logs tiris-nginx-simple --tail 50
+
+# Verify SSL certificates exist
+sudo ls -la /etc/letsencrypt/live/dev.tiris.ai/
+
+# Test SSL configuration
+openssl s_client -connect backend.dev.tiris.ai:443 -servername backend.dev.tiris.ai
+
+# Check if nginx is using SSL profile
+docker-compose -f docker-compose.simple.yml --profile ssl ps
+```
+
+4. **Linux VPS Docker Network Issues**:
+```bash
+# Check Docker network gateway (required for Linux VPS)
+docker network inspect tiris-backend-network | grep Gateway
+
+# Fix host.docker.internal compatibility
+GATEWAY_IP=$(docker network inspect tiris-backend-network | grep Gateway | cut -d'"' -f4)
+sed -i "s/host.docker.internal/${GATEWAY_IP}/g" nginx.simple.conf
+
+# Common error: "host not found in upstream host.docker.internal"
+# Solution: Replace with Docker gateway IP (usually 172.x.x.1)
+```
+
+5. **Container Communication Issues**:
 ```bash
 # Check networks
 docker network ls
-docker network inspect tiris-proxy-network
+docker network inspect tiris-backend-network
 
-# Test container connectivity
-docker exec tiris-reverse-proxy ping host.docker.internal
+# Test container connectivity to host machine
+docker exec tiris-nginx-simple nc -zv 172.20.0.1 8082  # Replace with your gateway IP
 ```
 
 4. **Application Not Starting**:

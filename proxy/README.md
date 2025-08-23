@@ -30,7 +30,7 @@ curl http://localhost/nginx-health
 1. **Add upstream** in `nginx.conf`:
 ```nginx
 upstream new-service {
-    server host.docker.internal:8083;
+    server 172.20.0.1:8083;  # Use Docker network gateway IP for Linux VPS
     keepalive 32;
 }
 ```
@@ -102,7 +102,7 @@ curl -s http://localhost/nginx-health
    - Check nginx.conf has server block for subdomain
 
 3. **Connection Refused**: Network connectivity
-   - Verify `host.docker.internal` resolves
+   - Verify Docker network gateway IP resolves (typically `172.20.0.1` on Linux VPS)
    - Check Docker network configuration
 
 ### Debug Commands
@@ -114,9 +114,12 @@ docker exec tiris-reverse-proxy nginx -t
 # Reload nginx (without restart)
 docker exec tiris-reverse-proxy nginx -s reload
 
-# Check what nginx sees for host resolution
-docker exec tiris-reverse-proxy nslookup host.docker.internal
+# Check Docker network gateway (Linux VPS)
+docker network inspect tiris-backend-network | grep Gateway
 
 # Test upstream connectivity
-docker exec tiris-reverse-proxy curl -s http://host.docker.internal:8080/health/live
+docker exec tiris-reverse-proxy curl -s http://172.20.0.1:8080/health/live
+
+# Test network connectivity to host
+docker exec tiris-reverse-proxy nc -zv 172.20.0.1 8080
 ```
