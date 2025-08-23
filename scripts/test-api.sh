@@ -4,30 +4,37 @@
 # 
 # This script performs basic API testing for manual use:
 # 1. Show user profile
-# 2. Add a Kraken exchange for the user (or get existing one if it already exists)
+# 2. Add a Binance exchange for the user (or get existing one if it already exists)
 # 3. Add a sub-account to the exchange (or get existing one if it already exists)
 # 4. Update sub-account balance via dedicated balance API (starts with 0.0 by design)
 # 5. Retrieve transaction records to show automatic audit trail
 # 6. Add a trading log entry
 # 
 # USAGE:
-#   ./scripts/test-api.sh                 - Run normal API tests
-#   ./scripts/test-api.sh --clean         - Clean database (removes all user data)
-#   ./scripts/test-api.sh --clean --test  - Clean database then run tests
+#   ./scripts/test-api.sh                                     - Run normal API tests (localhost:8080)
+#   ./scripts/test-api.sh --domain backend.dev.tiris.ai      - Test remote server
+#   ./scripts/test-api.sh --domain localhost:3000            - Test local server on custom port
+#   ./scripts/test-api.sh --clean                            - Clean database (removes all user data)
+#   ./scripts/test-api.sh --clean --test                     - Clean database then run tests
 # 
 # IMPORTANT: This uses a JWT token for API authentication.
 # To get a fresh JWT token:
 # 1. Create a test user: ./scripts/create-test-user.sh --name "Your Name"  
 # 2. Copy the JWT token from the output
-# 3. Update the ACCESS_TOKEN variable below
+# 3. Update the JWT_TOKEN variable below
 
 # JWT Access Token for API Authentication
-ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmI4NzRlNTMtNmYyNS00YjRhLTkwODQtMjYyNTllN2UxZDg1IiwidXNlcm5hbWUiOiJzaW1wbGVfdXNlciIsImVtYWlsIjoic2ltcGxlX3VzZXJAdGlyaXMubG9jYWwiLCJyb2xlIjoidXNlciIsImlzcyI6InRpcmlzLWJhY2tlbmQiLCJzdWIiOiIyYjg3NGU1My02ZjI1LTRiNGEtOTA4NC0yNjI1OWU3ZTFkODUiLCJleHAiOjE3ODcyNDYwOTYsIm5iZiI6MTc1NTcxMDA5NiwiaWF0IjoxNzU1NzEwMDk2fQ.oGy--25KfBID3S-B9WkSUPERbgeOEyt5FEhOuQlqhuU
-# Base URL for API
-BASE_URL="http://backend.dev.tiris.ai/v1"
+JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOTRhMzgxYTItMmZkNy00MDc3LWJiYzgtNTU5ZTgxNDI1MTJkIiwidXNlcm5hbWUiOiJ0ZXN0X3VzZXJfZm9yX2FwaSIsImVtYWlsIjoidGVzdF91c2VyX2Zvcl9hcGlAdGlyaXMubG9jYWwiLCJyb2xlIjoidXNlciIsImlzcyI6InRpcmlzLWJhY2tlbmQiLCJzdWIiOiI5NGEzODFhMi0yZmQ3LTQwNzctYmJjOC01NTllODE0MjUxMmQiLCJleHAiOjE3ODc1MjY0OTMsIm5iZiI6MTc1NTk5MDQ5MywiaWF0IjoxNzU1OTkwNDkzfQ.0f2kBRQINx2sWQvxNNNPCJtgZOmR97hsNQ9UNCvQbEA
+
+# Default domain for API (will be set based on --domain option)
+DEFAULT_DOMAIN="localhost:8080"
+API_DOMAIN="$DEFAULT_DOMAIN"
+
+# Base URL for API (will be constructed after parsing arguments)
+BASE_URL=""
 
 # Common headers
-AUTH_HEADER="Authorization: Bearer $ACCESS_TOKEN"
+AUTH_HEADER="Authorization: Bearer $JWT_TOKEN"
 CONTENT_HEADER="Content-Type: application/json"
 
 # Color codes for output
@@ -93,15 +100,33 @@ api_request() {
 CLEAN_DATABASE=false
 RUN_TESTS=true
 SHOW_HELP=false
+SKIP_TRADING_LOGS=false
 
-for arg in "$@"; do
-    case $arg in
+# Parse arguments with proper handling of options that take values
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --domain)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                API_DOMAIN="$2"
+                shift 2
+            else
+                echo "Error: --domain requires a domain argument"
+                echo "Use --help for usage information"
+                exit 1
+            fi
+            ;;
         --clean)
             CLEAN_DATABASE=true
             RUN_TESTS=false  # Default to only clean unless --test is also specified
+            shift
             ;;
         --test)
             RUN_TESTS=true
+            shift
+            ;;
+        --no-trading-logs)
+            SKIP_TRADING_LOGS=true
+            shift
             ;;
         --help|-h)
             # Handle case where script is sourced vs executed
@@ -112,25 +137,48 @@ for arg in "$@"; do
             echo "Usage: $SCRIPT_NAME [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --clean       Clean database (remove all user data)"
-            echo "  --clean --test Clean database then run API tests"
-            echo "  --help, -h    Show this help message"
+            echo "  --domain DOMAIN       Specify API domain (default: localhost:8080)"
+            echo "  --clean               Clean database (remove all user data)"
+            echo "  --clean --test        Clean database then run API tests"
+            echo "  --no-trading-logs     Skip trading log tests (faster execution)"
+            echo "  --help, -h            Show this help message"
             echo ""
             echo "Examples:"
-            echo "  $SCRIPT_NAME                    # Run normal API tests"
-            echo "  $SCRIPT_NAME --clean           # Clean database only"
-            echo "  $SCRIPT_NAME --clean --test    # Clean database then run tests"
+            echo "  $SCRIPT_NAME                                    # Test localhost:8080 (HTTP)"
+            echo "  $SCRIPT_NAME --domain backend.dev.tiris.ai     # Test remote server (HTTPS)"
+            echo "  $SCRIPT_NAME --domain localhost:3000           # Test local server on port 3000 (HTTP)"
+            echo "  $SCRIPT_NAME --no-trading-logs                 # Test without trading log operations"
+            echo "  $SCRIPT_NAME --clean --domain localhost:8080   # Clean local database"
+            echo "  $SCRIPT_NAME --clean --test                    # Clean then test localhost:8080"
             SHOW_HELP=true
             RUN_TESTS=false
             CLEAN_DATABASE=false
+            shift
             ;;
         *)
-            echo "Unknown option: $arg"
+            echo "Unknown option: $1"
             echo "Use --help for usage information"
-            return 1
+            exit 1
             ;;
     esac
 done
+
+# Function to construct BASE_URL based on domain
+construct_base_url() {
+    local domain="$1"
+    
+    # Determine protocol based on domain
+    if [[ "$domain" =~ ^localhost(:[0-9]+)?$ ]] || [[ "$domain" =~ ^127\.0\.0\.1(:[0-9]+)?$ ]] || [[ "$domain" =~ ^0\.0\.0\.0(:[0-9]+)?$ ]]; then
+        # Use HTTP for localhost, 127.0.0.1, and 0.0.0.0
+        BASE_URL="http://${domain}/v1"
+    else
+        # Use HTTPS for remote domains
+        BASE_URL="https://${domain}/v1"
+    fi
+}
+
+# Construct BASE_URL from API_DOMAIN
+construct_base_url "$API_DOMAIN"
 
 # Test status tracking
 USER_PROFILE_SUCCESS=false
@@ -161,7 +209,7 @@ cleanup_database() {
     echo ""
     
     # Safety check - only allow in development
-    if [[ "$BASE_URL" != *"localhost"* ]] && [[ "$BASE_URL" != *"127.0.0.1"* ]]; then
+    if [[ "$BASE_URL" != *"localhost"* ]] && [[ "$BASE_URL" != *".dev."* ]]; then
         echo -e "${RED}❌ SAFETY CHECK FAILED${NC}"
         echo "Database cleanup is only allowed on localhost/development environments"
         echo "Current BASE_URL: $BASE_URL"
@@ -372,6 +420,17 @@ if [ "$RUN_TESTS" = false ]; then
     # Don't continue with tests
 else
 
+# Display test configuration
+print_header "🔧 Test Configuration"
+echo "Target Domain: $API_DOMAIN"
+echo "Base URL: $BASE_URL"
+if [[ "$BASE_URL" =~ ^https:// ]]; then
+    echo "Protocol: HTTPS (remote server)"
+else
+    echo "Protocol: HTTP (local development)"
+fi
+echo ""
+
 # Check server connectivity before running tests
 check_server_connectivity
 if [ $? -ne 0 ]; then
@@ -406,18 +465,18 @@ else
     echo -e "${RED}❌ User profile test failed - this may affect subsequent tests${NC}"
 fi
 
-# Test 2: Add Kraken Exchange or Get Kraken Exchange
-print_header "🏦 Adding Kraken Exchange"
+# Test 2: Add Binance Exchange or Get Binance Exchange
+print_header "🏦 Adding Binance Exchange"
 echo "Endpoint: POST /v1/exchanges"
 echo ""
 
-# Generate unique exchange details to avoid conflicts
+# Generate unique API credentials to avoid conflicts (but use fixed exchange name)
 TIMESTAMP=$(date +%s)
 KRAKEN_PAYLOAD='{
-  "name": "Test Kraken Exchange '$TIMESTAMP'",
-  "type": "kraken",
-  "api_key": "kraken_api_key_'$TIMESTAMP'",
-  "api_secret": "kraken_secret_'$TIMESTAMP'"
+  "name": "My Binance",
+  "type": "binance",
+  "api_key": "binance_api_key_'$TIMESTAMP'",
+  "api_secret": "binance_secret_'$TIMESTAMP'"
 }'
 
 echo "Request payload:"
@@ -435,13 +494,13 @@ echo "$KRAKEN_RESPONSE" | jq . 2>/dev/null || echo "$KRAKEN_RESPONSE"
 
 if echo "$KRAKEN_RESPONSE" | jq -e '.success == true and .data.id' > /dev/null 2>&1; then
     EXCHANGE_ID=$(echo "$KRAKEN_RESPONSE" | jq -r '.data.id')
-    echo -e "${GREEN}✅ Kraken exchange created successfully${NC}"
+    echo -e "${GREEN}✅ Binance exchange created successfully${NC}"
     echo "Exchange ID: $EXCHANGE_ID"
     EXCHANGE_SUCCESS=true
 else
-    echo "❌ Kraken exchange creation failed, trying to get existing exchange"
+    echo "❌ Binance exchange creation failed, trying to get existing exchange"
     
-    print_header "🔍 Getting Existing Kraken Exchange"
+    print_header "🔍 Getting Existing Binance Exchange"
     echo "Endpoint: GET /v1/exchanges"
     echo ""
     
@@ -450,11 +509,11 @@ else
     echo "$EXCHANGES_RESPONSE" | jq . 2>/dev/null || echo "$EXCHANGES_RESPONSE"
     echo ""
     
-    # Extract the first Kraken exchange ID
-    EXCHANGE_ID=$(echo "$EXCHANGES_RESPONSE" | jq -r '.data.exchanges[] | select(.type == "kraken") | .id' | head -1)
+    # Extract the first Binance exchange ID
+    EXCHANGE_ID=$(echo "$EXCHANGES_RESPONSE" | jq -r '.data.exchanges[] | select(.type == "binance") | .id' | head -1)
     
     if [ -n "$EXCHANGE_ID" ] && [ "$EXCHANGE_ID" != "null" ]; then
-        echo -e "${GREEN}✅ Found existing Kraken exchange${NC}"
+        echo -e "${GREEN}✅ Found existing Binance exchange${NC}"
         echo "Exchange ID: $EXCHANGE_ID"
         EXCHANGE_SUCCESS=true
         
@@ -464,14 +523,14 @@ else
         KRAKEN_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/exchanges/$EXCHANGE_ID")
         echo "$KRAKEN_DETAILS" | jq . 2>/dev/null || echo "$KRAKEN_DETAILS"
     else
-        echo "❌ No existing Kraken exchange found"
+        echo "❌ No existing Binance exchange found"
         EXCHANGE_SUCCESS=false
         echo "⚠️ Continuing without exchange - remaining tests will likely fail"
     fi
 fi
 
-# Test 3: Add a sub-account to the Kraken exchange or get the first existing sub-account
-print_header "👤 Adding Sub-Account to Kraken Exchange"
+# Test 3: Add a sub-account to the Binance exchange or get the first existing sub-account
+print_header "👤 Adding Sub-Account to Binance Exchange"
 echo "Endpoint: POST /v1/sub-accounts"
 echo ""
 
@@ -649,8 +708,9 @@ else
     TRANSACTION_HISTORY_SUCCESS=false
 fi
 
-# Test 6: Add a trading log
-print_header "📊 Adding Trading Log for ETH Long Position"
+# Test 6: Add a trading log (conditional based on --no-trading-logs flag)
+if [ "$SKIP_TRADING_LOGS" = false ]; then
+    print_header "📊 Adding Trading Log for ETH Long Position"
 echo "Endpoint: POST /v1/trading-logs"
 echo ""
 
@@ -802,6 +862,15 @@ else
     TRADING_LOG_SUCCESS=false
 fi
 
+else
+    # Trading logs are skipped
+    print_header "📊 Trading Log Tests (Skipped)"
+    echo "Trading log tests are disabled with --no-trading-logs option"
+    echo -e "${YELLOW}⏭️ Skipping trading log and business logic tests${NC}"
+    TRADING_LOG_SUCCESS=true  # Mark as successful since it's intentionally skipped
+    echo ""
+fi
+
 print_header "📋 Test Summary"
 
 # Show status for each test based on success tracking
@@ -812,9 +881,9 @@ else
 fi
 
 if [ "$EXCHANGE_SUCCESS" = true ]; then
-    echo "✅ Kraken exchange test completed successfully"
+    echo "✅ Binance exchange test completed successfully"
 else
-    echo "❌ Kraken exchange test failed"
+    echo "❌ Binance exchange test failed"
 fi
 
 if [ "$SUBACCOUNT_SUCCESS" = true ]; then
@@ -841,7 +910,9 @@ else
     echo "❌ Transaction history test failed"
 fi
 
-if [ "$TRADING_LOG_SUCCESS" = true ]; then
+if [ "$SKIP_TRADING_LOGS" = true ]; then
+    echo "⏭️ Trading log test skipped (--no-trading-logs option)"
+elif [ "$TRADING_LOG_SUCCESS" = true ]; then
     echo "✅ Trading log test completed successfully"
 else
     echo "❌ Trading log test failed"
@@ -860,7 +931,13 @@ echo ""
 echo "💡 Notes:"
 echo "- If you get 401 Unauthorized, the JWT token may be expired"
 echo "- Create a new test user to get a fresh JWT token: ./scripts/create-test-user.sh"
-echo "- Check the API documentation at http://localhost:8080/docs for more details"
+echo "- Current API target: $BASE_URL"
+if [[ "$BASE_URL" =~ ^http://localhost ]]; then
+    echo "- Check the API documentation at ${BASE_URL%/v1}/docs for more details"
+elif [[ "$BASE_URL" =~ ^https:// ]]; then
+    echo "- For remote API documentation, check: ${BASE_URL%/v1}/docs"
+fi
+echo "- Use --domain option to test different environments (localhost:8080, backend.dev.tiris.ai, etc.)"
 
 # Final status summary for human review
 echo ""
@@ -888,7 +965,9 @@ else
     if [ "$TRANSACTION_HISTORY_SUCCESS" != true ]; then
         echo "  • Transaction history: ❌ Failed"
     fi
-    if [ "$TRADING_LOG_SUCCESS" != true ]; then
+    if [ "$SKIP_TRADING_LOGS" = true ]; then
+        echo "  • Trading log & business logic: ⏭️ Skipped"
+    elif [ "$TRADING_LOG_SUCCESS" != true ]; then
         echo "  • Trading log & business logic: ❌ Failed"
     fi
 fi
