@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"tiris-backend/internal/models"
@@ -109,24 +110,21 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		mockExchangeRepo.AssertExpectations(t)
 	})
 	
-	// Test duplicate exchange name
+	// Test duplicate exchange name - now handled by database constraint
 	t.Run("duplicate_exchange_name", func(t *testing.T) {
-		existingName := "existing-exchange"
 		request := &services.CreateExchangeRequest{
-			Name:      existingName,
+			Name:      "existing-exchange",
 			Type:      "binance",
 			APIKey:    "test_api_key",
 			APISecret: "test_api_secret",
 		}
 		
-		// Create existing exchange with same name
-		existingExchange := exchangeFactory.Build()
-		existingExchange.UserID = userID
-		existingExchange.Name = existingName
-		
-		// Setup mock expectations
+		// Setup mock expectations - service only checks limit, then tries to create
 		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{existingExchange}, nil).Once()
+			Return([]*models.Exchange{}, nil).Once() // No limit reached
+		// Database returns unique constraint error
+		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
 		
 		// Execute test
 		result, err := exchangeService.CreateExchange(context.Background(), userID, request)
@@ -140,25 +138,21 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		mockExchangeRepo.AssertExpectations(t)
 	})
 
-	// Test duplicate API key error
+	// Test duplicate API key error - now handled by database constraint
 	t.Run("duplicate_api_key", func(t *testing.T) {
-		existingAPIKey := "existing_api_key_123"
 		request := &services.CreateExchangeRequest{
 			Name:      "new-exchange",
 			Type:      "binance",
-			APIKey:    existingAPIKey,
+			APIKey:    "existing_api_key_123",
 			APISecret: "new_api_secret",
 		}
 		
-		// Create existing exchange with same API key
-		existingExchange := exchangeFactory.Build()
-		existingExchange.UserID = userID
-		existingExchange.Name = "different-name"
-		existingExchange.APIKey = existingAPIKey
-		
-		// Setup mock expectations
+		// Setup mock expectations - service only checks limit, then tries to create
 		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{existingExchange}, nil).Once()
+			Return([]*models.Exchange{}, nil).Once() // No limit reached
+		// Database returns unique constraint error
+		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
 		
 		// Execute test
 		result, err := exchangeService.CreateExchange(context.Background(), userID, request)
@@ -166,32 +160,27 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "api key already exists")
+		assert.Contains(t, err.Error(), "exchange name already exists")
 		
 		// Verify mock expectations
 		mockExchangeRepo.AssertExpectations(t)
 	})
 
-	// Test duplicate API secret error
+	// Test duplicate API secret error - now handled by database constraint
 	t.Run("duplicate_api_secret", func(t *testing.T) {
-		existingAPISecret := "existing_api_secret_789"
 		request := &services.CreateExchangeRequest{
 			Name:      "new-exchange",
 			Type:      "binance",
 			APIKey:    "new_api_key",
-			APISecret: existingAPISecret,
+			APISecret: "existing_api_secret_789",
 		}
 		
-		// Create existing exchange with same API secret
-		existingExchange := exchangeFactory.Build()
-		existingExchange.UserID = userID
-		existingExchange.Name = "different-name"
-		existingExchange.APIKey = "different_api_key"
-		existingExchange.APISecret = existingAPISecret
-		
-		// Setup mock expectations
+		// Setup mock expectations - service only checks limit, then tries to create
 		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{existingExchange}, nil).Once()
+			Return([]*models.Exchange{}, nil).Once() // No limit reached
+		// Database returns unique constraint error
+		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
 		
 		// Execute test
 		result, err := exchangeService.CreateExchange(context.Background(), userID, request)
@@ -199,7 +188,7 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "api secret already exists")
+		assert.Contains(t, err.Error(), "exchange name already exists")
 		
 		// Verify mock expectations
 		mockExchangeRepo.AssertExpectations(t)
@@ -402,8 +391,6 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Setup mock expectations
 		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{testExchange}, nil).Once() // Only current exchange
 		mockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Exchange")).
 			Return(nil).Once()
 		
@@ -419,23 +406,19 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		mockExchangeRepo.AssertExpectations(t)
 	})
 	
-	// Test name conflict with another exchange
+	// Test name conflict with another exchange - now handled by database constraint
 	t.Run("name_conflict", func(t *testing.T) {
 		conflictingName := "existing-exchange"
 		request := &services.UpdateExchangeRequest{
 			Name: &conflictingName,
 		}
 		
-		// Create another exchange with conflicting name
-		anotherExchange := exchangeFactory.WithUserID(userID)
-		anotherExchange.ID = uuid.New()
-		anotherExchange.Name = conflictingName
-		
 		// Setup mock expectations
 		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{testExchange, anotherExchange}, nil).Once()
+		// Database returns unique constraint error
+		mockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Exchange")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
 		
 		// Execute test
 		result, err := exchangeService.UpdateExchange(context.Background(), userID, exchangeID, request)
@@ -461,9 +444,6 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Setup mock expectations
 		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		// When API key is provided, service checks for uniqueness
-		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{testExchange}, nil).Once() // Only current exchange
 		mockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Exchange")).
 			Return(nil).Once()
 		
@@ -481,7 +461,7 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		mockExchangeRepo.AssertExpectations(t)
 	})
 
-	// Test API key conflict with another exchange
+	// Test API key conflict with another exchange - now handled by database constraint
 	t.Run("api_key_conflict", func(t *testing.T) {
 		// Create fresh mocks for this test
 		freshMockExchangeRepo := &mocks.MockExchangeRepository{}
@@ -501,17 +481,12 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 			APIKey: &conflictingAPIKey,
 		}
 		
-		// Create another exchange with conflicting API key
-		anotherExchange := exchangeFactory.WithUserID(userID)
-		anotherExchange.ID = uuid.New()
-		anotherExchange.Name = "different-name"
-		anotherExchange.APIKey = conflictingAPIKey
-		
 		// Setup mock expectations
 		freshMockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		freshMockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{testExchange, anotherExchange}, nil).Once()
+		// Database returns unique constraint error
+		freshMockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Exchange")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
 		
 		// Execute test
 		result, err := freshExchangeService.UpdateExchange(context.Background(), userID, exchangeID, request)
@@ -519,13 +494,13 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "api key already exists")
+		assert.Contains(t, err.Error(), "exchange name already exists")
 		
 		// Verify mock expectations
 		freshMockExchangeRepo.AssertExpectations(t)
 	})
 
-	// Test API secret conflict with another exchange
+	// Test API secret conflict with another exchange - now handled by database constraint
 	t.Run("api_secret_conflict", func(t *testing.T) {
 		// Create fresh mocks for this test
 		freshMockExchangeRepo := &mocks.MockExchangeRepository{}
@@ -545,18 +520,12 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 			APISecret: &conflictingAPISecret,
 		}
 		
-		// Create another exchange with conflicting API secret
-		anotherExchange := exchangeFactory.WithUserID(userID)
-		anotherExchange.ID = uuid.New()
-		anotherExchange.Name = "different-name"
-		anotherExchange.APIKey = "different_api_key"
-		anotherExchange.APISecret = conflictingAPISecret
-		
 		// Setup mock expectations
 		freshMockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		freshMockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{testExchange, anotherExchange}, nil).Once()
+		// Database returns unique constraint error
+		freshMockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Exchange")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
 		
 		// Execute test
 		result, err := freshExchangeService.UpdateExchange(context.Background(), userID, exchangeID, request)
@@ -564,7 +533,7 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "api secret already exists")
+		assert.Contains(t, err.Error(), "exchange name already exists")
 		
 		// Verify mock expectations
 		freshMockExchangeRepo.AssertExpectations(t)

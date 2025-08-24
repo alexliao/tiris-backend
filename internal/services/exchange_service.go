@@ -64,27 +64,6 @@ func (s *ExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, 
 		return nil, fmt.Errorf("maximum number of exchanges reached (10)")
 	}
 
-	// Check if exchange name is unique for this user
-	for _, exchange := range existingExchanges {
-		if exchange.Name == req.Name {
-			return nil, fmt.Errorf("exchange name already exists")
-		}
-	}
-
-	// Check if API key is unique for this user
-	for _, exchange := range existingExchanges {
-		if exchange.APIKey == req.APIKey {
-			return nil, fmt.Errorf("api key already exists")
-		}
-	}
-
-	// Check if API secret is unique for this user  
-	for _, exchange := range existingExchanges {
-		if exchange.APISecret == req.APISecret {
-			return nil, fmt.Errorf("api secret already exists")
-		}
-	}
-
 	// Create info map with metadata
 	infoMap := map[string]interface{}{
 		"created_by":  "api",
@@ -103,8 +82,12 @@ func (s *ExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, 
 		Info:      models.JSON(infoMap),
 	}
 
-	// Save to database
+	// Save to database - let database constraints handle uniqueness validation
 	if err := s.repos.Exchange.Create(ctx, exchange); err != nil {
+		// Check for unique constraint violations and provide user-friendly messages
+		if isUniqueConstraintViolation(err) {
+			return nil, fmt.Errorf("exchange name already exists")
+		}
 		return nil, fmt.Errorf("failed to create exchange: %w", err)
 	}
 
@@ -160,52 +143,16 @@ func (s *ExchangeService) UpdateExchange(ctx context.Context, userID, exchangeID
 		return nil, fmt.Errorf("exchange not found")
 	}
 
-	// Update fields if provided
+	// Update fields if provided - let database constraints handle uniqueness validation
 	if req.Name != nil {
-		// Check if new name is unique for this user
-		userExchanges, err := s.repos.Exchange.GetByUserID(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check exchange names: %w", err)
-		}
-
-		for _, userExchange := range userExchanges {
-			if userExchange.ID != exchangeID && userExchange.Name == *req.Name {
-				return nil, fmt.Errorf("exchange name already exists")
-			}
-		}
-
 		exchange.Name = *req.Name
 	}
 
 	if req.APIKey != nil {
-		// Check if new API key is unique for this user
-		userExchanges, err := s.repos.Exchange.GetByUserID(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check api keys: %w", err)
-		}
-
-		for _, userExchange := range userExchanges {
-			if userExchange.ID != exchangeID && userExchange.APIKey == *req.APIKey {
-				return nil, fmt.Errorf("api key already exists")
-			}
-		}
-
 		exchange.APIKey = *req.APIKey
 	}
 
 	if req.APISecret != nil {
-		// Check if new API secret is unique for this user
-		userExchanges, err := s.repos.Exchange.GetByUserID(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check api secrets: %w", err)
-		}
-
-		for _, userExchange := range userExchanges {
-			if userExchange.ID != exchangeID && userExchange.APISecret == *req.APISecret {
-				return nil, fmt.Errorf("api secret already exists")
-			}
-		}
-
 		exchange.APISecret = *req.APISecret
 	}
 
@@ -215,6 +162,10 @@ func (s *ExchangeService) UpdateExchange(ctx context.Context, userID, exchangeID
 
 	// Save updated exchange
 	if err := s.repos.Exchange.Update(ctx, exchange); err != nil {
+		// Check for unique constraint violations and provide user-friendly messages
+		if isUniqueConstraintViolation(err) {
+			return nil, fmt.Errorf("exchange name already exists")
+		}
 		return nil, fmt.Errorf("failed to update exchange: %w", err)
 	}
 
@@ -303,3 +254,4 @@ func (s *ExchangeService) convertToExchangeResponse(exchange *models.Exchange) *
 		UpdatedAt: exchange.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
+

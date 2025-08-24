@@ -68,18 +68,6 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 		return nil, fmt.Errorf("exchange not found")
 	}
 
-	// Check if sub-account name is unique for this user+exchange combination
-	existingSubAccounts, err := s.repos.SubAccount.GetByUserID(ctx, userID, &req.ExchangeID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check existing sub-accounts: %w", err)
-	}
-
-	for _, subAccount := range existingSubAccounts {
-		if subAccount.Name == req.Name {
-			return nil, fmt.Errorf("sub-account name already exists for this exchange")
-		}
-	}
-
 	// Create info map with metadata
 	infoMap := map[string]interface{}{
 		"created_by":    "api",
@@ -98,8 +86,12 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 		Info:       models.JSON(infoMap),
 	}
 
-	// Save to database
+	// Save to database - let database constraints handle uniqueness validation
 	if err := s.repos.SubAccount.Create(ctx, subAccount); err != nil {
+		// Check for unique constraint violations and provide user-friendly messages
+		if isUniqueConstraintViolation(err) {
+			return nil, fmt.Errorf("sub-account name already exists for this exchange")
+		}
 		return nil, fmt.Errorf("failed to create sub-account: %w", err)
 	}
 
@@ -166,20 +158,8 @@ func (s *SubAccountService) UpdateSubAccount(ctx context.Context, userID, subAcc
 		return nil, fmt.Errorf("sub-account not found")
 	}
 
-	// Update fields if provided
+	// Update fields if provided - let database constraints handle uniqueness validation
 	if req.Name != nil {
-		// Check if new name is unique for this user+exchange
-		userSubAccounts, err := s.repos.SubAccount.GetByUserID(ctx, userID, &subAccount.ExchangeID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check sub-account names: %w", err)
-		}
-
-		for _, userSubAccount := range userSubAccounts {
-			if userSubAccount.ID != subAccountID && userSubAccount.Name == *req.Name {
-				return nil, fmt.Errorf("sub-account name already exists for this exchange")
-			}
-		}
-
 		subAccount.Name = *req.Name
 	}
 
@@ -194,6 +174,10 @@ func (s *SubAccountService) UpdateSubAccount(ctx context.Context, userID, subAcc
 
 	// Save updated sub-account
 	if err := s.repos.SubAccount.Update(ctx, subAccount); err != nil {
+		// Check for unique constraint violations and provide user-friendly messages
+		if isUniqueConstraintViolation(err) {
+			return nil, fmt.Errorf("sub-account name already exists for this exchange")
+		}
 		return nil, fmt.Errorf("failed to update sub-account: %w", err)
 	}
 
@@ -304,3 +288,4 @@ func (s *SubAccountService) convertToSubAccountResponse(subAccount *models.SubAc
 		UpdatedAt:  subAccount.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
+

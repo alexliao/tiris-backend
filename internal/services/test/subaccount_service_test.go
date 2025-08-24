@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"tiris-backend/internal/models"
@@ -58,8 +59,6 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		// Setup mock expectations
 		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		mockSubAccountRepo.On("GetByUserID", mock.Anything, userID, &exchangeID).
-			Return([]*models.SubAccount{}, nil).Once()
 		mockSubAccountRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
 			Return(nil).Once()
 		
@@ -132,12 +131,8 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		mockExchangeRepo.AssertExpectations(t)
 	})
 	
-	// Test duplicate sub-account name
+	// Test duplicate sub-account name - now handled by database constraint
 	t.Run("duplicate_name", func(t *testing.T) {
-		subAccountFactory := helpers.NewSubAccountFactory()
-		existingSubAccount := subAccountFactory.WithUserAndExchange(userID, exchangeID)
-		existingSubAccount.Name = "duplicate-name"
-		
 		request := &services.CreateSubAccountRequest{
 			ExchangeID: exchangeID,
 			Name:       "duplicate-name",
@@ -147,8 +142,9 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		// Setup mock expectations
 		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		mockSubAccountRepo.On("GetByUserID", mock.Anything, userID, &exchangeID).
-			Return([]*models.SubAccount{existingSubAccount}, nil).Once()
+		// Database returns unique constraint error
+		mockSubAccountRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
 		
 		// Execute test
 		result, err := subAccountService.CreateSubAccount(context.Background(), userID, request)
@@ -392,8 +388,6 @@ func TestSubAccountService_UpdateSubAccount(t *testing.T) {
 		// Setup mock expectations
 		mockSubAccountRepo.On("GetByID", mock.Anything, subAccountID).
 			Return(testSubAccount, nil).Once()
-		mockSubAccountRepo.On("GetByUserID", mock.Anything, userID, &exchangeID).
-			Return([]*models.SubAccount{testSubAccount}, nil).Once() // Only current sub-account
 		mockSubAccountRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
 			Return(nil).Once()
 		
@@ -409,23 +403,19 @@ func TestSubAccountService_UpdateSubAccount(t *testing.T) {
 		mockSubAccountRepo.AssertExpectations(t)
 	})
 	
-	// Test name conflict
+	// Test name conflict - now handled by database constraint
 	t.Run("name_conflict", func(t *testing.T) {
 		conflictingName := "existing-account"
 		request := &services.UpdateSubAccountRequest{
 			Name: &conflictingName,
 		}
 		
-		// Create another sub-account with conflicting name
-		anotherSubAccount := subAccountFactory.WithUserAndExchange(userID, exchangeID)
-		anotherSubAccount.ID = uuid.New()
-		anotherSubAccount.Name = conflictingName
-		
 		// Setup mock expectations
 		mockSubAccountRepo.On("GetByID", mock.Anything, subAccountID).
 			Return(testSubAccount, nil).Once()
-		mockSubAccountRepo.On("GetByUserID", mock.Anything, userID, &exchangeID).
-			Return([]*models.SubAccount{testSubAccount, anotherSubAccount}, nil).Once()
+		// Database returns unique constraint error
+		mockSubAccountRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
 		
 		// Execute test
 		result, err := subAccountService.UpdateSubAccount(context.Background(), userID, subAccountID, request)
