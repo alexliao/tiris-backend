@@ -12,20 +12,20 @@
 # 
 # USAGE:
 #   ./scripts/test-api.sh                                     - Run normal API tests (localhost:8080)
+#   ./scripts/test-api.sh --username alex                     - Generate JWT for user 'alex' and run tests
 #   ./scripts/test-api.sh --domain backend.dev.tiris.ai      - Test remote server
 #   ./scripts/test-api.sh --domain localhost:3000            - Test local server on custom port
+#   ./scripts/test-api.sh --username john --domain localhost:3000  - Generate JWT for 'john' and test port 3000
 #   ./scripts/test-api.sh --clean                            - Clean database (removes all user data)
 #   ./scripts/test-api.sh --clean --test                     - Clean database then run tests
 # 
-# IMPORTANT: This uses a JWT token for API authentication.
-# To get a fresh JWT token:
-# 1. Create a test user: ./scripts/create-test-user.sh --name "Your Name"  
-# 2. Copy the JWT token from the output
-# 3. Update the JWT_TOKEN variable below
+# IMPORTANT: This script can authenticate in multiple ways:
+# 1. Use --username to generate JWT dynamically from database user
+# 2. Set JWT_TOKEN environment variable: JWT_TOKEN=your_token ./scripts/test-api.sh
+# 3. Create a test user: ./scripts/create-test-user.sh --name "Your Name" (then use --username)
 
-# JWT Access Token for API Authentication
-JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOTRhMzgxYTItMmZkNy00MDc3LWJiYzgtNTU5ZTgxNDI1MTJkIiwidXNlcm5hbWUiOiJ0ZXN0X3VzZXJfZm9yX2FwaSIsImVtYWlsIjoidGVzdF91c2VyX2Zvcl9hcGlAdGlyaXMubG9jYWwiLCJyb2xlIjoidXNlciIsImlzcyI6InRpcmlzLWJhY2tlbmQiLCJzdWIiOiI5NGEzODFhMi0yZmQ3LTQwNzctYmJjOC01NTllODE0MjUxMmQiLCJleHAiOjE3ODc1MjY0OTMsIm5iZiI6MTc1NTk5MDQ5MywiaWF0IjoxNzU1OTkwNDkzfQ.0f2kBRQINx2sWQvxNNNPCJtgZOmR97hsNQ9UNCvQbEA
-
+# JWT Access Token for API Authentication (will be set dynamically if --username is provided)
+JWT_TOKEN=""
 # Default domain for API (will be set based on --domain option)
 DEFAULT_DOMAIN="localhost:8080"
 API_DOMAIN="$DEFAULT_DOMAIN"
@@ -33,8 +33,8 @@ API_DOMAIN="$DEFAULT_DOMAIN"
 # Base URL for API (will be constructed after parsing arguments)
 BASE_URL=""
 
-# Common headers
-AUTH_HEADER="Authorization: Bearer $JWT_TOKEN"
+# Common headers (AUTH_HEADER will be set after JWT_TOKEN is determined)
+AUTH_HEADER=""
 CONTENT_HEADER="Content-Type: application/json"
 
 # Color codes for output
@@ -43,6 +43,23 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# Print functions for colored output
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
 
 # Function to check server connectivity
 check_server_connectivity() {
@@ -101,6 +118,7 @@ CLEAN_DATABASE=false
 RUN_TESTS=true
 SHOW_HELP=false
 SKIP_TRADING_LOGS=false
+USERNAME=""
 
 # Parse arguments with proper handling of options that take values
 while [[ $# -gt 0 ]]; do
@@ -111,6 +129,16 @@ while [[ $# -gt 0 ]]; do
                 shift 2
             else
                 echo "Error: --domain requires a domain argument"
+                echo "Use --help for usage information"
+                exit 1
+            fi
+            ;;
+        --username)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                USERNAME="$2"
+                shift 2
+            else
+                echo "Error: --username requires a username argument"
                 echo "Use --help for usage information"
                 exit 1
             fi
@@ -138,6 +166,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --domain DOMAIN       Specify API domain (default: localhost:8080)"
+            echo "  --username USERNAME   Generate JWT token for specific user (queries database)"
             echo "  --clean               Clean database (remove all user data)"
             echo "  --clean --test        Clean database then run API tests"
             echo "  --no-trading-logs     Skip trading log tests (faster execution)"
@@ -145,8 +174,10 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Examples:"
             echo "  $SCRIPT_NAME                                    # Test localhost:8080 (HTTP)"
+            echo "  $SCRIPT_NAME --username alex                   # Generate JWT for user 'alex' and run tests"
             echo "  $SCRIPT_NAME --domain backend.dev.tiris.ai     # Test remote server (HTTPS)"
             echo "  $SCRIPT_NAME --domain localhost:3000           # Test local server on port 3000 (HTTP)"
+            echo "  $SCRIPT_NAME --username john --domain localhost:3000  # Generate JWT for 'john' and test port 3000"
             echo "  $SCRIPT_NAME --no-trading-logs                 # Test without trading log operations"
             echo "  $SCRIPT_NAME --clean --domain localhost:8080   # Clean local database"
             echo "  $SCRIPT_NAME --clean --test                    # Clean then test localhost:8080"
@@ -162,6 +193,119 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Function to generate JWT token for a user by username
+generate_jwt_token_for_user() {
+    local username="$1"
+    local container="tiris-postgres-dev"
+    local database="tiris_dev"  
+    local db_user="tiris_user"
+    
+    print_header "🔑 Generating JWT Token for User: $username"
+    
+    # Check if Docker is available
+    if ! command -v docker > /dev/null 2>&1; then
+        echo -e "${RED}❌ Docker is not available${NC}"
+        echo "Cannot query database without Docker"
+        return 1
+    fi
+    
+    # Check if container is running
+    if ! docker ps --format "table {{.Names}}" | grep -q "^${container}$"; then
+        echo -e "${RED}❌ Database container '$container' is not running${NC}"
+        echo "Please start the development database first:"
+        echo "  make dev  # or docker-compose up postgres-dev"
+        return 1
+    fi
+    
+    print_status "Querying user information from database..."
+    
+    # Query for user by username  
+    local user_query="SELECT id, username, email, info FROM users WHERE username = '$username' AND deleted_at IS NULL LIMIT 1;"
+    local user_info=$(docker exec "$container" psql -U "$db_user" -d "$database" -t -A -c "$user_query" 2>/dev/null)
+    
+    if [ -z "$user_info" ] || [ "$user_info" = "" ]; then
+        echo -e "${RED}❌ User '$username' not found in database${NC}"
+        echo ""
+        echo "Available options:"
+        echo "1. Create a new user: ./scripts/create-test-user.sh --name 'Your Name' --username '$username'"
+        echo "2. List existing users: docker exec $container psql -U $db_user -d $database -c \"SELECT username, email FROM users WHERE deleted_at IS NULL;\""
+        echo "3. Use hardcoded JWT token instead (remove --username option)"
+        return 1
+    fi
+    
+    # Parse user info (format: id|username|email|info)
+    IFS='|' read -r user_id db_username email info_json <<< "$user_info"
+    
+    if [ -z "$user_id" ] || [ -z "$db_username" ] || [ -z "$email" ]; then
+        echo -e "${RED}❌ Failed to parse user information from database${NC}"
+        echo "Raw user data: $user_info"
+        return 1
+    fi
+    
+    print_success "Found user: $db_username ($email)"
+    echo "User ID: $user_id"
+    
+    # Extract display name from info JSON if available  
+    local display_name="$db_username"
+    if [ -n "$info_json" ] && [ "$info_json" != "null" ]; then
+        # Try to extract display_name from JSON (basic parsing)
+        display_name=$(echo "$info_json" | sed -n 's/.*"display_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        if [ -z "$display_name" ]; then
+            display_name="$db_username"
+        fi
+    fi
+    
+    print_status "Generating JWT token..."
+    
+    # Check if .env file exists
+    if [ ! -f ".env" ]; then
+        echo -e "${RED}❌ .env file not found${NC}"
+        echo "JWT token generation requires environment variables"
+        echo "Please ensure .env file exists with JWT_SECRET and REFRESH_SECRET"
+        return 1
+    fi
+    
+    # Generate JWT token using the existing script
+    local generated_token
+    generated_token=$(go run scripts/generate-jwt-token.go \
+        --user-id "$user_id" \
+        --username "$db_username" \
+        --email "$email" \
+        --role "user" \
+        --duration "24h" \
+        --output "token" 2>&1)
+    
+    local token_exit_code=$?
+    
+    if [ $token_exit_code -eq 0 ] && [ -n "$generated_token" ]; then
+        # Validate JWT format (should have 3 parts separated by dots)
+        local token_parts=$(echo "$generated_token" | tr '.' '\n' | wc -l)
+        if [ "$token_parts" -eq 3 ]; then
+            JWT_TOKEN="$generated_token"
+            print_success "JWT token generated successfully!"
+            echo "Token valid for: 24 hours"
+            echo "User: $display_name ($db_username)"
+            echo ""
+            return 0
+        else
+            echo -e "${RED}❌ Generated token has invalid format${NC}"
+            echo "Expected 3 parts, got $token_parts"
+            echo "Token: $generated_token"
+            return 1
+        fi
+    else
+        echo -e "${RED}❌ Failed to generate JWT token${NC}"
+        echo "Exit code: $token_exit_code"
+        echo "Output: $generated_token"
+        echo ""
+        echo "Common issues:"
+        echo "- Missing JWT_SECRET or REFRESH_SECRET in .env file"
+        echo "- Go dependencies not installed (run 'go mod download')"
+        echo "- Invalid user data"
+        return 1
+    fi
+}
 
 # Function to construct BASE_URL based on domain
 construct_base_url() {
@@ -179,6 +323,34 @@ construct_base_url() {
 
 # Construct BASE_URL from API_DOMAIN
 construct_base_url "$API_DOMAIN"
+
+# Generate JWT token if username is provided
+if [ -n "$USERNAME" ]; then
+    if ! generate_jwt_token_for_user "$USERNAME"; then
+        echo -e "${RED}❌ Failed to generate JWT token for user '$USERNAME'${NC}"
+        echo -e "${YELLOW}Cannot continue without valid authentication${NC}"
+        exit 1
+    fi
+elif [ -z "$JWT_TOKEN" ]; then
+    # No username provided and no hardcoded token
+    echo -e "${YELLOW}⚠️ No JWT token available${NC}"
+    echo ""
+    echo "You have two options:"
+    echo "1. Use --username option to generate token dynamically:"
+    echo "   $0 --username your_username"
+    echo ""
+    echo "2. Create a test user and use their token:"
+    echo "   ./scripts/create-test-user.sh --name 'Your Name'"
+    echo "   Then copy the JWT token to this script"
+    echo ""
+    echo "3. Set JWT_TOKEN environment variable:"
+    echo "   JWT_TOKEN=your_token $0"
+    echo ""
+    exit 1
+fi
+
+# Set AUTH_HEADER now that JWT_TOKEN is available
+AUTH_HEADER="Authorization: Bearer $JWT_TOKEN"
 
 # Test status tracking
 USER_PROFILE_SUCCESS=false
@@ -930,7 +1102,13 @@ fi
 echo ""
 echo "💡 Notes:"
 echo "- If you get 401 Unauthorized, the JWT token may be expired"
-echo "- Create a new test user to get a fresh JWT token: ./scripts/create-test-user.sh"
+if [ -n "$USERNAME" ]; then
+    echo "- JWT token was generated for user: $USERNAME (valid for 24 hours)"
+    echo "- To test with different user: $0 --username other_user"
+else
+    echo "- Create a new test user: ./scripts/create-test-user.sh --name 'Your Name'"
+    echo "- Use --username option for dynamic JWT generation: $0 --username your_username"
+fi
 echo "- Current API target: $BASE_URL"
 if [[ "$BASE_URL" =~ ^http://localhost ]]; then
     echo "- Check the API documentation at ${BASE_URL%/v1}/docs for more details"
