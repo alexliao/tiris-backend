@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS oauth_tokens (
 -- Create indexes for oauth_tokens table
 CREATE INDEX IF NOT EXISTS idx_oauth_tokens_user_id ON oauth_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_oauth_tokens_provider ON oauth_tokens(provider);
-CREATE UNIQUE INDEX idx_oauth_tokens_provider_user ON oauth_tokens(provider, provider_user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_tokens_provider_user ON oauth_tokens(provider, provider_user_id);
 CREATE INDEX IF NOT EXISTS idx_oauth_tokens_info ON oauth_tokens USING GIN(info);
 
 -- Exchanges table

@@ -88,9 +88,9 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 
 	// Save to database - let database constraints handle uniqueness validation
 	if err := s.repos.SubAccount.Create(ctx, subAccount); err != nil {
-		// Check for unique constraint violations and provide user-friendly messages
-		if isUniqueConstraintViolation(err) {
-			return nil, fmt.Errorf("sub-account name already exists for this exchange")
+		// Check for specific constraint violations and provide user-friendly messages
+		if constraintMsg := getSpecificConstraintViolation(err); constraintMsg != "" {
+			return nil, fmt.Errorf(constraintMsg)
 		}
 		return nil, fmt.Errorf("failed to create sub-account: %w", err)
 	}
@@ -174,9 +174,9 @@ func (s *SubAccountService) UpdateSubAccount(ctx context.Context, userID, subAcc
 
 	// Save updated sub-account
 	if err := s.repos.SubAccount.Update(ctx, subAccount); err != nil {
-		// Check for unique constraint violations and provide user-friendly messages
-		if isUniqueConstraintViolation(err) {
-			return nil, fmt.Errorf("sub-account name already exists for this exchange")
+		// Check for specific constraint violations and provide user-friendly messages
+		if constraintMsg := getSpecificConstraintViolation(err); constraintMsg != "" {
+			return nil, fmt.Errorf(constraintMsg)
 		}
 		return nil, fmt.Errorf("failed to update sub-account: %w", err)
 	}

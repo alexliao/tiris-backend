@@ -174,6 +174,57 @@ func (suite *IntegrationTestSuite) runMigrations() {
 		&models.TradingLog{},
 	)
 	require.NoError(suite.T(), err, "Failed to run migrations")
+	
+	// Also run SQL migrations to create partial unique indexes
+	suite.runSQLMigrations()
+}
+
+func (suite *IntegrationTestSuite) runSQLMigrations() {
+	sqlDB, err := suite.db.DB.DB()
+	require.NoError(suite.T(), err, "Failed to get SQL database")
+	
+	// Run only the specific migrations needed for constraints
+	// Migration 000002: Add soft delete columns 
+	migration002 := `
+		-- Add deleted_at to exchanges table
+		ALTER TABLE exchanges ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+		CREATE INDEX IF NOT EXISTS idx_exchanges_deleted_at ON exchanges(deleted_at);
+		
+		-- Add deleted_at to sub_accounts table
+		ALTER TABLE sub_accounts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+		CREATE INDEX IF NOT EXISTS idx_sub_accounts_deleted_at ON sub_accounts(deleted_at);
+	`
+	
+	// Migration 000004: Create partial unique indexes for soft deletion
+	migration004 := `
+		-- Create partial unique indexes that exclude soft-deleted records
+		-- Exchange name uniqueness per user (only for active records)
+		CREATE UNIQUE INDEX IF NOT EXISTS exchanges_user_name_active_unique 
+		ON exchanges (user_id, name) 
+		WHERE deleted_at IS NULL;
+		
+		-- API key uniqueness per user (only for active records)  
+		CREATE UNIQUE INDEX IF NOT EXISTS exchanges_user_api_key_active_unique
+		ON exchanges (user_id, api_key)
+		WHERE deleted_at IS NULL;
+		
+		-- API secret uniqueness per user (only for active records)
+		CREATE UNIQUE INDEX IF NOT EXISTS exchanges_user_api_secret_active_unique
+		ON exchanges (user_id, api_secret)
+		WHERE deleted_at IS NULL;
+		
+		-- Sub-account name uniqueness per exchange (only for active records)
+		CREATE UNIQUE INDEX IF NOT EXISTS sub_accounts_exchange_name_active_unique
+		ON sub_accounts (exchange_id, name)
+		WHERE deleted_at IS NULL;
+	`
+	
+	// Execute migrations
+	_, err = sqlDB.Exec(migration002)
+	require.NoError(suite.T(), err, "Failed to run migration 000002")
+	
+	_, err = sqlDB.Exec(migration004) 
+	require.NoError(suite.T(), err, "Failed to run migration 000004")
 }
 
 func (suite *IntegrationTestSuite) cleanTransactionalData() {

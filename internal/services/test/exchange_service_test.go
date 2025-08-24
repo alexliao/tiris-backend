@@ -122,9 +122,9 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		// Setup mock expectations - service only checks limit, then tries to create
 		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
 			Return([]*models.Exchange{}, nil).Once() // No limit reached
-		// Database returns unique constraint error
+		// Database returns unique constraint error with specific constraint name
 		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_name_active_unique\"")).Once()
 		
 		// Execute test
 		result, err := exchangeService.CreateExchange(context.Background(), userID, request)
@@ -150,9 +150,9 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		// Setup mock expectations - service only checks limit, then tries to create
 		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
 			Return([]*models.Exchange{}, nil).Once() // No limit reached
-		// Database returns unique constraint error
+		// Database returns unique constraint error with specific constraint name
 		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_key_active_unique\"")).Once()
 		
 		// Execute test
 		result, err := exchangeService.CreateExchange(context.Background(), userID, request)
@@ -160,7 +160,7 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "exchange name already exists")
+		assert.Contains(t, err.Error(), "api key already exists")
 		
 		// Verify mock expectations
 		mockExchangeRepo.AssertExpectations(t)
@@ -178,9 +178,9 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		// Setup mock expectations - service only checks limit, then tries to create
 		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
 			Return([]*models.Exchange{}, nil).Once() // No limit reached
-		// Database returns unique constraint error
+		// Database returns unique constraint error with specific constraint name
 		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_secret_active_unique\"")).Once()
 		
 		// Execute test
 		result, err := exchangeService.CreateExchange(context.Background(), userID, request)
@@ -188,7 +188,7 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "exchange name already exists")
+		assert.Contains(t, err.Error(), "api secret already exists")
 		
 		// Verify mock expectations
 		mockExchangeRepo.AssertExpectations(t)
@@ -416,9 +416,9 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Setup mock expectations
 		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		// Database returns unique constraint error
+		// Database returns unique constraint error with specific constraint name
 		mockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Exchange")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_name_active_unique\"")).Once()
 		
 		// Execute test
 		result, err := exchangeService.UpdateExchange(context.Background(), userID, exchangeID, request)
@@ -484,9 +484,9 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Setup mock expectations
 		freshMockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		// Database returns unique constraint error
+		// Database returns unique constraint error with specific constraint name
 		freshMockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Exchange")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_key_active_unique\"")).Once()
 		
 		// Execute test
 		result, err := freshExchangeService.UpdateExchange(context.Background(), userID, exchangeID, request)
@@ -494,7 +494,7 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "exchange name already exists")
+		assert.Contains(t, err.Error(), "api key already exists")
 		
 		// Verify mock expectations
 		freshMockExchangeRepo.AssertExpectations(t)
@@ -523,9 +523,9 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Setup mock expectations
 		freshMockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		// Database returns unique constraint error
+		// Database returns unique constraint error with specific constraint name
 		freshMockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Exchange")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_secret_active_unique\"")).Once()
 		
 		// Execute test
 		result, err := freshExchangeService.UpdateExchange(context.Background(), userID, exchangeID, request)
@@ -533,7 +533,7 @@ func TestExchangeService_UpdateExchange(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "exchange name already exists")
+		assert.Contains(t, err.Error(), "api secret already exists")
 		
 		// Verify mock expectations
 		freshMockExchangeRepo.AssertExpectations(t)

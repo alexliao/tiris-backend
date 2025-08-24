@@ -142,9 +142,9 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		// Setup mock expectations
 		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		// Database returns unique constraint error
+		// Database returns unique constraint error with specific constraint name
 		mockSubAccountRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"sub_accounts_exchange_name_active_unique\"")).Once()
 		
 		// Execute test
 		result, err := subAccountService.CreateSubAccount(context.Background(), userID, request)
@@ -413,9 +413,9 @@ func TestSubAccountService_UpdateSubAccount(t *testing.T) {
 		// Setup mock expectations
 		mockSubAccountRepo.On("GetByID", mock.Anything, subAccountID).
 			Return(testSubAccount, nil).Once()
-		// Database returns unique constraint error
+		// Database returns unique constraint error with specific constraint name
 		mockSubAccountRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"sub_accounts_exchange_name_active_unique\"")).Once()
 		
 		// Execute test
 		result, err := subAccountService.UpdateSubAccount(context.Background(), userID, subAccountID, request)

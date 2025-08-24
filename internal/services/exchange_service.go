@@ -84,9 +84,9 @@ func (s *ExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, 
 
 	// Save to database - let database constraints handle uniqueness validation
 	if err := s.repos.Exchange.Create(ctx, exchange); err != nil {
-		// Check for unique constraint violations and provide user-friendly messages
-		if isUniqueConstraintViolation(err) {
-			return nil, fmt.Errorf("exchange name already exists")
+		// Check for specific constraint violations and provide user-friendly messages
+		if constraintMsg := getSpecificConstraintViolation(err); constraintMsg != "" {
+			return nil, fmt.Errorf(constraintMsg)
 		}
 		return nil, fmt.Errorf("failed to create exchange: %w", err)
 	}
@@ -162,9 +162,9 @@ func (s *ExchangeService) UpdateExchange(ctx context.Context, userID, exchangeID
 
 	// Save updated exchange
 	if err := s.repos.Exchange.Update(ctx, exchange); err != nil {
-		// Check for unique constraint violations and provide user-friendly messages
-		if isUniqueConstraintViolation(err) {
-			return nil, fmt.Errorf("exchange name already exists")
+		// Check for specific constraint violations and provide user-friendly messages
+		if constraintMsg := getSpecificConstraintViolation(err); constraintMsg != "" {
+			return nil, fmt.Errorf(constraintMsg)
 		}
 		return nil, fmt.Errorf("failed to update exchange: %w", err)
 	}
