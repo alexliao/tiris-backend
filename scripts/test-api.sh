@@ -23,6 +23,12 @@
 # 1. Use --username to generate JWT dynamically from database user
 # 2. Set JWT_TOKEN environment variable: JWT_TOKEN=your_token ./scripts/test-api.sh
 # 3. Create a test user: ./scripts/create-test-user.sh --name "Your Name" (then use --username)
+#
+# DATABASE CONFIGURATION:
+# The script auto-detects database configuration, but you can override:
+# --container NAME    PostgreSQL container name (tiris-postgres-dev, tiris-postgres-simple, tiris-postgres-prod)
+# --database NAME     Database name (tiris_dev, tiris, tiris_prod)  
+# --db-user NAME      Database user (usually tiris_user)
 
 # JWT Access Token for API Authentication (will be set dynamically if --username is provided)
 JWT_TOKEN=""
@@ -59,6 +65,13 @@ print_warning() {
 
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
+}
+
+print_header() {
+    echo ""
+    echo "========================================" 
+    echo -e "${BLUE}$1${NC}"
+    echo "========================================"
 }
 
 # Function to check server connectivity
@@ -119,6 +132,9 @@ RUN_TESTS=true
 SHOW_HELP=false
 SKIP_TRADING_LOGS=false
 USERNAME=""
+DB_CONTAINER=""
+DB_DATABASE=""
+DB_USER=""
 
 # Parse arguments with proper handling of options that take values
 while [[ $# -gt 0 ]]; do
@@ -139,6 +155,36 @@ while [[ $# -gt 0 ]]; do
                 shift 2
             else
                 echo "Error: --username requires a username argument"
+                echo "Use --help for usage information"
+                exit 1
+            fi
+            ;;
+        --container)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                DB_CONTAINER="$2"
+                shift 2
+            else
+                echo "Error: --container requires a container name argument"
+                echo "Use --help for usage information"
+                exit 1
+            fi
+            ;;
+        --database)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                DB_DATABASE="$2"
+                shift 2
+            else
+                echo "Error: --database requires a database name argument"
+                echo "Use --help for usage information"
+                exit 1
+            fi
+            ;;
+        --db-user)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                DB_USER="$2"
+                shift 2
+            else
+                echo "Error: --db-user requires a database user argument"
                 echo "Use --help for usage information"
                 exit 1
             fi
@@ -167,6 +213,9 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --domain DOMAIN       Specify API domain (default: localhost:8080)"
             echo "  --username USERNAME   Generate JWT token for specific user (queries database)"
+            echo "  --container NAME      PostgreSQL container name (auto-detected if not specified)"
+            echo "  --database NAME       Database name (auto-detected if not specified)"
+            echo "  --db-user NAME        Database user (auto-detected if not specified)"
             echo "  --clean               Clean database (remove all user data)"
             echo "  --clean --test        Clean database then run API tests"
             echo "  --no-trading-logs     Skip trading log tests (faster execution)"
@@ -178,6 +227,8 @@ while [[ $# -gt 0 ]]; do
             echo "  $SCRIPT_NAME --domain backend.dev.tiris.ai     # Test remote server (HTTPS)"
             echo "  $SCRIPT_NAME --domain localhost:3000           # Test local server on port 3000 (HTTP)"
             echo "  $SCRIPT_NAME --username john --domain localhost:3000  # Generate JWT for 'john' and test port 3000"
+            echo "  $SCRIPT_NAME --container tiris-postgres-simple --username alex  # Use simple deployment container"
+            echo "  $SCRIPT_NAME --container tiris-postgres-prod --database tiris_prod --db-user tiris_user  # Production setup"
             echo "  $SCRIPT_NAME --no-trading-logs                 # Test without trading log operations"
             echo "  $SCRIPT_NAME --clean --domain localhost:8080   # Clean local database"
             echo "  $SCRIPT_NAME --clean --test                    # Clean then test localhost:8080"
@@ -194,14 +245,70 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Function to detect database configuration automatically
+detect_database_config() {
+    # Try to detect running containers and their configurations
+    local detected_container=""
+    local detected_database=""
+    local detected_user=""
+    
+    # Check for common container names in order of preference
+    local containers_to_try=("tiris-postgres-dev" "tiris-postgres-simple" "tiris-postgres-prod")
+    
+    for container in "${containers_to_try[@]}"; do
+        if docker ps --format "table {{.Names}}" | grep -q "^${container}$"; then
+            detected_container="$container"
+            break
+        fi
+    done
+    
+    # Set database and user based on container name
+    case "$detected_container" in
+        "tiris-postgres-dev")
+            detected_database="tiris_dev"
+            detected_user="tiris_user"
+            ;;
+        "tiris-postgres-simple")
+            detected_database="tiris"
+            detected_user="tiris_user"
+            ;;
+        "tiris-postgres-prod")
+            detected_database="tiris_prod"
+            detected_user="tiris_user"
+            ;;
+        *)
+            # Fallback to dev defaults if nothing found
+            detected_container="tiris-postgres-dev"
+            detected_database="tiris_dev"
+            detected_user="tiris_user"
+            ;;
+    esac
+    
+    # Set global variables if not already specified via command line
+    if [ -z "$DB_CONTAINER" ]; then
+        DB_CONTAINER="$detected_container"
+    fi
+    if [ -z "$DB_DATABASE" ]; then
+        DB_DATABASE="$detected_database"
+    fi
+    if [ -z "$DB_USER" ]; then
+        DB_USER="$detected_user"
+    fi
+}
+
 # Function to generate JWT token for a user by username
 generate_jwt_token_for_user() {
     local username="$1"
-    local container="tiris-postgres-dev"
-    local database="tiris_dev"  
-    local db_user="tiris_user"
+    
+    # Ensure database configuration is detected/set
+    detect_database_config
+    
+    local container="$DB_CONTAINER"
+    local database="$DB_DATABASE"
+    local db_user="$DB_USER"
     
     print_header "🔑 Generating JWT Token for User: $username"
+    print_status "Using database config: container=$container, database=$database, user=$db_user"
     
     # Check if Docker is available
     if ! command -v docker > /dev/null 2>&1; then
@@ -213,8 +320,21 @@ generate_jwt_token_for_user() {
     # Check if container is running
     if ! docker ps --format "table {{.Names}}" | grep -q "^${container}$"; then
         echo -e "${RED}❌ Database container '$container' is not running${NC}"
-        echo "Please start the development database first:"
-        echo "  make dev  # or docker-compose up postgres-dev"
+        echo "Please start the appropriate database first:"
+        case "$container" in
+            "tiris-postgres-dev")
+                echo "  make dev  # or docker-compose -f docker-compose.dev.yml up postgres"
+                ;;
+            "tiris-postgres-simple")
+                echo "  docker-compose -f docker-compose.simple.yml up postgres"
+                ;;
+            "tiris-postgres-prod")
+                echo "  docker-compose -f docker-compose.prod.yml up postgres"
+                ;;
+            *)
+                echo "  docker-compose up $container  # or start your custom container"
+                ;;
+        esac
         return 1
     fi
     
