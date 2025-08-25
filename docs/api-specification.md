@@ -563,75 +563,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 5.5 Deposit to Sub-account
-**Endpoint:** `POST /sub-accounts/{sub_account_id}/deposit`
-
-**Description:** Deposit funds to a sub-account.
-
-**Headers:**
-```
-Authorization: Bearer {jwt_token}
-```
-
-**Request Body:**
-```json
-{
-  "amount": "0.1",
-  "reason": "manual_deposit",
-  "info": {
-    "note": "Adding funds for new strategy"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "transaction_id": "tx123",
-    "amount": "0.1",
-    "new_balance": "0.6",
-    "timestamp": "2024-01-15T10:30:00Z"
-  }
-}
-```
-
-### 5.6 Withdraw from Sub-account
-**Endpoint:** `POST /sub-accounts/{sub_account_id}/withdraw`
-
-**Description:** Withdraw funds from a sub-account.
-
-**Headers:**
-```
-Authorization: Bearer {jwt_token}
-```
-
-**Request Body:**
-```json
-{
-  "amount": "0.05",
-  "reason": "manual_withdrawal",
-  "info": {
-    "note": "Reducing exposure"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "transaction_id": "tx124",
-    "amount": "0.05",
-    "new_balance": "0.55",
-    "timestamp": "2024-01-15T10:30:00Z"
-  }
-}
-```
-
-### 5.7 Delete Sub-account
+### 5.5 Delete Sub-account
 **Endpoint:** `DELETE /sub-accounts/{sub_account_id}`
 
 **Description:** Delete a sub-account (only if balance is zero).
@@ -914,6 +846,8 @@ Authorization: Bearer {admin_jwt_token}
 ```
 
 ## 8. Event Processing API
+
+**⚠️ TODO: This API section is planned but not yet implemented in the codebase**
 
 ### 8.1 Event Processing Status
 **Endpoint:** `GET /events/status`

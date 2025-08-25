@@ -95,9 +95,9 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	// Determine CORS origins based on environment
 	var allowedOrigins []string
 	if s.config.Environment == "production" {
-		allowedOrigins = []string{"https://tiris.ai"}
+		allowedOrigins = []string{"https://backend.tiris.ai"}
 	} else {
-		allowedOrigins = []string{"https://dev.tiris.ai", "http://localhost:3000"}
+		allowedOrigins = []string{"https://backend.dev.tiris.ai", "http://localhost:3000"}
 	}
 
 	// Global middleware
