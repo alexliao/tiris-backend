@@ -3,8 +3,8 @@
 ## 1. API Overview
 
 ### 1.1 Base Information
-- **Production URL**: `https://api.tiris.ai/v1`
-- **Development URL**: `https://api.dev.tiris.ai/v1`
+- **Production URL**: `https://backend.tiris.ai/v1`
+- **Development URL**: `https://backend.dev.tiris.ai/v1`
 - **Protocol**: HTTPS only
 - **Authentication**: JWT Bearer tokens
 - **Content Type**: `application/json`
@@ -70,7 +70,7 @@ All API responses follow a consistent format:
 ```json
 {
   "provider": "google|wechat",
-  "redirect_uri": "https://tiris.ai/callback"
+  "redirect_uri": "https://backend.tiris.ai/callback"
 }
 ```
 
@@ -1096,21 +1096,21 @@ X-RateLimit-Window: 3600
 ## 12. Resources
 
 ### 12.1 Domain Configuration
-- **Production API**: `https://api.tiris.ai/v1`
-- **Development API**: `https://api.dev.tiris.ai/v1`
-- **Frontend Portal**: `https://tiris.ai`
-- **Development Portal**: `https://dev.tiris.ai`
+- **Production API**: `https://backend.tiris.ai/v1`
+- **Development API**: `https://backend.dev.tiris.ai/v1`
+- **Frontend Portal**: `https://backend.tiris.ai`
+- **Development Portal**: `https://backend.dev.tiris.ai`
 
 ### 12.2 Environment-Specific Endpoints
 
 **Production OAuth Callbacks:**
-- Google: `https://tiris.ai/auth/google/callback`
-- WeChat: `https://tiris.ai/auth/wechat/callback`
+- Google: `https://backend.tiris.ai/auth/google/callback`
+- WeChat: `https://backend.tiris.ai/auth/wechat/callback`
 
 **Development OAuth Callbacks:**
-- Google: `https://dev.tiris.ai/auth/google/callback`
-- WeChat: `https://dev.tiris.ai/auth/wechat/callback`
+- Google: `https://backend.dev.tiris.ai/auth/google/callback`
+- WeChat: `https://backend.dev.tiris.ai/auth/wechat/callback`
 
 ### 12.3 CORS Configuration
-- Production allowed origins: `https://tiris.ai`
-- Development allowed origins: `https://dev.tiris.ai, http://localhost:3000`
+- Production allowed origins: `https://backend.tiris.ai`
+- Development allowed origins: `https://backend.dev.tiris.ai, http://localhost:3000`
