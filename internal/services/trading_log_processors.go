@@ -112,7 +112,7 @@ func (p *TradingLogProcessor) processBusinessLogicType(ctx context.Context, tx *
 		Info:         models.JSON(req.Info),
 	}
 
-	if err := p.repos.TradingLog.Create(ctx, tradingLogRecord); err != nil {
+	if err := tx.WithContext(ctx).Create(tradingLogRecord).Error; err != nil {
 		return nil, fmt.Errorf("failed to create trading log: %w", err)
 	}
 
@@ -153,7 +153,7 @@ func (p *TradingLogProcessor) processBusinessLogicType(ctx context.Context, tx *
 		updatedSubAccounts = accounts
 
 	case "deposit":
-		transactions, accounts, err := p.ProcessDeposit(ctx, tradingInfo, stockAccount, tradingLogInfo)
+		transactions, accounts, err := p.ProcessDeposit(ctx, tx, tradingInfo, stockAccount, tradingLogInfo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process deposit: %w", err)
 		}
@@ -314,7 +314,7 @@ func (p *TradingLogProcessor) ProcessShortPosition(ctx context.Context, tradingI
 }
 
 // ProcessDeposit handles deposit business logic
-func (p *TradingLogProcessor) ProcessDeposit(ctx context.Context, tradingInfo *TradingLogInfo, targetAccount *models.SubAccount, tradingLogInfo map[string]interface{}) ([]*models.Transaction, []*models.SubAccount, error) {
+func (p *TradingLogProcessor) ProcessDeposit(ctx context.Context, tx *gorm.DB, tradingInfo *TradingLogInfo, targetAccount *models.SubAccount, tradingLogInfo map[string]interface{}) ([]*models.Transaction, []*models.SubAccount, error) {
 	var transactions []*models.Transaction
 	var updatedAccounts []*models.SubAccount
 
@@ -322,11 +322,28 @@ func (p *TradingLogProcessor) ProcessDeposit(ctx context.Context, tradingInfo *T
 	depositAmount := tradingInfo.Volume // Amount is stored in Volume field
 	newBalance := targetAccount.Balance + depositAmount
 
-	// Create credit transaction for the deposit
-	transactionID, err := p.repos.SubAccount.UpdateBalance(ctx, targetAccount.ID, newBalance, depositAmount, "credit", "deposit", tradingLogInfo)
+	// Convert info to JSON for database function
+	infoJSON, err := json.Marshal(tradingLogInfo)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal trading log info: %w", err)
+	}
+	
+	// Create credit transaction for the deposit using transaction context
+	var transactionIDStr string
+	err = tx.WithContext(ctx).Raw(
+		"SELECT update_sub_account_balance(?, ?, ?, ?, ?, ?::jsonb)",
+		targetAccount.ID, newBalance, depositAmount, "credit", "deposit", string(infoJSON),
+	).Row().Scan(&transactionIDStr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to update target account balance: %w", err)
 	}
+	
+	// Parse the transaction ID
+	transactionUUID, err := uuid.Parse(transactionIDStr)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse transaction ID: %w", err)
+	}
+	transactionID := &transactionUUID
 
 	// Get the created transaction
 	if transactionID != nil {
