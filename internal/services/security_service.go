@@ -28,7 +28,7 @@ type SecurityService struct {
 func NewSecurityService(db *gorm.DB, redisClient *redis.Client, masterKey, signingKey string) (*SecurityService, error) {
 	rateLimiter := security.NewRateLimiter(redisClient, "tiris:security")
 	auditLogger := security.NewAuditLogger(db)
-	
+
 	apiKeyManager, err := security.NewAPIKeyManager(masterKey, signingKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create API key manager: %v", err)
@@ -209,10 +209,10 @@ func (ss *SecurityService) RotateAPIKey(ctx context.Context, userID, apiKeyID uu
 		&userID,
 		"",
 		map[string]interface{}{
-			"action":        "rotate",
-			"old_key_id":    existingKey.ID,
-			"new_key_id":    newKeyRecord.ID,
-			"api_key_name":  existingKey.Name,
+			"action":       "rotate",
+			"old_key_id":   existingKey.ID,
+			"new_key_id":   newKeyRecord.ID,
+			"api_key_name": existingKey.Name,
 		},
 		nil,
 	)

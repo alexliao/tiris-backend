@@ -87,11 +87,11 @@ func (m *MockOAuthManager) GetUserInfo(provider auth.OAuthProvider, token *oauth
 func TestAuthService_InitiateLogin(t *testing.T) {
 	// Setup test config
 	_ = config.GetProfileConfig(config.ProfileQuick)
-	
+
 	// Create mocks
 	mockJWTManager := &MockJWTManager{}
 	mockOAuthManager := &MockOAuthManager{}
-	
+
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
@@ -102,81 +102,81 @@ func TestAuthService_InitiateLogin(t *testing.T) {
 		OAuthToken:      &mocks.MockOAuthTokenRepository{},
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
-	
+
 	// Create service
 	authService := services.NewAuthService(repos, mockJWTManager, mockOAuthManager)
-	
+
 	// Test successful login initiation
 	t.Run("successful_google_login", func(t *testing.T) {
 		request := &services.LoginRequest{
 			Provider:    "google",
 			RedirectURL: "https://example.com/callback",
 		}
-		
+
 		expectedAuthURL := "https://accounts.google.com/oauth2/auth?client_id=test&redirect_uri=https://example.com/callback&state=test_state"
-		
+
 		// Setup mock expectations
 		mockOAuthManager.On("GetAuthURL", auth.ProviderGoogle, mock.AnythingOfType("string")).
 			Return(expectedAuthURL, nil).Once()
-		
+
 		// Execute test
 		result, err := authService.InitiateLogin(context.Background(), request)
-		
+
 		// Verify results
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, expectedAuthURL, result.AuthURL)
 		assert.NotEmpty(t, result.State)
-		
+
 		// Verify mock expectations
 		mockOAuthManager.AssertExpectations(t)
 	})
-	
+
 	// Test successful WeChat login initiation
 	t.Run("successful_wechat_login", func(t *testing.T) {
 		request := &services.LoginRequest{
 			Provider:    "wechat",
 			RedirectURL: "https://example.com/callback",
 		}
-		
+
 		expectedAuthURL := "https://open.weixin.qq.com/connect/oauth2/authorize?appid=test&redirect_uri=https://example.com/callback&state=test_state"
-		
+
 		// Setup mock expectations
 		mockOAuthManager.On("GetAuthURL", auth.ProviderWeChat, mock.AnythingOfType("string")).
 			Return(expectedAuthURL, nil).Once()
-		
+
 		// Execute test
 		result, err := authService.InitiateLogin(context.Background(), request)
-		
+
 		// Verify results
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, expectedAuthURL, result.AuthURL)
 		assert.NotEmpty(t, result.State)
-		
+
 		// Verify mock expectations
 		mockOAuthManager.AssertExpectations(t)
 	})
-	
+
 	// Test OAuth manager failure
 	t.Run("oauth_manager_failure", func(t *testing.T) {
 		request := &services.LoginRequest{
 			Provider:    "google",
 			RedirectURL: "https://example.com/callback",
 		}
-		
+
 		// Setup mock expectations
 		mockOAuthManager.On("GetAuthURL", auth.ProviderGoogle, mock.AnythingOfType("string")).
 			Return("", errors.New("oauth config error")).Once()
-		
+
 		// Execute test
 		result, err := authService.InitiateLogin(context.Background(), request)
-		
+
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to generate auth URL")
-		
+
 		// Verify mock expectations
 		mockOAuthManager.AssertExpectations(t)
 	})
@@ -189,7 +189,7 @@ func TestAuthService_HandleCallback(t *testing.T) {
 	mockOAuthManager := &MockOAuthManager{}
 	mockUserRepo := &mocks.MockUserRepository{}
 	mockOAuthTokenRepo := &mocks.MockOAuthTokenRepository{}
-	
+
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
@@ -200,10 +200,10 @@ func TestAuthService_HandleCallback(t *testing.T) {
 		OAuthToken:      mockOAuthTokenRepo,
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
-	
+
 	// Create service
 	authService := services.NewAuthService(repos, mockJWTManager, mockOAuthManager)
-	
+
 	// Test successful callback for new user
 	t.Run("successful_callback_new_user", func(t *testing.T) {
 		request := &services.CallbackRequest{
@@ -212,14 +212,14 @@ func TestAuthService_HandleCallback(t *testing.T) {
 			State:    "valid_state",
 		}
 		expectedState := "valid_state"
-		
+
 		// Create test OAuth token and user
 		oauthToken := &oauth2.Token{
 			AccessToken:  "access_token_123",
 			RefreshToken: "refresh_token_456",
 			Expiry:       time.Now().Add(time.Hour),
 		}
-		
+
 		oauthUser := &auth.OAuthUser{
 			ID:       "google_user_123",
 			Email:    "test@example.com",
@@ -227,43 +227,43 @@ func TestAuthService_HandleCallback(t *testing.T) {
 			Avatar:   "https://example.com/avatar.jpg",
 			Provider: "google",
 		}
-		
+
 		tokenPair := &auth.TokenPair{
 			AccessToken:  "jwt_access_token",
 			RefreshToken: "jwt_refresh_token",
 			TokenType:    "Bearer",
 			ExpiresIn:    3600,
 		}
-		
+
 		// Setup mock expectations
 		mockOAuthManager.On("ExchangeCodeForToken", auth.ProviderGoogle, "test_code_12345").
 			Return(oauthToken, nil).Once()
 		mockOAuthManager.On("GetUserInfo", auth.ProviderGoogle, oauthToken).
 			Return(oauthUser, nil).Once()
-		
+
 		// No existing OAuth token
 		mockOAuthTokenRepo.On("GetByProviderUserID", mock.Anything, "google", "google_user_123").
 			Return(nil, nil).Once()
-		
+
 		// No existing user by email
 		mockUserRepo.On("GetByEmail", mock.Anything, "test@example.com").
 			Return(nil, nil).Once()
-		
+
 		// Create new user
 		mockUserRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.User")).
 			Return(nil).Once()
-		
+
 		// Create OAuth token
 		mockOAuthTokenRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.OAuthToken")).
 			Return(nil).Once()
-		
+
 		// Generate JWT tokens
 		mockJWTManager.On("GenerateTokenPair", mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string"), "test@example.com", "user").
 			Return(tokenPair, nil).Once()
-		
+
 		// Execute test
 		result, err := authService.HandleCallback(context.Background(), request, expectedState)
-		
+
 		// Verify results
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -273,14 +273,14 @@ func TestAuthService_HandleCallback(t *testing.T) {
 		assert.Equal(t, int64(3600), result.ExpiresIn)
 		assert.NotNil(t, result.User)
 		assert.Equal(t, "test@example.com", result.User.Email)
-		
+
 		// Verify mock expectations
 		mockOAuthManager.AssertExpectations(t)
 		mockUserRepo.AssertExpectations(t)
 		mockOAuthTokenRepo.AssertExpectations(t)
 		mockJWTManager.AssertExpectations(t)
 	})
-	
+
 	// Test successful callback for existing user
 	t.Run("successful_callback_existing_user", func(t *testing.T) {
 		request := &services.CallbackRequest{
@@ -289,19 +289,19 @@ func TestAuthService_HandleCallback(t *testing.T) {
 			State:    "valid_state",
 		}
 		expectedState := "valid_state"
-		
+
 		userID := uuid.New()
 		userFactory := helpers.NewUserFactory()
 		existingUser := userFactory.WithEmail("existing@example.com")
 		existingUser.ID = userID
-		
+
 		// Create test OAuth token and user
 		oauthToken := &oauth2.Token{
 			AccessToken:  "new_access_token",
 			RefreshToken: "new_refresh_token",
 			Expiry:       time.Now().Add(time.Hour),
 		}
-		
+
 		oauthUser := &auth.OAuthUser{
 			ID:       "google_user_123",
 			Email:    "existing@example.com",
@@ -309,64 +309,64 @@ func TestAuthService_HandleCallback(t *testing.T) {
 			Avatar:   "https://example.com/new_avatar.jpg",
 			Provider: "google",
 		}
-		
+
 		existingOAuthToken := &models.OAuthToken{
 			UserID:         userID,
 			Provider:       "google",
 			ProviderUserID: "google_user_123",
 			AccessToken:    "old_access_token",
 		}
-		
+
 		tokenPair := &auth.TokenPair{
 			AccessToken:  "jwt_access_token",
 			RefreshToken: "jwt_refresh_token",
 			TokenType:    "Bearer",
 			ExpiresIn:    3600,
 		}
-		
+
 		// Setup mock expectations
 		mockOAuthManager.On("ExchangeCodeForToken", auth.ProviderGoogle, "test_code_12345").
 			Return(oauthToken, nil).Once()
 		mockOAuthManager.On("GetUserInfo", auth.ProviderGoogle, oauthToken).
 			Return(oauthUser, nil).Once()
-		
+
 		// Existing OAuth token found
 		mockOAuthTokenRepo.On("GetByProviderUserID", mock.Anything, "google", "google_user_123").
 			Return(existingOAuthToken, nil).Once()
-		
+
 		// Update OAuth token
 		mockOAuthTokenRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.OAuthToken")).
 			Return(nil).Once()
-		
+
 		// Get existing user
 		mockUserRepo.On("GetByID", mock.Anything, userID).
 			Return(existingUser, nil).Once()
-		
+
 		// Update user avatar
 		mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.User")).
 			Return(nil).Once()
-		
+
 		// Generate JWT tokens
 		mockJWTManager.On("GenerateTokenPair", userID, existingUser.Username, existingUser.Email, "user").
 			Return(tokenPair, nil).Once()
-		
+
 		// Execute test
 		result, err := authService.HandleCallback(context.Background(), request, expectedState)
-		
+
 		// Verify results
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, "jwt_access_token", result.AccessToken)
 		assert.Equal(t, userID, result.User.ID)
 		assert.Equal(t, existingUser.Email, result.User.Email)
-		
+
 		// Verify mock expectations
 		mockOAuthManager.AssertExpectations(t)
 		mockUserRepo.AssertExpectations(t)
 		mockOAuthTokenRepo.AssertExpectations(t)
 		mockJWTManager.AssertExpectations(t)
 	})
-	
+
 	// Test invalid state parameter
 	t.Run("invalid_state", func(t *testing.T) {
 		request := &services.CallbackRequest{
@@ -375,16 +375,16 @@ func TestAuthService_HandleCallback(t *testing.T) {
 			State:    "invalid_state",
 		}
 		expectedState := "valid_state"
-		
+
 		// Execute test
 		result, err := authService.HandleCallback(context.Background(), request, expectedState)
-		
+
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "invalid state parameter")
 	})
-	
+
 	// Test OAuth token exchange failure
 	t.Run("token_exchange_failure", func(t *testing.T) {
 		request := &services.CallbackRequest{
@@ -393,23 +393,23 @@ func TestAuthService_HandleCallback(t *testing.T) {
 			State:    "valid_state",
 		}
 		expectedState := "valid_state"
-		
+
 		// Setup mock expectations
 		mockOAuthManager.On("ExchangeCodeForToken", auth.ProviderGoogle, "invalid_code").
 			Return(nil, errors.New("invalid authorization code")).Once()
-		
+
 		// Execute test
 		result, err := authService.HandleCallback(context.Background(), request, expectedState)
-		
+
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to exchange code for token")
-		
+
 		// Verify mock expectations
 		mockOAuthManager.AssertExpectations(t)
 	})
-	
+
 	// Test user info retrieval failure
 	t.Run("user_info_failure", func(t *testing.T) {
 		request := &services.CallbackRequest{
@@ -418,25 +418,25 @@ func TestAuthService_HandleCallback(t *testing.T) {
 			State:    "valid_state",
 		}
 		expectedState := "valid_state"
-		
+
 		oauthToken := &oauth2.Token{
 			AccessToken: "access_token_123",
 		}
-		
+
 		// Setup mock expectations
 		mockOAuthManager.On("ExchangeCodeForToken", auth.ProviderGoogle, "test_code_12345").
 			Return(oauthToken, nil).Once()
 		mockOAuthManager.On("GetUserInfo", auth.ProviderGoogle, oauthToken).
 			Return(nil, errors.New("failed to get user info")).Once()
-		
+
 		// Execute test
 		result, err := authService.HandleCallback(context.Background(), request, expectedState)
-		
+
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to get user info")
-		
+
 		// Verify mock expectations
 		mockOAuthManager.AssertExpectations(t)
 	})
@@ -447,7 +447,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 	// Create mocks
 	mockJWTManager := &MockJWTManager{}
 	mockUserRepo := &mocks.MockUserRepository{}
-	
+
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
@@ -458,24 +458,24 @@ func TestAuthService_RefreshToken(t *testing.T) {
 		OAuthToken:      &mocks.MockOAuthTokenRepository{},
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
-	
+
 	// Create service
 	authService := services.NewAuthService(repos, mockJWTManager, &MockOAuthManager{})
-	
+
 	// Test successful token refresh
 	t.Run("successful_refresh", func(t *testing.T) {
 		userID := uuid.New()
 		refreshToken := "valid_refresh_token"
 		newAccessToken := "new_access_token"
-		
+
 		userFactory := helpers.NewUserFactory()
 		testUser := userFactory.WithEmail("test@example.com")
 		testUser.ID = userID
-		
+
 		request := &services.RefreshRequest{
 			RefreshToken: refreshToken,
 		}
-		
+
 		// Setup mock expectations
 		mockJWTManager.On("ValidateRefreshToken", refreshToken).
 			Return(userID, nil).Once()
@@ -483,10 +483,10 @@ func TestAuthService_RefreshToken(t *testing.T) {
 			Return(testUser, nil).Once()
 		mockJWTManager.On("RefreshToken", refreshToken, testUser.Username, testUser.Email, "user").
 			Return(newAccessToken, nil).Once()
-		
+
 		// Execute test
 		result, err := authService.RefreshToken(context.Background(), request)
-		
+
 		// Verify results
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -496,77 +496,77 @@ func TestAuthService_RefreshToken(t *testing.T) {
 		assert.Equal(t, int64(3600), result.ExpiresIn)
 		assert.Equal(t, userID, result.User.ID)
 		assert.Equal(t, testUser.Email, result.User.Email)
-		
+
 		// Verify mock expectations
 		mockJWTManager.AssertExpectations(t)
 		mockUserRepo.AssertExpectations(t)
 	})
-	
+
 	// Test invalid refresh token
 	t.Run("invalid_refresh_token", func(t *testing.T) {
 		refreshToken := "invalid_refresh_token"
-		
+
 		request := &services.RefreshRequest{
 			RefreshToken: refreshToken,
 		}
-		
+
 		// Setup mock expectations
 		mockJWTManager.On("ValidateRefreshToken", refreshToken).
 			Return(uuid.Nil, errors.New("invalid refresh token")).Once()
-		
+
 		// Execute test
 		result, err := authService.RefreshToken(context.Background(), request)
-		
+
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "invalid refresh token")
-		
+
 		// Verify mock expectations
 		mockJWTManager.AssertExpectations(t)
 	})
-	
+
 	// Test user not found
 	t.Run("user_not_found", func(t *testing.T) {
 		userID := uuid.New()
 		refreshToken := "valid_refresh_token"
-		
+
 		request := &services.RefreshRequest{
 			RefreshToken: refreshToken,
 		}
-		
+
 		// Setup mock expectations
 		mockJWTManager.On("ValidateRefreshToken", refreshToken).
 			Return(userID, nil).Once()
 		mockUserRepo.On("GetByID", mock.Anything, userID).
 			Return(nil, nil).Once() // User not found
-		
+
 		// Execute test
 		result, err := authService.RefreshToken(context.Background(), request)
-		
+
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "user not found")
-		
+
 		// Verify mock expectations
 		mockJWTManager.AssertExpectations(t)
 		mockUserRepo.AssertExpectations(t)
 	})
-	
+
 	// Test token refresh failure
 	t.Run("token_refresh_failure", func(t *testing.T) {
 		userID := uuid.New()
 		refreshToken := "valid_refresh_token"
-		
+
 		userFactory := helpers.NewUserFactory()
 		testUser := userFactory.WithEmail("test@example.com")
 		testUser.ID = userID
-		
+
 		request := &services.RefreshRequest{
 			RefreshToken: refreshToken,
 		}
-		
+
 		// Setup mock expectations
 		mockJWTManager.On("ValidateRefreshToken", refreshToken).
 			Return(userID, nil).Once()
@@ -574,15 +574,15 @@ func TestAuthService_RefreshToken(t *testing.T) {
 			Return(testUser, nil).Once()
 		mockJWTManager.On("RefreshToken", refreshToken, testUser.Username, testUser.Email, "user").
 			Return("", errors.New("failed to generate new token")).Once()
-		
+
 		// Execute test
 		result, err := authService.RefreshToken(context.Background(), request)
-		
+
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to refresh token")
-		
+
 		// Verify mock expectations
 		mockJWTManager.AssertExpectations(t)
 		mockUserRepo.AssertExpectations(t)
@@ -593,14 +593,14 @@ func TestAuthService_RefreshToken(t *testing.T) {
 func TestAuthService_Logout(t *testing.T) {
 	// Create service
 	authService := services.NewAuthService(&repositories.Repositories{}, &MockJWTManager{}, &MockOAuthManager{})
-	
+
 	// Test successful logout
 	t.Run("successful_logout", func(t *testing.T) {
 		userID := uuid.New()
-		
+
 		// Execute test
 		err := authService.Logout(context.Background(), userID)
-		
+
 		// Verify results - should always succeed for now
 		require.NoError(t, err)
 	})
@@ -622,11 +622,11 @@ func TestAuthService_Performance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance test in short mode")
 	}
-	
+
 	// Create mocks
 	mockJWTManager := &MockJWTManager{}
 	mockOAuthManager := &MockOAuthManager{}
-	
+
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
@@ -637,37 +637,37 @@ func TestAuthService_Performance(t *testing.T) {
 		OAuthToken:      &mocks.MockOAuthTokenRepository{},
 		EventProcessing: &mocks.MockEventProcessingRepository{},
 	}
-	
+
 	// Create service
 	authService := services.NewAuthService(repos, mockJWTManager, mockOAuthManager)
-	
+
 	t.Run("initiate_login_performance", func(t *testing.T) {
 		request := &services.LoginRequest{
 			Provider:    "google",
 			RedirectURL: "https://example.com/callback",
 		}
-		
+
 		expectedAuthURL := "https://accounts.google.com/oauth2/auth?test=1"
-		
+
 		// Setup mock for multiple calls
 		mockOAuthManager.On("GetAuthURL", auth.ProviderGoogle, mock.AnythingOfType("string")).
 			Return(expectedAuthURL, nil).Times(100)
-		
+
 		timer := helpers.NewPerformanceTimer()
 		timer.Start()
-		
+
 		// Run operation multiple times
 		for i := 0; i < 100; i++ {
 			_, err := authService.InitiateLogin(context.Background(), request)
 			require.NoError(t, err)
 		}
-		
+
 		timer.Stop()
-		
+
 		// Check performance within reasonable bounds
 		assert.Less(t, timer.Duration().Milliseconds(), int64(1000),
 			"100 InitiateLogin operations should complete within 1 second")
-		
+
 		mockOAuthManager.AssertExpectations(t)
 	})
 }

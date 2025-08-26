@@ -82,7 +82,7 @@ func (s *TradingLogService) CreateTradingLog(ctx context.Context, userID uuid.UU
 
 	// Convert the created trading log to response format
 	response := s.convertToTradingLogResponse(result.TradingLogRecord)
-	
+
 	// Add processing summary to the response if business logic was applied
 	if len(result.CreatedTransactions) > 0 {
 		// Add metadata about the processed transactions
@@ -91,7 +91,7 @@ func (s *TradingLogService) CreateTradingLog(ctx context.Context, userID uuid.UU
 		}
 		response.Info["processed_transactions"] = len(result.CreatedTransactions)
 		response.Info["updated_accounts"] = len(result.UpdatedSubAccounts)
-		
+
 		// Add transaction IDs for audit trail
 		var transactionIDs []string
 		for _, tx := range result.CreatedTransactions {

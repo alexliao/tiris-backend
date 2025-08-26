@@ -21,7 +21,7 @@ func getSpecificConstraintViolation(err error) string {
 		return ""
 	}
 	errStr := strings.ToLower(err.Error())
-	
+
 	// Check for specific constraint violations by examining constraint names
 	if strings.Contains(errStr, "exchanges_user_name_active_unique") {
 		return "exchange name already exists"
@@ -35,11 +35,11 @@ func getSpecificConstraintViolation(err error) string {
 	if strings.Contains(errStr, "sub_accounts_exchange_name_active_unique") {
 		return "sub-account name already exists for this exchange"
 	}
-	
+
 	// Fallback for generic unique constraint violations
 	if isUniqueConstraintViolation(err) {
 		return "unique constraint violation"
 	}
-	
+
 	return ""
 }

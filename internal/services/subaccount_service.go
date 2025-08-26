@@ -288,4 +288,3 @@ func (s *SubAccountService) convertToSubAccountResponse(subAccount *models.SubAc
 		UpdatedAt:  subAccount.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
-

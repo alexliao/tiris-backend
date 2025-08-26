@@ -87,12 +87,16 @@ func (p *TradingLogProcessor) processBusinessLogicType(ctx context.Context, tx *
 		return nil, fmt.Errorf("stock account not found")
 	}
 
-	currencyAccount, err := p.repos.SubAccount.GetByID(ctx, tradingInfo.CurrencyAccountID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get currency account: %w", err)
-	}
-	if currencyAccount == nil || currencyAccount.UserID != userID {
-		return nil, fmt.Errorf("currency account not found")
+	var currencyAccount *models.SubAccount
+	// For deposit/withdraw, currencyAccount is not needed
+	if req.Type != "deposit" && req.Type != "withdraw" {
+		currencyAccount, err = p.repos.SubAccount.GetByID(ctx, tradingInfo.CurrencyAccountID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get currency account: %w", err)
+		}
+		if currencyAccount == nil || currencyAccount.UserID != userID {
+			return nil, fmt.Errorf("currency account not found")
+		}
 	}
 
 	// Create the trading log record first
@@ -148,6 +152,22 @@ func (p *TradingLogProcessor) processBusinessLogicType(ctx context.Context, tx *
 		createdTransactions = transactions
 		updatedSubAccounts = accounts
 
+	case "deposit":
+		transactions, accounts, err := p.ProcessDeposit(ctx, tradingInfo, stockAccount, tradingLogInfo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process deposit: %w", err)
+		}
+		createdTransactions = transactions
+		updatedSubAccounts = accounts
+
+	case "withdraw":
+		transactions, accounts, err := p.ProcessWithdraw(ctx, tradingInfo, stockAccount, tradingLogInfo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process withdraw: %w", err)
+		}
+		createdTransactions = transactions
+		updatedSubAccounts = accounts
+
 	default:
 		return nil, fmt.Errorf("unsupported business logic type: %s", req.Type)
 	}
@@ -169,7 +189,7 @@ func (p *TradingLogProcessor) ProcessLongPosition(ctx context.Context, tradingIn
 
 	// Check if currency account has sufficient balance for debit
 	if currencyAccount.Balance < totalCost {
-		return nil, nil, fmt.Errorf("insufficient balance in currency account: required %.8f, available %.8f", 
+		return nil, nil, fmt.Errorf("insufficient balance in currency account: required %.8f, available %.8f",
 			totalCost, currencyAccount.Balance)
 	}
 
@@ -236,7 +256,7 @@ func (p *TradingLogProcessor) ProcessShortPosition(ctx context.Context, tradingI
 
 	// Check if stock account has sufficient balance for debit
 	if stockAccount.Balance < tradingInfo.Volume {
-		return nil, nil, fmt.Errorf("insufficient balance in stock account: required %.8f, available %.8f", 
+		return nil, nil, fmt.Errorf("insufficient balance in stock account: required %.8f, available %.8f",
 			tradingInfo.Volume, stockAccount.Balance)
 	}
 
@@ -289,6 +309,87 @@ func (p *TradingLogProcessor) ProcessShortPosition(ctx context.Context, tradingI
 	// Update currency account record
 	currencyAccount.Balance = newCurrencyBalance
 	updatedAccounts = append(updatedAccounts, currencyAccount)
+
+	return transactions, updatedAccounts, nil
+}
+
+// ProcessDeposit handles deposit business logic
+func (p *TradingLogProcessor) ProcessDeposit(ctx context.Context, tradingInfo *TradingLogInfo, targetAccount *models.SubAccount, tradingLogInfo map[string]interface{}) ([]*models.Transaction, []*models.SubAccount, error) {
+	var transactions []*models.Transaction
+	var updatedAccounts []*models.SubAccount
+
+	// Calculate new balance after deposit
+	depositAmount := tradingInfo.Volume // Amount is stored in Volume field
+	newBalance := targetAccount.Balance + depositAmount
+
+	// Create credit transaction for the deposit
+	transactionID, err := p.repos.SubAccount.UpdateBalance(ctx, targetAccount.ID, newBalance, depositAmount, "credit", "deposit", tradingLogInfo)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to update target account balance: %w", err)
+	}
+
+	// Get the created transaction
+	if transactionID != nil {
+		transaction, err := p.repos.Transaction.GetByID(ctx, *transactionID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get deposit transaction: %w", err)
+		}
+		if transaction != nil {
+			// Set additional fields for deposit transactions
+			price := 1.0 // Fixed price for deposits
+			transaction.Price = &price
+			transaction.QuoteSymbol = &tradingInfo.Stock // Currency is stored in Stock field
+			transactions = append(transactions, transaction)
+		}
+	}
+
+	// Update account record
+	targetAccount.Balance = newBalance
+	updatedAccounts = append(updatedAccounts, targetAccount)
+
+	return transactions, updatedAccounts, nil
+}
+
+// ProcessWithdraw handles withdraw business logic
+func (p *TradingLogProcessor) ProcessWithdraw(ctx context.Context, tradingInfo *TradingLogInfo, sourceAccount *models.SubAccount, tradingLogInfo map[string]interface{}) ([]*models.Transaction, []*models.SubAccount, error) {
+	var transactions []*models.Transaction
+	var updatedAccounts []*models.SubAccount
+
+	withdrawAmount := tradingInfo.Volume // Amount is stored in Volume field
+
+	// Check if source account has sufficient balance for withdrawal
+	if sourceAccount.Balance < withdrawAmount {
+		return nil, nil, fmt.Errorf("insufficient balance in source account: required %.8f, available %.8f",
+			withdrawAmount, sourceAccount.Balance)
+	}
+
+	// Calculate new balance after withdrawal
+	newBalance := sourceAccount.Balance - withdrawAmount
+
+	// Create debit transaction for the withdrawal
+	transactionID, err := p.repos.SubAccount.UpdateBalance(ctx, sourceAccount.ID, newBalance, withdrawAmount, "debit", "withdraw", tradingLogInfo)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to update source account balance: %w", err)
+	}
+
+	// Get the created transaction
+	if transactionID != nil {
+		transaction, err := p.repos.Transaction.GetByID(ctx, *transactionID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get withdraw transaction: %w", err)
+		}
+		if transaction != nil {
+			// Set additional fields for withdraw transactions
+			price := 1.0 // Fixed price for withdrawals
+			transaction.Price = &price
+			transaction.QuoteSymbol = &tradingInfo.Stock // Currency is stored in Stock field
+			transactions = append(transactions, transaction)
+		}
+	}
+
+	// Update account record
+	sourceAccount.Balance = newBalance
+	updatedAccounts = append(updatedAccounts, sourceAccount)
 
 	return transactions, updatedAccounts, nil
 }

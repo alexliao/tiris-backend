@@ -18,6 +18,13 @@ type TradingLogInfo struct {
 	Fee               float64   `json:"fee" binding:"gte=0"`
 }
 
+// DepositWithdrawInfo represents the structured info field for deposit/withdraw trading logs
+type DepositWithdrawInfo struct {
+	AccountID uuid.UUID `json:"account_id" binding:"required"`
+	Amount    float64   `json:"amount" binding:"required,gt=0"`
+	Currency  string    `json:"currency" binding:"required,min=1,max=20"`
+}
+
 // ValidationError represents a trading log validation error
 type ValidationError struct {
 	Field   string
@@ -59,6 +66,11 @@ func (v *TradingLogValidator) ValidateInfoStructure(info map[string]interface{},
 	if !v.isBusinessLogicType(logType) {
 		// For non-business logic types, we don't validate the structure
 		return nil, nil
+	}
+
+	// Handle deposit and withdraw types with simplified validation
+	if logType == "deposit" || logType == "withdraw" {
+		return v.validateDepositWithdrawInfo(info, logType)
 	}
 
 	// Extract and validate required fields
@@ -225,13 +237,94 @@ func (v *TradingLogValidator) ValidateInfoStructure(info map[string]interface{},
 	return tradingInfo, nil
 }
 
+// validateDepositWithdrawInfo validates info structure for deposit/withdraw operations
+func (v *TradingLogValidator) validateDepositWithdrawInfo(info map[string]interface{}, logType string) (*TradingLogInfo, error) {
+	// For deposit/withdraw, we need to create a TradingLogInfo with minimal fields set
+	// This allows the processor to work with a unified interface
+	tradingInfo := &TradingLogInfo{}
+
+	// Validate account_id (maps to StockAccountID for unified interface)
+	if accountIDRaw, exists := info["account_id"]; exists {
+		if accountIDStr, ok := accountIDRaw.(string); ok {
+			accountID, err := uuid.Parse(accountIDStr)
+			if err != nil {
+				return nil, &ValidationError{
+					Field:   "account_id",
+					Message: "must be a valid UUID",
+					Type:    logType,
+				}
+			}
+			// Use StockAccountID field for deposit/withdraw account
+			tradingInfo.StockAccountID = accountID
+		} else {
+			return nil, &ValidationError{
+				Field:   "account_id",
+				Message: "must be a string UUID",
+				Type:    logType,
+			}
+		}
+	} else {
+		return nil, &ValidationError{
+			Field:   "account_id",
+			Message: "is required",
+			Type:    logType,
+		}
+	}
+
+	// Validate amount (maps to Volume for unified interface)
+	if amountRaw, exists := info["amount"]; exists {
+		if amount, ok := v.extractFloat64(amountRaw); ok && amount > 0 {
+			tradingInfo.Volume = amount
+		} else {
+			return nil, &ValidationError{
+				Field:   "amount",
+				Message: "must be a positive number",
+				Type:    logType,
+			}
+		}
+	} else {
+		return nil, &ValidationError{
+			Field:   "amount",
+			Message: "is required",
+			Type:    logType,
+		}
+	}
+
+	// Validate currency
+	if currencyRaw, exists := info["currency"]; exists {
+		if currency, ok := currencyRaw.(string); ok && len(currency) > 0 && len(currency) <= 20 {
+			tradingInfo.Stock = currency // Use Stock field for currency in deposit/withdraw
+		} else {
+			return nil, &ValidationError{
+				Field:   "currency",
+				Message: "must be a non-empty string with maximum 20 characters",
+				Type:    logType,
+			}
+		}
+	} else {
+		return nil, &ValidationError{
+			Field:   "currency",
+			Message: "is required",
+			Type:    logType,
+		}
+	}
+
+	// Set default values for unused fields
+	tradingInfo.Price = 1.0                  // Not used in deposit/withdraw
+	tradingInfo.Fee = 0.0                    // No fees for deposit/withdraw
+	tradingInfo.Currency = ""                // Not used in deposit/withdraw
+	tradingInfo.CurrencyAccountID = uuid.Nil // Not used in deposit/withdraw
+
+	return tradingInfo, nil
+}
+
 // ValidateDecimalPrecision ensures financial values have appropriate precision
 func (v *TradingLogValidator) ValidateDecimalPrecision(value float64, fieldName string, maxDecimals int) error {
 	// For financial validation, use a more practical approach
 	// Convert with the maximum precision we care about plus one to detect excess
 	formatStr := fmt.Sprintf("%%.%df", maxDecimals+3)
 	valueStr := fmt.Sprintf(formatStr, value)
-	
+
 	// Find decimal point
 	decimalIndex := -1
 	for i, char := range valueStr {
@@ -240,17 +333,17 @@ func (v *TradingLogValidator) ValidateDecimalPrecision(value float64, fieldName 
 			break
 		}
 	}
-	
+
 	if decimalIndex != -1 && decimalIndex < len(valueStr)-1 {
 		// Get the decimal part
 		decimalPart := valueStr[decimalIndex+1:]
-		
+
 		// Remove trailing zeros
 		decimalPart = trimTrailingZeros(decimalPart)
-		
+
 		// Count significant decimal places
 		decimals := len(decimalPart)
-		
+
 		if decimals > maxDecimals {
 			return &ValidationError{
 				Field:   fieldName,
@@ -259,7 +352,7 @@ func (v *TradingLogValidator) ValidateDecimalPrecision(value float64, fieldName 
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -278,6 +371,8 @@ func (v *TradingLogValidator) isBusinessLogicType(logType string) bool {
 		"long":      true,
 		"short":     true,
 		"stop_loss": true,
+		"deposit":   true,
+		"withdraw":  true,
 	}
 	return businessLogicTypes[logType]
 }
@@ -285,7 +380,7 @@ func (v *TradingLogValidator) isBusinessLogicType(logType string) bool {
 // extractFloat64 safely extracts float64 from interface{} with support for int and float types
 func (v *TradingLogValidator) extractFloat64(value interface{}) (float64, bool) {
 	val := reflect.ValueOf(value)
-	
+
 	switch val.Kind() {
 	case reflect.Float32, reflect.Float64:
 		return val.Float(), true

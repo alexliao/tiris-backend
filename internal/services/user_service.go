@@ -178,10 +178,10 @@ func (s *UserService) GetUserStats(ctx context.Context, userID uuid.UUID) (map[s
 	// In a real implementation, you'd add a method to get transaction count by date range
 
 	stats := map[string]interface{}{
-		"total_exchanges":    len(exchanges),
-		"total_subaccounts":  len(subAccounts),
-		"total_balance":      totalBalance,
-		"active_exchanges":   len(exchanges), // Assuming all are active for now
+		"total_exchanges":   len(exchanges),
+		"total_subaccounts": len(subAccounts),
+		"total_balance":     totalBalance,
+		"active_exchanges":  len(exchanges), // Assuming all are active for now
 	}
 
 	return stats, nil

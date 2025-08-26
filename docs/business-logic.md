@@ -32,6 +32,8 @@ This specification covers the business logic for processing the following tradin
 - Long positions (`long`)
 - Short positions (`short`)
 - Stop-loss orders (`stop_loss`)
+- Fund deposits (`deposit`)
+- Fund withdrawals (`withdraw`)
 
 ## Trading Log Processing
 
@@ -86,6 +88,27 @@ All operations for a single trading log must be processed within an atomic datab
 
 **Processing Rules**: Same as short position, but with `reason="stop_loss"` for audit trail differentiation
 
+### 4. Deposit (`deposit`)
+
+**Description**: Adding funds to a sub-account from an external source, increasing the account balance.
+
+**Financial Impact**:
+- **Target Account**: Credit with deposited amount
+
+**Processing Rules**:
+1. Credit the specified sub-account with the deposit amount
+
+### 5. Withdraw (`withdraw`)
+
+**Description**: Removing funds from a sub-account to an external destination, decreasing the account balance.
+
+**Financial Impact**:
+- **Source Account**: Debit with withdrawn amount
+
+**Processing Rules**:
+1. Verify sufficient balance in the source sub-account
+2. Debit the specified sub-account with the withdrawal amount
+
 ## Data Structures
 
 ### Trading Log Info Field Schema
@@ -114,7 +137,7 @@ Each trading log generates transactions with the following structure:
   "closing_balance": "number",
   "price": "number",
   "quote_symbol": "string",
-  "reason": "long|short|stop_loss",
+  "reason": "long|short|stop_loss|deposit|withdraw",
   "info": "object"  // Complete trading log JSON record
 }
 ```
@@ -138,6 +161,18 @@ Each trading log generates transactions with the following structure:
 ### Stop-Loss Processing
 
 Identical to short position processing with `reason="stop_loss"` for transaction records.
+
+### Deposit Processing
+
+| Account Type | Transaction | Amount | Direction | Closing Balance |
+|-------------|-------------|--------|-----------|----------------|
+| Target Account | Fund Addition | `amount` | Credit | `current_balance + amount` |
+
+### Withdraw Processing
+
+| Account Type | Transaction | Amount | Direction | Closing Balance |
+|-------------|-------------|--------|-----------|----------------|
+| Source Account | Fund Removal | `amount` | Debit | `current_balance - amount` |
 
 ## Error Handling
 
@@ -227,6 +262,46 @@ Identical to short position processing with `reason="stop_loss"` for transaction
 **Generated Transactions**:
 1. ETH Account: -1.5 ETH (debit)
 2. USDT Account: +4,491.00 USDT (credit: 3000 × 1.5 - 9)
+
+### Example 3: Deposit
+
+**Request**:
+```json
+{
+  "exchange_id": "123e4567-e89b-12d3-a456-426614174000",
+  "type": "deposit",
+  "source": "api",
+  "message": "USDT deposit to account",
+  "info": {
+    "account_id": "usdt-account-uuid",
+    "amount": 1000.00,
+    "currency": "USDT"
+  }
+}
+```
+
+**Generated Transactions**:
+1. USDT Account: +1,000.00 USDT (credit)
+
+### Example 4: Withdraw
+
+**Request**:
+```json
+{
+  "exchange_id": "123e4567-e89b-12d3-a456-426614174000",
+  "type": "withdraw",
+  "source": "api", 
+  "message": "USDT withdrawal from account",
+  "info": {
+    "account_id": "usdt-account-uuid",
+    "amount": 500.00,
+    "currency": "USDT"
+  }
+}
+```
+
+**Generated Transactions**:
+1. USDT Account: -500.00 USDT (debit)
 
 ---
 
