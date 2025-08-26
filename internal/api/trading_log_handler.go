@@ -25,16 +25,69 @@ func NewTradingLogHandler(tradingLogService *services.TradingLogService) *Tradin
 
 // CreateTradingLog creates a new trading log entry
 // @Summary Create trading log
-// @Description Creates a new trading log entry for the authenticated user
+// @Description Creates a new trading log entry for the authenticated user. 
+// @Description 
+// @Description **Important**: The 'info' field structure must match the 'type' field:
+// @Description 
+// @Description **Business Logic Types** (trigger automatic financial calculations):
+// @Description 
+// @Description **For long/short/stop_loss types** - Required fields in 'info':
+// @Description - stock_account_id (string): Sub-account UUID for the asset (e.g., ETH account)
+// @Description - currency_account_id (string): Sub-account UUID for the currency (e.g., USDT account)  
+// @Description - price (number): Price per unit (must be positive, up to 8 decimal places)
+// @Description - volume (number): Quantity traded (must be positive, up to 8 decimal places)
+// @Description - stock (string): Asset symbol, 1-20 characters (e.g., "ETH")
+// @Description - currency (string): Currency symbol, 1-20 characters (e.g., "USDT")
+// @Description - fee (number): Trading fee (must be non-negative, up to 8 decimal places)
+// @Description 
+// @Description **For deposit/withdraw types** - Required fields in 'info':
+// @Description - account_id (string): Target sub-account UUID for the operation
+// @Description - amount (number): Amount to deposit/withdraw (must be positive, up to 8 decimal places)
+// @Description - currency (string): Currency symbol, 1-20 characters (e.g., "USDT")
+// @Description 
+// @Description **Request Examples**:
+// @Description 
+// @Description **Long Position Example:**
+// @Description <pre><code>{
+// @Description ⠀⠀"exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+// @Description ⠀⠀"type": "long", 
+// @Description ⠀⠀"source": "bot",
+// @Description ⠀⠀"message": "ETH long position opened",
+// @Description ⠀⠀"info": {
+// @Description ⠀⠀⠀⠀"stock_account_id": "eth-account-uuid",
+// @Description ⠀⠀⠀⠀"currency_account_id": "usdt-account-uuid", 
+// @Description ⠀⠀⠀⠀"price": 3000.00,
+// @Description ⠀⠀⠀⠀"volume": 2.0,
+// @Description ⠀⠀⠀⠀"stock": "ETH",
+// @Description ⠀⠀⠀⠀"currency": "USDT",
+// @Description ⠀⠀⠀⠀"fee": 12.00
+// @Description ⠀⠀}
+// @Description }</code></pre>
+// @Description 
+// @Description **Deposit Example:**
+// @Description <pre><code>{
+// @Description ⠀⠀"exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+// @Description ⠀⠀"type": "deposit",
+// @Description ⠀⠀"source": "api", 
+// @Description ⠀⠀"message": "USDT deposit to account",
+// @Description ⠀⠀"info": {
+// @Description ⠀⠀⠀⠀"account_id": "usdt-account-uuid",
+// @Description ⠀⠀⠀⠀"amount": 1000.00,
+// @Description ⠀⠀⠀⠀"currency": "USDT"
+// @Description ⠀⠀}
+// @Description }</code></pre>
+// @Description 
+// @Description **Other Types**: Can use any object structure in the 'info' field
 // @Tags TradingLogs
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param request body services.CreateTradingLogRequest true "Create trading log request"
 // @Success 201 {object} services.TradingLogResponse
-// @Failure 400 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "Bad Request - Invalid request format, missing required fields, or incorrect 'info' structure for the specified 'type'. Common validation errors: Missing required 'info' fields for business logic types, Invalid data types or values in 'info' fields, Non-existent sub-account IDs referenced in 'info' fields"
 // @Failure 401 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse "Not Found - Exchange ID or sub-account IDs referenced in 'info' field do not exist"
+// @Failure 422 {object} ErrorResponse "Unprocessable Entity - Business logic validation failed (e.g., insufficient balance for withdraw operations)"
 // @Failure 500 {object} ErrorResponse
 // @Router /trading-logs [post]
 func (h *TradingLogHandler) CreateTradingLog(c *gin.Context) {

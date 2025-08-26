@@ -43,14 +43,38 @@ type TradingLogResponse struct {
 }
 
 // CreateTradingLogRequest represents trading log creation request
+// @Description Request for creating a new trading log entry. The 'info' field structure depends on the 'type' value:
+// @Description - For types 'long', 'short', 'stop_loss': Must use TradingLogInfo structure
+// @Description - For types 'deposit', 'withdraw': Must use DepositWithdrawInfo structure  
+// @Description - For other types: Can use any object structure
 type CreateTradingLogRequest struct {
-	ExchangeID    uuid.UUID              `json:"exchange_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
-	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty" example:"b4e006d0-1069-4ef4-b33f-7690af4929f4"`
-	TransactionID *uuid.UUID             `json:"transaction_id,omitempty" example:"1a098613-e738-447d-b921-74c3594df3a5"`
-	Type          string                 `json:"type" binding:"required,min=1,max=50" example:"trade_execution"`
-	Source        string                 `json:"source" binding:"required,oneof=manual bot" example:"bot"`
-	Message       string                 `json:"message" binding:"required,min=1" example:"Successfully executed BUY order for 0.5 BTC at $42,500"`
-	Info          map[string]interface{} `json:"info,omitempty"`
+	ExchangeID    uuid.UUID              `json:"exchange_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c" description:"ID of the exchange where the trading activity occurred"`
+	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty" example:"b4e006d0-1069-4ef4-b33f-7690af4929f4" description:"Optional sub-account ID (used for some trading log types)"`
+	TransactionID *uuid.UUID             `json:"transaction_id,omitempty" example:"1a098613-e738-447d-b921-74c3594df3a5" description:"Optional transaction ID for linking to specific transactions"`
+	Type          string                 `json:"type" binding:"required,min=1,max=50" example:"long" enums:"long,short,stop_loss,deposit,withdraw,trade_execution,api_call,system_event,error,custom" description:"Type of trading log entry. Business logic types (long, short, stop_loss, deposit, withdraw) require specific 'info' field structures and trigger automatic financial calculations"`
+	Source        string                 `json:"source" binding:"required,oneof=manual bot" example:"bot" description:"Source of the trading log entry"`
+	Message       string                 `json:"message" binding:"required,min=1" example:"Successfully executed BUY order for 0.5 BTC at $42,500" description:"Human-readable description of the trading activity"`
+	Info          map[string]interface{} `json:"info,omitempty" description:"Type-specific structured data. Required structure depends on the 'type' field: long/short/stop_loss: Use TradingLogInfo schema, deposit/withdraw: Use DepositWithdrawInfo schema, other types: Any object structure"`
+}
+
+// CreateLongTradingLogExample shows example structure for long trading log requests
+// @Description Example request structure for creating a long position trading log
+type CreateLongTradingLogExample struct {
+	ExchangeID uuid.UUID              `json:"exchange_id" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
+	Type       string                 `json:"type" example:"long"`
+	Source     string                 `json:"source" example:"bot"`
+	Message    string                 `json:"message" example:"ETH long position opened"`
+	Info       TradingLogInfo         `json:"info"`
+}
+
+// CreateDepositTradingLogExample shows example structure for deposit trading log requests  
+// @Description Example request structure for creating a deposit trading log
+type CreateDepositTradingLogExample struct {
+	ExchangeID uuid.UUID              `json:"exchange_id" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
+	Type       string                 `json:"type" example:"deposit"`
+	Source     string                 `json:"source" example:"api"`
+	Message    string                 `json:"message" example:"USDT deposit to account"`
+	Info       DepositWithdrawInfo    `json:"info"`
 }
 
 // TradingLogQueryRequest represents trading log query parameters

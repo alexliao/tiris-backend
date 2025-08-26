@@ -1553,7 +1553,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new trading log entry for the authenticated user",
+                "description": "Creates a new trading log entry for the authenticated user.\n\n**Important**: The 'info' field structure must match the 'type' field:\n\n**Business Logic Types** (trigger automatic financial calculations):\n\n**For long/short/stop_loss types** - Required fields in 'info':\n- stock_account_id (string): Sub-account UUID for the asset (e.g., ETH account)\n- currency_account_id (string): Sub-account UUID for the currency (e.g., USDT account)\n- price (number): Price per unit (must be positive, up to 8 decimal places)\n- volume (number): Quantity traded (must be positive, up to 8 decimal places)\n- stock (string): Asset symbol, 1-20 characters (e.g., \"ETH\")\n- currency (string): Currency symbol, 1-20 characters (e.g., \"USDT\")\n- fee (number): Trading fee (must be non-negative, up to 8 decimal places)\n\n**For deposit/withdraw types** - Required fields in 'info':\n- account_id (string): Target sub-account UUID for the operation\n- amount (number): Amount to deposit/withdraw (must be positive, up to 8 decimal places)\n- currency (string): Currency symbol, 1-20 characters (e.g., \"USDT\")\n\n**Request Examples**:\n\n**Long Position Example:**\n\u003cpre\u003e\u003ccode\u003e{\n⠀⠀\"exchange_id\": \"453f0347-3959-49de-8e3f-1cf7c8e0827c\",\n⠀⠀\"type\": \"long\",\n⠀⠀\"source\": \"bot\",\n⠀⠀\"message\": \"ETH long position opened\",\n⠀⠀\"info\": {\n⠀⠀⠀⠀\"stock_account_id\": \"eth-account-uuid\",\n⠀⠀⠀⠀\"currency_account_id\": \"usdt-account-uuid\",\n⠀⠀⠀⠀\"price\": 3000.00,\n⠀⠀⠀⠀\"volume\": 2.0,\n⠀⠀⠀⠀\"stock\": \"ETH\",\n⠀⠀⠀⠀\"currency\": \"USDT\",\n⠀⠀⠀⠀\"fee\": 12.00\n⠀⠀}\n}\u003c/code\u003e\u003c/pre\u003e\n\n**Deposit Example:**\n\u003cpre\u003e\u003ccode\u003e{\n⠀⠀\"exchange_id\": \"453f0347-3959-49de-8e3f-1cf7c8e0827c\",\n⠀⠀\"type\": \"deposit\",\n⠀⠀\"source\": \"api\",\n⠀⠀\"message\": \"USDT deposit to account\",\n⠀⠀\"info\": {\n⠀⠀⠀⠀\"account_id\": \"usdt-account-uuid\",\n⠀⠀⠀⠀\"amount\": 1000.00,\n⠀⠀⠀⠀\"currency\": \"USDT\"\n⠀⠀}\n}\u003c/code\u003e\u003c/pre\u003e\n\n**Other Types**: Can use any object structure in the 'info' field",
                 "consumes": [
                     "application/json"
                 ],
@@ -1583,7 +1583,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Invalid request format, missing required fields, or incorrect 'info' structure for the specified 'type'. Common validation errors: Missing required 'info' fields for business logic types, Invalid data types or values in 'info' fields, Non-existent sub-account IDs referenced in 'info' fields",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1595,7 +1595,13 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Not Found - Exchange ID or sub-account IDs referenced in 'info' field do not exist",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity - Business logic validation failed (e.g., insufficient balance for withdraw operations)",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -3054,6 +3060,7 @@ const docTemplate = `{
             }
         },
         "services.CreateTradingLogRequest": {
+            "description": "Request for creating a new trading log entry. The 'info' field structure depends on the 'type' value: - For types 'long', 'short', 'stop_loss': Must use TradingLogInfo structure - For types 'deposit', 'withdraw': Must use DepositWithdrawInfo structure - For other types: Can use any object structure",
             "type": "object",
             "required": [
                 "exchange_id",
@@ -3095,7 +3102,19 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 1,
-                    "example": "trade_execution"
+                    "enum": [
+                        "long",
+                        "short",
+                        "stop_loss",
+                        "deposit",
+                        "withdraw",
+                        "trade_execution",
+                        "api_call",
+                        "system_event",
+                        "error",
+                        "custom"
+                    ],
+                    "example": "long"
                 }
             }
         },

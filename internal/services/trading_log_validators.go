@@ -7,22 +7,24 @@ import (
 	"github.com/google/uuid"
 )
 
-// TradingLogInfo represents the structured info field for trading logs
+// TradingLogInfo represents the structured info field for long, short, and stop_loss trading logs
+// @Description Required info structure for long, short, and stop_loss trading log types
 type TradingLogInfo struct {
-	StockAccountID    uuid.UUID `json:"stock_account_id" binding:"required"`
-	CurrencyAccountID uuid.UUID `json:"currency_account_id" binding:"required"`
-	Price             float64   `json:"price" binding:"required,gt=0"`
-	Volume            float64   `json:"volume" binding:"required,gt=0"`
-	Stock             string    `json:"stock" binding:"required,min=1,max=20"`
-	Currency          string    `json:"currency" binding:"required,min=1,max=20"`
-	Fee               float64   `json:"fee" binding:"gte=0"`
+	StockAccountID    uuid.UUID `json:"stock_account_id" binding:"required" example:"eth-account-uuid" description:"Sub-account ID for the asset (e.g., ETH account)"`
+	CurrencyAccountID uuid.UUID `json:"currency_account_id" binding:"required" example:"usdt-account-uuid" description:"Sub-account ID for the currency (e.g., USDT account)"`
+	Price             float64   `json:"price" binding:"required,gt=0" example:"3000.00" description:"Price per unit (must be positive)"`
+	Volume            float64   `json:"volume" binding:"required,gt=0" example:"2.0" description:"Quantity traded (must be positive)"`
+	Stock             string    `json:"stock" binding:"required,min=1,max=20" example:"ETH" description:"Asset symbol for the trading pair"`
+	Currency          string    `json:"currency" binding:"required,min=1,max=20" example:"USDT" description:"Currency symbol for the trading pair"`
+	Fee               float64   `json:"fee" binding:"gte=0" example:"12.00" description:"Trading fee (must be non-negative)"`
 }
 
-// DepositWithdrawInfo represents the structured info field for deposit/withdraw trading logs
+// DepositWithdrawInfo represents the structured info field for deposit and withdraw trading logs
+// @Description Required info structure for deposit and withdraw trading log types
 type DepositWithdrawInfo struct {
-	AccountID uuid.UUID `json:"account_id" binding:"required"`
-	Amount    float64   `json:"amount" binding:"required,gt=0"`
-	Currency  string    `json:"currency" binding:"required,min=1,max=20"`
+	AccountID uuid.UUID `json:"account_id" binding:"required" example:"usdt-account-uuid" description:"Target sub-account ID for the deposit/withdraw operation"`
+	Amount    float64   `json:"amount" binding:"required,gt=0" example:"1000.00" description:"Amount to deposit or withdraw (must be positive)"`
+	Currency  string    `json:"currency" binding:"required,min=1,max=20" example:"USDT" description:"Currency symbol for the operation"`
 }
 
 // ValidationError represents a trading log validation error

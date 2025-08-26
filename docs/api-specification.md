@@ -737,40 +737,121 @@ Authorization: Bearer {jwt_token}
 
 **Description:** Add a new trading log entry manually. Note: Most trading logs are created automatically from NATS events sent by tiris-bot.
 
+**⚠️ Important:** The `info` field structure must match the `type` field value. Certain trading log types trigger automatic financial calculations and require specific structured data.
+
 **Headers:**
 ```
 Authorization: Bearer {jwt_token}
 ```
 
-**Request Body:**
+#### Complete Request Structure
+
+**Required Fields:**
+- `exchange_id` (string): UUID of the exchange where trading activity occurred  
+- `type` (string): Trading log type (1-50 characters, enum values: `long`, `short`, `stop_loss`, `deposit`, `withdraw`, `trade_execution`, `api_call`, `system_event`, `error`, `custom`)
+- `source` (string): Source of the entry (`manual` or `bot`)
+- `message` (string): Human-readable description (minimum 1 character)
+
+**Optional Fields:**
+- `sub_account_id` (string): Sub-account UUID (used for some trading log types)
+- `transaction_id` (string): Transaction UUID for linking to specific transactions
+- `info` (object): Type-specific structured data (structure depends on `type` field)
+
+#### Business Logic Types
+For these types, the backend automatically performs financial calculations and account balance updates:
+
+**Long Position (`type: "long"`)** - Required `info` fields:
 ```json
 {
-  "type": "buy_order",
-  "source": "bot",
-  "message": "Executed buy order for 0.001 BTC",
-  "sub_account_id": "sub123",
-  "exchange_id": "exchange123",
+  "stock_account_id": "eth-account-uuid",        // Sub-account UUID for the asset (required, valid UUID)
+  "currency_account_id": "usdt-account-uuid",   // Sub-account UUID for the currency (required, valid UUID)
+  "price": 3000.00,                             // Price per unit (required, must be > 0)
+  "volume": 2.0,                                // Quantity traded (required, must be > 0)
+  "stock": "ETH",                               // Asset symbol (required, 1-20 characters)
+  "currency": "USDT",                           // Currency symbol (required, 1-20 characters)
+  "fee": 12.00                                  // Trading fee (required, must be >= 0)
+}
+```
+
+**Short Position (`type: "short"`)** - Required `info` fields:
+- Same as long position structure above
+
+**Stop-Loss (`type: "stop_loss"`)** - Required `info` fields:
+- Same as long position structure above
+
+**Deposit (`type: "deposit"`)** - Required `info` fields:
+```json
+{
+  "account_id": "usdt-account-uuid",    // Target sub-account UUID (required, valid UUID)
+  "amount": 1000.00,                    // Amount to deposit (required, must be > 0)
+  "currency": "USDT"                    // Currency symbol (required, 1-20 characters)
+}
+```
+
+**Withdraw (`type: "withdraw"`)** - Required `info` fields:
+```json
+{
+  "account_id": "usdt-account-uuid",    // Source sub-account UUID (required, valid UUID)
+  "amount": 500.00,                     // Amount to withdraw (required, must be > 0)
+  "currency": "USDT"                    // Currency symbol (required, 1-20 characters)
+}
+```
+
+#### Other Types
+For non-business logic types (`trade_execution`, `api_call`, `system_event`, `error`, `custom`), the `info` field can contain any object structure.
+
+#### Request Examples
+
+**Long Position Request:**
+```json
+{
+  "exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+  "type": "long",
+  "source": "bot", 
+  "message": "ETH long position opened",
   "info": {
-    "order_id": "order456",
-    "symbol": "BTC/USD",
-    "price": "45000.00",
-    "quantity": "0.001",
-    "transaction_data": {
-      "direction": "debit",
-      "reason": "long_entry",
-      "amount": "45.00",
-      "new_balance": "955.00"
-    }
+    "stock_account_id": "eth-account-uuid",
+    "currency_account_id": "usdt-account-uuid",
+    "price": 3000.00,
+    "volume": 2.0,
+    "stock": "ETH",
+    "currency": "USDT",
+    "fee": 12.00
   }
 }
 ```
 
-**Note on Balance Updates:**
-When `transaction_data` is included, the backend will:
-1. Create a trading log entry
-2. Automatically create a transaction record
-3. Update the sub-account balance to `new_balance` value
-4. The bot is responsible for calculating the correct new balance
+**Deposit Request:**
+```json
+{
+  "exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+  "type": "deposit",
+  "source": "api",
+  "message": "USDT deposit to account", 
+  "info": {
+    "account_id": "usdt-account-uuid",
+    "amount": 1000.00,
+    "currency": "USDT"
+  }
+}
+```
+
+**Custom Type Request:**
+```json
+{
+  "exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+  "type": "custom",
+  "source": "bot",
+  "message": "Custom trading event",
+  "info": {
+    "custom_field": "any_value",
+    "metadata": {
+      "strategy": "momentum",
+      "confidence": 0.85
+    }
+  }
+}
+```
 
 **Response:**
 ```json
@@ -779,12 +860,38 @@ When `transaction_data` is included, the backend will:
   "data": {
     "id": "log123",
     "timestamp": "2024-01-15T10:30:00Z",
-    "type": "buy_order",
-    "source": "manual",
-    "message": "Manual buy order for 0.001 BTC",
+    "type": "long",
+    "source": "bot",
+    "message": "ETH long position opened",
     "transaction_id": "tx123",
-    "sub_account_id": "sub123",
-    "exchange_id": "exchange123"
+    "sub_account_id": null,
+    "exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c"
+  }
+}
+```
+
+#### Error Responses
+
+**400 Bad Request** - Invalid `info` structure:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_INFO_STRUCTURE",
+    "message": "Required field 'stock_account_id' missing for trading log type 'long'",
+    "details": "Business logic types require specific info field structures"
+  }
+}
+```
+
+**422 Unprocessable Entity** - Business logic validation failed:
+```json
+{
+  "success": false, 
+  "error": {
+    "code": "INSUFFICIENT_BALANCE",
+    "message": "Insufficient balance for withdraw operation",
+    "details": "Account balance: 100.00, requested withdrawal: 500.00"
   }
 }
 ```
@@ -983,6 +1090,7 @@ Authorization: Bearer {admin_jwt_token}
 - `NOT_FOUND`: Resource not found (404)
 - `INSUFFICIENT_BALANCE`: Not enough balance (400)
 - `EXCHANGE_ERROR`: Exchange API error (502)
+- `INVALID_INFO_STRUCTURE`: Trading log info field structure invalid (400)
 
 ### 9.5 System Errors
 - `INTERNAL_ERROR`: Internal server error (500)
