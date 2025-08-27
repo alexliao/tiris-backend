@@ -89,15 +89,6 @@ func (h *ExchangeHandler) CreateExchange(c *gin.Context) {
 			))
 			return
 		}
-		if err.Error() == "maximum number of exchanges reached (10)" {
-			c.JSON(http.StatusBadRequest, CreateErrorResponse(
-				"EXCHANGE_LIMIT_REACHED",
-				"Maximum number of exchanges reached",
-				err.Error(),
-				getTraceID(c),
-			))
-			return
-		}
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"EXCHANGE_CREATE_FAILED",

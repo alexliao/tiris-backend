@@ -42,7 +42,6 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeFactory := helpers.NewExchangeFactory()
 
 	// Test successful exchange creation
 	t.Run("successful_creation", func(t *testing.T) {
@@ -53,9 +52,7 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 			APISecret: "test_api_secret_67890",
 		}
 
-		// Setup mock expectations - no existing exchanges
-		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{}, nil).Once()
+		// Setup mock expectations
 		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
 			Return(nil).Once()
 
@@ -77,38 +74,6 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 		mockExchangeRepo.AssertExpectations(t)
 	})
 
-	// Test maximum exchanges limit
-	t.Run("maximum_exchanges_reached", func(t *testing.T) {
-		request := &services.CreateExchangeRequest{
-			Name:      "new-exchange",
-			Type:      "binance",
-			APIKey:    "test_api_key",
-			APISecret: "test_api_secret",
-		}
-
-		// Create 10 existing exchanges
-		existingExchanges := make([]*models.Exchange, 10)
-		for i := 0; i < 10; i++ {
-			exchange := exchangeFactory.Build()
-			exchange.UserID = userID
-			existingExchanges[i] = exchange
-		}
-
-		// Setup mock expectations
-		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return(existingExchanges, nil).Once()
-
-		// Execute test
-		result, err := exchangeService.CreateExchange(context.Background(), userID, request)
-
-		// Verify results
-		require.Error(t, err)
-		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "maximum number of exchanges reached")
-
-		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
-	})
 
 	// Test duplicate exchange name - now handled by database constraint
 	t.Run("duplicate_exchange_name", func(t *testing.T) {
@@ -119,10 +84,7 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 			APISecret: "test_api_secret",
 		}
 
-		// Setup mock expectations - service only checks limit, then tries to create
-		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{}, nil).Once() // No limit reached
-		// Database returns unique constraint error with specific constraint name
+		// Setup mock expectations - database returns unique constraint error
 		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
 			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_name_active_unique\"")).Once()
 
@@ -147,10 +109,7 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 			APISecret: "new_api_secret",
 		}
 
-		// Setup mock expectations - service only checks limit, then tries to create
-		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{}, nil).Once() // No limit reached
-		// Database returns unique constraint error with specific constraint name
+		// Setup mock expectations - database returns unique constraint error
 		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
 			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_key_active_unique\"")).Once()
 
@@ -175,10 +134,7 @@ func TestExchangeService_CreateExchange(t *testing.T) {
 			APISecret: "existing_api_secret_789",
 		}
 
-		// Setup mock expectations - service only checks limit, then tries to create
-		mockExchangeRepo.On("GetByUserID", mock.Anything, userID).
-			Return([]*models.Exchange{}, nil).Once() // No limit reached
-		// Database returns unique constraint error with specific constraint name
+		// Setup mock expectations - database returns unique constraint error
 		mockExchangeRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Exchange")).
 			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_secret_active_unique\"")).Once()
 

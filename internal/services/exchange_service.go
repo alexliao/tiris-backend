@@ -53,16 +53,6 @@ type UpdateExchangeRequest struct {
 
 // CreateExchange creates a new exchange configuration
 func (s *ExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, req *CreateExchangeRequest) (*ExchangeResponse, error) {
-	// Check if user has reached the maximum number of exchanges
-	existingExchanges, err := s.repos.Exchange.GetByUserID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check existing exchanges: %w", err)
-	}
-
-	// Limit to 10 exchanges per user for now
-	if len(existingExchanges) >= 10 {
-		return nil, fmt.Errorf("maximum number of exchanges reached (10)")
-	}
 
 	// Create info map with metadata
 	infoMap := map[string]interface{}{
