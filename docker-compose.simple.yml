@@ -32,34 +32,14 @@ services:
     image: tiris/backend:simple
     container_name: tiris-app-simple
     restart: always
+    env_file:
+      - .env.simple
     environment:
-      # Application settings
-      ENV: production
-      GIN_MODE: release
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Docker-specific overrides
+      DB_HOST: postgres      # Override to use service name instead of localhost
+      DB_PORT: 5432          # Internal container port
       
-      # Database configuration
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-tiris}
-      DB_USER: ${DB_USER:-tiris_user}
-      DB_PASSWORD: ${DB_PASSWORD:-changeme}
-      DB_SSL_MODE: disable
-      
-      # JWT configuration
-      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-change-in-production}
-      REFRESH_SECRET: ${REFRESH_SECRET:-your-refresh-secret-change-in-production}
-      JWT_EXPIRATION: 3600
-      REFRESH_EXPIRATION: 604800
-      
-      # OAuth configuration (optional)
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      
-      # CORS configuration (updated for HTTPS)
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://localhost:443,https://127.0.0.1:443}
-      
-      # Disable unused services for simple setup
+      # Simple deployment overrides
       REDIS_ENABLED: "false"
       NATS_ENABLED: "false"
       NATS_URL: nats://dummy:4222

@@ -134,63 +134,37 @@ services:
     image: tiris/backend:${APP_VERSION:-latest}
     container_name: tiris-app-prod
     restart: always
+    env_file:
+      - .env.prod
     environment:
-      # Application settings
+      # Production-specific overrides
       ENV: production
       GIN_MODE: release
-      LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: json
       
-      # Database configuration
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-tiris_prod}
-      DB_USER: ${DB_USER:-tiris_user}
-      DB_PASSWORD: ${DB_PASSWORD:?Database password is required}
-      DB_SSL_MODE: ${DB_SSL_MODE:-require}
+      # Docker-specific overrides
+      DB_HOST: postgres        # Override to use service name instead of localhost
+      DB_PORT: 5432           # Internal container port
+      
+      # Service URLs using container names
+      NATS_URL: nats://${NATS_USER:-nats_user}:${NATS_PASSWORD}@nats:4222
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      
+      # Production database performance settings
       DB_MAX_OPEN_CONNS: 25
       DB_MAX_IDLE_CONNS: 5
       DB_CONN_MAX_LIFETIME: 300
       
-      # NATS configuration
-      NATS_URL: nats://${NATS_USER:-nats_user}:${NATS_PASSWORD}@nats:4222
-      NATS_MAX_RECONNECT: 10
-      NATS_RECONNECT_WAIT: 2s
-      
-      # Redis configuration
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      # Production Redis settings
       REDIS_MAX_IDLE: 10
       REDIS_MAX_ACTIVE: 20
       REDIS_IDLE_TIMEOUT: 240s
       
-      # JWT configuration
-      JWT_SECRET: ${JWT_SECRET:?JWT secret is required}
-      REFRESH_SECRET: ${REFRESH_SECRET:?Refresh secret is required}
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600}
-      REFRESH_EXPIRATION: ${REFRESH_EXPIRATION:-604800}
+      # NATS production settings
+      NATS_MAX_RECONNECT: 10
+      NATS_RECONNECT_WAIT: 2s
       
-      # OAuth configuration
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Google Client ID is required}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?Google Client Secret is required}
-      WECHAT_APP_ID: ${WECHAT_APP_ID:-}
-      WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
-      
-      # CORS configuration
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://tiris.ai,https://app.tiris.ai}
-      CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
-      CORS_ALLOWED_HEADERS: "Origin,Content-Type,Accept,Authorization,X-Requested-With"
-      
-      # Rate limiting
-      RATE_LIMIT_ENABLED: true
-      RATE_LIMIT_REQUESTS_PER_MINUTE: 1000
-      RATE_LIMIT_BURST: 100
-      
-      # Monitoring and observability
-      METRICS_ENABLED: true
-      METRICS_PATH: /metrics
-      HEALTH_CHECK_INTERVAL: 30s
-      
-      # Container-specific settings
+      # Production-specific settings
       WAIT_FOR_DB: true
       RUN_MIGRATIONS: false  # Run separately in migration service
       
@@ -242,13 +216,12 @@ services:
         GIT_COMMIT: ${GIT_COMMIT}
     image: tiris/backend:${APP_VERSION:-latest}
     container_name: tiris-migrate-prod
+    env_file:
+      - .env.prod
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-tiris_prod}
-      DB_USER: ${DB_USER:-tiris_user}
-      DB_PASSWORD: ${DB_PASSWORD:?Database password is required}
-      DB_SSL_MODE: ${DB_SSL_MODE:-require}
+      # Docker-specific overrides
+      DB_HOST: postgres        # Override to use service name instead of localhost
+      DB_PORT: 5432           # Internal container port
       WAIT_FOR_DB: true
     volumes:
       - ./migrations:/app/migrations:ro
