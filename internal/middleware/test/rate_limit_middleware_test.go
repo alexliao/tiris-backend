@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"sync"
 	"testing"
@@ -630,4 +631,271 @@ func BenchmarkRateLimiterAllow(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		limiter.Allow()
 	}
+}
+
+// Test environment variable configuration
+func TestEnvironmentVariableConfiguration(t *testing.T) {
+	// Save original environment variables
+	originalRateLimitEnabled := os.Getenv("RATE_LIMIT_ENABLED")
+	originalAPIRateLimit := os.Getenv("API_RATE_LIMIT_PER_HOUR")
+	originalAuthRateLimit := os.Getenv("AUTH_RATE_LIMIT_PER_HOUR")
+	originalTradingRateLimit := os.Getenv("TRADING_RATE_LIMIT_PER_HOUR")
+	
+	// Cleanup function to restore original values
+	cleanup := func() {
+		if originalRateLimitEnabled == "" {
+			os.Unsetenv("RATE_LIMIT_ENABLED")
+		} else {
+			os.Setenv("RATE_LIMIT_ENABLED", originalRateLimitEnabled)
+		}
+		if originalAPIRateLimit == "" {
+			os.Unsetenv("API_RATE_LIMIT_PER_HOUR")
+		} else {
+			os.Setenv("API_RATE_LIMIT_PER_HOUR", originalAPIRateLimit)
+		}
+		if originalAuthRateLimit == "" {
+			os.Unsetenv("AUTH_RATE_LIMIT_PER_HOUR")
+		} else {
+			os.Setenv("AUTH_RATE_LIMIT_PER_HOUR", originalAuthRateLimit)
+		}
+		if originalTradingRateLimit == "" {
+			os.Unsetenv("TRADING_RATE_LIMIT_PER_HOUR")
+		} else {
+			os.Setenv("TRADING_RATE_LIMIT_PER_HOUR", originalTradingRateLimit)
+		}
+	}
+	defer cleanup()
+
+	t.Run("rate_limit_disabled_globally", func(t *testing.T) {
+		os.Setenv("RATE_LIMIT_ENABLED", "false")
+		
+		router := setupRateLimitTest()
+		router.Use(middleware.AuthRateLimitMiddleware())
+		router.Use(middleware.APIRateLimitMiddleware())
+		router.Use(middleware.TradingRateLimitMiddleware())
+		
+		router.GET("/test", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "ok"})
+		})
+		
+		// Should allow unlimited requests when rate limiting is disabled
+		for i := 0; i < 100; i++ {
+			req := httptest.NewRequest("GET", "/test", nil)
+			req.RemoteAddr = "192.168.1.100:12345"
+			
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			
+			assert.Equal(t, http.StatusOK, w.Code, "Request %d should be allowed when rate limiting is disabled", i+1)
+			
+			// Should not have rate limit headers when disabled
+			assert.Empty(t, w.Header().Get("X-RateLimit-Limit"))
+			assert.Empty(t, w.Header().Get("X-RateLimit-Remaining"))
+		}
+	})
+
+	t.Run("custom_api_rate_limit_from_env", func(t *testing.T) {
+		os.Setenv("RATE_LIMIT_ENABLED", "true")
+		os.Setenv("API_RATE_LIMIT_PER_HOUR", "5") // Custom limit of 5
+		
+		router := setupRateLimitTest()
+		
+		// Simulate authenticated user
+		userID := uuid.New()
+		router.Use(func(c *gin.Context) {
+			c.Set("user_id", userID)
+			c.Next()
+		})
+		
+		router.Use(middleware.APIRateLimitMiddleware())
+		
+		router.GET("/api/test", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "ok"})
+		})
+		
+		// Should allow exactly 5 requests
+		for i := 0; i < 5; i++ {
+			req := httptest.NewRequest("GET", "/api/test", nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			
+			assert.Equal(t, http.StatusOK, w.Code, "Request %d should be allowed", i+1)
+			assert.Equal(t, "5", w.Header().Get("X-RateLimit-Limit"))
+		}
+		
+		// 6th request should be denied
+		req := httptest.NewRequest("GET", "/api/test", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		
+		assert.Equal(t, http.StatusTooManyRequests, w.Code)
+		assert.Equal(t, "5", w.Header().Get("X-RateLimit-Limit"))
+		assert.Equal(t, "0", w.Header().Get("X-RateLimit-Remaining"))
+	})
+
+	t.Run("custom_auth_rate_limit_from_env", func(t *testing.T) {
+		os.Setenv("RATE_LIMIT_ENABLED", "true")
+		os.Setenv("AUTH_RATE_LIMIT_PER_HOUR", "3") // Custom limit of 3
+		
+		router := setupRateLimitTest()
+		router.Use(middleware.AuthRateLimitMiddleware())
+		
+		router.POST("/auth/login", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "logged in"})
+		})
+		
+		clientIP := "192.168.1.100:12345"
+		
+		// Should allow exactly 3 requests
+		for i := 0; i < 3; i++ {
+			req := httptest.NewRequest("POST", "/auth/login", nil)
+			req.RemoteAddr = clientIP
+			
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			
+			assert.Equal(t, http.StatusOK, w.Code, "Request %d should be allowed", i+1)
+			assert.Equal(t, "3", w.Header().Get("X-RateLimit-Limit"))
+		}
+		
+		// 4th request should be denied
+		req := httptest.NewRequest("POST", "/auth/login", nil)
+		req.RemoteAddr = clientIP
+		
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		
+		assert.Equal(t, http.StatusTooManyRequests, w.Code)
+		assert.Equal(t, "3", w.Header().Get("X-RateLimit-Limit"))
+	})
+
+	t.Run("custom_trading_rate_limit_from_env", func(t *testing.T) {
+		os.Setenv("RATE_LIMIT_ENABLED", "true")
+		os.Setenv("TRADING_RATE_LIMIT_PER_HOUR", "2") // Custom limit of 2
+		
+		router := setupRateLimitTest()
+		
+		userID := uuid.New()
+		router.Use(func(c *gin.Context) {
+			c.Set("user_id", userID)
+			c.Next()
+		})
+		
+		router.Use(middleware.TradingRateLimitMiddleware())
+		
+		router.POST("/trading-logs", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "trade logged"})
+		})
+		
+		// Should allow exactly 2 requests
+		for i := 0; i < 2; i++ {
+			req := httptest.NewRequest("POST", "/trading-logs", nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			
+			assert.Equal(t, http.StatusOK, w.Code, "Request %d should be allowed", i+1)
+			assert.Equal(t, "2", w.Header().Get("X-RateLimit-Limit"))
+		}
+		
+		// 3rd request should be denied
+		req := httptest.NewRequest("POST", "/trading-logs", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		
+		assert.Equal(t, http.StatusTooManyRequests, w.Code)
+		assert.Equal(t, "2", w.Header().Get("X-RateLimit-Limit"))
+	})
+
+	t.Run("invalid_env_values_use_defaults", func(t *testing.T) {
+		os.Setenv("RATE_LIMIT_ENABLED", "true")
+		os.Setenv("API_RATE_LIMIT_PER_HOUR", "invalid")     // Invalid value
+		os.Setenv("AUTH_RATE_LIMIT_PER_HOUR", "-5")         // Invalid negative value
+		os.Setenv("TRADING_RATE_LIMIT_PER_HOUR", "0")       // Invalid zero value
+		
+		router := setupRateLimitTest()
+		
+		// API middleware should use default (1000)
+		userID := uuid.New()
+		router.Use(func(c *gin.Context) {
+			c.Set("user_id", userID)
+			c.Next()
+		})
+		router.Use(middleware.APIRateLimitMiddleware())
+		
+		router.GET("/api/test", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "ok"})
+		})
+		
+		req := httptest.NewRequest("GET", "/api/test", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "1000", w.Header().Get("X-RateLimit-Limit")) // Should use default
+		
+		// Auth middleware should use default (60)
+		router2 := setupRateLimitTest()
+		router2.Use(middleware.AuthRateLimitMiddleware())
+		
+		router2.POST("/auth/test", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "ok"})
+		})
+		
+		req2 := httptest.NewRequest("POST", "/auth/test", nil)
+		req2.RemoteAddr = "192.168.1.100:12345"
+		
+		w2 := httptest.NewRecorder()
+		router2.ServeHTTP(w2, req2)
+		
+		assert.Equal(t, http.StatusOK, w2.Code)
+		assert.Equal(t, "60", w2.Header().Get("X-RateLimit-Limit")) // Should use default
+		
+		// Trading middleware should use default (600)
+		router3 := setupRateLimitTest()
+		
+		router3.Use(func(c *gin.Context) {
+			c.Set("user_id", userID)
+			c.Next()
+		})
+		router3.Use(middleware.TradingRateLimitMiddleware())
+		
+		router3.POST("/trading/test", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "ok"})
+		})
+		
+		req3 := httptest.NewRequest("POST", "/trading/test", nil)
+		w3 := httptest.NewRecorder()
+		router3.ServeHTTP(w3, req3)
+		
+		assert.Equal(t, http.StatusOK, w3.Code)
+		assert.Equal(t, "600", w3.Header().Get("X-RateLimit-Limit")) // Should use default
+	})
+
+	t.Run("empty_env_values_use_defaults", func(t *testing.T) {
+		os.Setenv("RATE_LIMIT_ENABLED", "true")
+		os.Unsetenv("API_RATE_LIMIT_PER_HOUR")    // Empty/unset
+		os.Unsetenv("AUTH_RATE_LIMIT_PER_HOUR")   // Empty/unset
+		os.Unsetenv("TRADING_RATE_LIMIT_PER_HOUR") // Empty/unset
+		
+		router := setupRateLimitTest()
+		
+		// Test API middleware uses default
+		userID := uuid.New()
+		router.Use(func(c *gin.Context) {
+			c.Set("user_id", userID)
+			c.Next()
+		})
+		router.Use(middleware.APIRateLimitMiddleware())
+		
+		router.GET("/api/test", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "ok"})
+		})
+		
+		req := httptest.NewRequest("GET", "/api/test", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "1000", w.Header().Get("X-RateLimit-Limit")) // Default value
+	})
 }

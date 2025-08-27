@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -189,8 +190,22 @@ func RateLimitMiddleware(config RateLimitConfig) gin.HandlerFunc {
 
 // AuthRateLimitMiddleware applies specific rate limiting for authentication endpoints
 func AuthRateLimitMiddleware() gin.HandlerFunc {
+	// Check if rate limiting is enabled
+	if enabled := os.Getenv("RATE_LIMIT_ENABLED"); enabled == "false" {
+		return func(c *gin.Context) {
+			c.Next() // Skip rate limiting
+		}
+	}
+
+	requestsPerHour := 60 // default value
+	if envLimit := os.Getenv("AUTH_RATE_LIMIT_PER_HOUR"); envLimit != "" {
+		if parsed, err := strconv.Atoi(envLimit); err == nil && parsed > 0 {
+			requestsPerHour = parsed
+		}
+	}
+
 	return RateLimitMiddleware(RateLimitConfig{
-		RequestsPerHour: 60, // 60 requests per hour for auth endpoints
+		RequestsPerHour: requestsPerHour,
 		WindowDuration:  time.Hour,
 		KeyFunc: func(c *gin.Context) string {
 			return fmt.Sprintf("auth:%s", c.ClientIP())
@@ -200,8 +215,22 @@ func AuthRateLimitMiddleware() gin.HandlerFunc {
 
 // APIRateLimitMiddleware applies general rate limiting for API endpoints
 func APIRateLimitMiddleware() gin.HandlerFunc {
+	// Check if rate limiting is enabled
+	if enabled := os.Getenv("RATE_LIMIT_ENABLED"); enabled == "false" {
+		return func(c *gin.Context) {
+			c.Next() // Skip rate limiting
+		}
+	}
+
+	requestsPerHour := 1000 // default value
+	if envLimit := os.Getenv("API_RATE_LIMIT_PER_HOUR"); envLimit != "" {
+		if parsed, err := strconv.Atoi(envLimit); err == nil && parsed > 0 {
+			requestsPerHour = parsed
+		}
+	}
+
 	return RateLimitMiddleware(RateLimitConfig{
-		RequestsPerHour: 1000, // 1000 requests per hour for general API
+		RequestsPerHour: requestsPerHour,
 		WindowDuration:  time.Hour,
 		KeyFunc:         UserKeyFunc,
 	})
@@ -209,8 +238,22 @@ func APIRateLimitMiddleware() gin.HandlerFunc {
 
 // TradingRateLimitMiddleware applies specific rate limiting for trading endpoints
 func TradingRateLimitMiddleware() gin.HandlerFunc {
+	// Check if rate limiting is enabled
+	if enabled := os.Getenv("RATE_LIMIT_ENABLED"); enabled == "false" {
+		return func(c *gin.Context) {
+			c.Next() // Skip rate limiting
+		}
+	}
+
+	requestsPerHour := 600 // default value
+	if envLimit := os.Getenv("TRADING_RATE_LIMIT_PER_HOUR"); envLimit != "" {
+		if parsed, err := strconv.Atoi(envLimit); err == nil && parsed > 0 {
+			requestsPerHour = parsed
+		}
+	}
+
 	return RateLimitMiddleware(RateLimitConfig{
-		RequestsPerHour: 600, // 600 requests per hour for trading operations
+		RequestsPerHour: requestsPerHour,
 		WindowDuration:  time.Hour,
 		KeyFunc: func(c *gin.Context) string {
 			userID, exists := GetUserID(c)

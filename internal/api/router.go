@@ -260,8 +260,10 @@ func (s *Server) setupTradingLogRoutes(protected *gin.RouterGroup) {
 
 	tradingLogs := protected.Group("/trading-logs")
 
-	// User trading log routes
-	tradingLogs.POST("", tradingLogHandler.CreateTradingLog)
+	// User trading log routes with specific rate limiting for creation
+	tradingLogsCreation := tradingLogs.Group("")
+	tradingLogsCreation.Use(middleware.TradingRateLimitMiddleware())
+	tradingLogsCreation.POST("", tradingLogHandler.CreateTradingLog)
 	tradingLogs.GET("", tradingLogHandler.GetUserTradingLogs)
 	tradingLogs.GET("/:id", tradingLogHandler.GetTradingLog)
 	tradingLogs.DELETE("/:id", tradingLogHandler.DeleteTradingLog)

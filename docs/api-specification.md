@@ -1101,8 +1101,14 @@ Authorization: Bearer {admin_jwt_token}
 
 ### 10.1 Rate Limits
 - **General API**: 1000 requests per hour per user
-- **Authentication**: 10 requests per minute per IP
-- **Trading Operations**: 100 requests per minute per user
+- **Authentication**: 60 requests per hour per IP
+- **Trading Operations**: 600 requests per hour per user
+
+**Note**: Rate limits are configurable via environment variables:
+- `RATE_LIMIT_ENABLED` - Enable/disable rate limiting globally (default: true, set to 'false' to disable)
+- `API_RATE_LIMIT_PER_HOUR` - General API endpoints (default: 1000)
+- `AUTH_RATE_LIMIT_PER_HOUR` - Authentication endpoints (default: 60)  
+- `TRADING_RATE_LIMIT_PER_HOUR` - Trading operations (default: 600)
 
 ### 10.2 Rate Limit Headers
 ```
