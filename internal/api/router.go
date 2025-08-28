@@ -29,7 +29,7 @@ type Server struct {
 	jwtManager         *auth.JWTManager
 	authService        *services.AuthService
 	userService        *services.UserService
-	exchangeService    *services.ExchangeService
+	tradingService     *services.TradingService
 	subAccountService  *services.SubAccountService
 	transactionService *services.TransactionService
 	tradingLogService  *services.TradingLogService
@@ -67,7 +67,7 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories, db *databas
 	// Initialize services
 	authService := services.NewAuthService(repos, jwtManager, oauthManager)
 	userService := services.NewUserService(repos)
-	exchangeService := services.NewExchangeService(repos)
+	tradingService := services.NewTradingService(repos)
 	subAccountService := services.NewSubAccountService(repos)
 	transactionService := services.NewTransactionService(repos)
 	tradingLogService := services.NewTradingLogService(repos, db.DB)
@@ -80,7 +80,7 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories, db *databas
 		jwtManager:         jwtManager,
 		authService:        authService,
 		userService:        userService,
-		exchangeService:    exchangeService,
+		tradingService:     tradingService,
 		subAccountService:  subAccountService,
 		transactionService: transactionService,
 		tradingLogService:  tradingLogService,
@@ -131,8 +131,8 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	// User management routes
 	s.setupUserRoutes(protected)
 
-	// Exchange management routes
-	s.setupExchangeRoutes(protected)
+	// Trading platform management routes
+	s.setupTradingRoutes(protected)
 
 	// Sub-account management routes
 	s.setupSubAccountRoutes(protected)
@@ -194,25 +194,25 @@ func (s *Server) setupUserRoutes(protected *gin.RouterGroup) {
 	adminUsers.PUT("/:id/disable", userHandler.DisableUser)
 }
 
-// setupExchangeRoutes sets up exchange management routes
-func (s *Server) setupExchangeRoutes(protected *gin.RouterGroup) {
-	exchangeHandler := NewExchangeHandler(s.exchangeService)
+// setupTradingRoutes sets up trading platform management routes
+func (s *Server) setupTradingRoutes(protected *gin.RouterGroup) {
+	tradingHandler := NewTradingHandler(s.tradingService)
 
-	exchanges := protected.Group("/exchanges")
+	tradings := protected.Group("/tradings")
 
-	// User exchange routes
-	exchanges.POST("", exchangeHandler.CreateExchange)
-	exchanges.GET("", exchangeHandler.GetUserExchanges)
-	exchanges.GET("/:id", exchangeHandler.GetExchange)
-	exchanges.PUT("/:id", exchangeHandler.UpdateExchange)
-	exchanges.DELETE("/:id", exchangeHandler.DeleteExchange)
+	// User trading platform routes
+	tradings.POST("", tradingHandler.CreateTrading)
+	tradings.GET("", tradingHandler.GetUserTradings)
+	tradings.GET("/:id", tradingHandler.GetTrading)
+	tradings.PUT("/:id", tradingHandler.UpdateTrading)
+	tradings.DELETE("/:id", tradingHandler.DeleteTrading)
 
-	// Admin exchange routes
-	adminExchanges := protected.Group("/admin/exchanges")
-	adminExchanges.Use(middleware.AdminMiddleware())
+	// Admin trading platform routes
+	adminTradings := protected.Group("/admin/tradings")
+	adminTradings.Use(middleware.AdminMiddleware())
 
-	adminExchanges.GET("", exchangeHandler.ListExchanges)
-	adminExchanges.GET("/:id", exchangeHandler.GetExchangeByID)
+	adminTradings.GET("", tradingHandler.ListTradings)
+	adminTradings.GET("/:id", tradingHandler.GetTradingByID)
 }
 
 // setupSubAccountRoutes sets up sub-account management routes

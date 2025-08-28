@@ -37,22 +37,22 @@ func TestTradingLogService_Performance_HighVolume(t *testing.T) {
 
 	t.Run("sequential_high_volume_trades", func(t *testing.T) {
 		// Setup: Create exchange and accounts with large balances
-		exchangeFactory := helpers.NewExchangeFactory()
+		exchangeFactory := helpers.NewTradingFactory()
 		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err := repos.Exchange.Create(context.Background(), testExchange)
+		err := repos.Trading.Create(context.Background(), testExchange)
 		require.NoError(t, err)
 
 		subAccountFactory := helpers.NewSubAccountFactory()
 
 		// ETH account with large balance
-		ethAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 		ethAccount.Symbol = "ETH"
 		ethAccount.Balance = 10000.0 // Large starting balance
 		err = repos.SubAccount.Create(context.Background(), ethAccount)
 		require.NoError(t, err)
 
 		// USDT account with large balance
-		usdtAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 		usdtAccount.Symbol = "USDT"
 		usdtAccount.Balance = 100000000.0 // 100M USDT
 		err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -69,7 +69,7 @@ func TestTradingLogService_Performance_HighVolume(t *testing.T) {
 			}
 
 			request := &services.CreateTradingLogRequest{
-				ExchangeID: testExchange.ID,
+				TradingID: testExchange.ID,
 				Type:       tradeType,
 				Source:     "manual",
 				Message:    fmt.Sprintf("Performance test trade %d", i),
@@ -108,9 +108,9 @@ func TestTradingLogService_Performance_HighVolume(t *testing.T) {
 	t.Run("concurrent_high_volume_trades", func(t *testing.T) {
 		t.Skip("TODO: Fix concurrent trading performance test - database isolation issues")
 		// Setup: Create fresh exchange for isolation
-		exchangeFactory := helpers.NewExchangeFactory()
+		exchangeFactory := helpers.NewTradingFactory()
 		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err := repos.Exchange.Create(context.Background(), testExchange)
+		err := repos.Trading.Create(context.Background(), testExchange)
 		require.NoError(t, err)
 
 		// Create multiple accounts for concurrent testing
@@ -119,14 +119,14 @@ func TestTradingLogService_Performance_HighVolume(t *testing.T) {
 		accountCount := 10
 		for i := 0; i < accountCount; i++ {
 			// ETH account
-			ethAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+			ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 			ethAccount.Symbol = fmt.Sprintf("ETH_%d", i)
 			ethAccount.Balance = 1000.0
 			err = repos.SubAccount.Create(context.Background(), ethAccount)
 			require.NoError(t, err)
 
 			// USDT account
-			usdtAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+			usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 			usdtAccount.Symbol = fmt.Sprintf("USDT_%d", i)
 			usdtAccount.Balance = 10000000.0 // 10M USDT each
 			err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -154,7 +154,7 @@ func TestTradingLogService_Performance_HighVolume(t *testing.T) {
 
 				for i := 0; i < tradesPerGoroutine; i++ {
 					request := &services.CreateTradingLogRequest{
-						ExchangeID: testExchange.ID,
+						TradingID: testExchange.ID,
 						Type:       "long",
 						Source:     "concurrent_test",
 						Message:    fmt.Sprintf("Concurrent test G%d-T%d", goroutineID, i),
@@ -217,20 +217,20 @@ func TestTradingLogService_Performance_StressTest(t *testing.T) {
 	t.Run("database_connection_stress", func(t *testing.T) {
 		t.Skip("TODO: Fix database connection stress test - concurrent access issues")
 		// Setup: Create exchange and accounts
-		exchangeFactory := helpers.NewExchangeFactory()
+		exchangeFactory := helpers.NewTradingFactory()
 		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err := repos.Exchange.Create(context.Background(), testExchange)
+		err := repos.Trading.Create(context.Background(), testExchange)
 		require.NoError(t, err)
 
 		subAccountFactory := helpers.NewSubAccountFactory()
 
-		ethAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 		ethAccount.Symbol = "ETH"
 		ethAccount.Balance = 50000.0
 		err = repos.SubAccount.Create(context.Background(), ethAccount)
 		require.NoError(t, err)
 
-		usdtAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 		usdtAccount.Symbol = "USDT"
 		usdtAccount.Balance = 1000000000.0 // 1B USDT
 		err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -258,7 +258,7 @@ func TestTradingLogService_Performance_StressTest(t *testing.T) {
 				defer func() { <-semaphore }()
 
 				request := &services.CreateTradingLogRequest{
-					ExchangeID: testExchange.ID,
+					TradingID: testExchange.ID,
 					Type:       "short", // Sell ETH
 					Source:     "manual",
 					Message:    fmt.Sprintf("Stress test trade %d", tradeID),
@@ -300,20 +300,20 @@ func TestTradingLogService_Performance_StressTest(t *testing.T) {
 	t.Run("memory_efficiency_test", func(t *testing.T) {
 		t.Skip("TODO: Optimize memory efficiency test - currently too slow for CI")
 		// Setup: Create exchange and accounts
-		exchangeFactory := helpers.NewExchangeFactory()
+		exchangeFactory := helpers.NewTradingFactory()
 		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err := repos.Exchange.Create(context.Background(), testExchange)
+		err := repos.Trading.Create(context.Background(), testExchange)
 		require.NoError(t, err)
 
 		subAccountFactory := helpers.NewSubAccountFactory()
 
-		ethAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 		ethAccount.Symbol = "ETH"
 		ethAccount.Balance = 100000.0
 		err = repos.SubAccount.Create(context.Background(), ethAccount)
 		require.NoError(t, err)
 
-		usdtAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 		usdtAccount.Symbol = "USDT"
 		usdtAccount.Balance = 100000000.0
 		err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -332,7 +332,7 @@ func TestTradingLogService_Performance_StressTest(t *testing.T) {
 			}
 
 			request := &services.CreateTradingLogRequest{
-				ExchangeID: testExchange.ID,
+				TradingID: testExchange.ID,
 				Type:       tradeType,
 				Source:     "manual",
 				Message:    fmt.Sprintf("Memory efficiency test %d", i),
@@ -388,20 +388,20 @@ func TestTradingLogService_Performance_Benchmarks(t *testing.T) {
 	err := repos.User.Create(context.Background(), testUser)
 	require.NoError(t, err)
 
-	exchangeFactory := helpers.NewExchangeFactory()
+	exchangeFactory := helpers.NewTradingFactory()
 	testExchange := exchangeFactory.WithUserID(testUser.ID)
-	err = repos.Exchange.Create(context.Background(), testExchange)
+	err = repos.Trading.Create(context.Background(), testExchange)
 	require.NoError(t, err)
 
 	subAccountFactory := helpers.NewSubAccountFactory()
 
-	ethAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+	ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 	ethAccount.Symbol = "ETH"
 	ethAccount.Balance = 1000000.0
 	err = repos.SubAccount.Create(context.Background(), ethAccount)
 	require.NoError(t, err)
 
-	usdtAccount := subAccountFactory.WithUserAndExchange(testUser.ID, testExchange.ID)
+	usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
 	usdtAccount.Symbol = "USDT"
 	usdtAccount.Balance = 10000000000.0 // 10B USDT
 	err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -411,7 +411,7 @@ func TestTradingLogService_Performance_Benchmarks(t *testing.T) {
 		// Warm-up
 		for i := 0; i < 10; i++ {
 			request := &services.CreateTradingLogRequest{
-				ExchangeID: testExchange.ID,
+				TradingID: testExchange.ID,
 				Type:       "long",
 				Source:     "warmup",
 				Message:    "Warmup trade",
@@ -434,7 +434,7 @@ func TestTradingLogService_Performance_Benchmarks(t *testing.T) {
 
 		for i := 0; i < iterations; i++ {
 			request := &services.CreateTradingLogRequest{
-				ExchangeID: testExchange.ID,
+				TradingID: testExchange.ID,
 				Type:       "short",
 				Source:     "manual",
 				Message:    fmt.Sprintf("Benchmark trade %d", i),

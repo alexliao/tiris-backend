@@ -114,25 +114,25 @@ func (f *UserFactory) AdminUser() *models.User {
 	return user
 }
 
-// ExchangeFactory creates Exchange test data
-type ExchangeFactory struct {
+// TradingFactory creates Trading test data
+type TradingFactory struct {
 	factory *TestDataFactory
 }
 
-// NewExchangeFactory creates a new exchange factory
-func NewExchangeFactory() *ExchangeFactory {
-	return &ExchangeFactory{
+// NewTradingFactory creates a new trading factory
+func NewTradingFactory() *TradingFactory {
+	return &TradingFactory{
 		factory: NewTestDataFactory(),
 	}
 }
 
 // Build creates a basic exchange with default values
-func (f *ExchangeFactory) Build() *models.Exchange {
+func (f *TradingFactory) Build() *models.Trading {
 	id := f.factory.nextID()
-	return &models.Exchange{
+	return &models.Trading{
 		ID:        uuid.New(),
 		UserID:    uuid.New(), // Will be overridden in WithUserID
-		Name:      fmt.Sprintf("exchange_%d", id),
+		Name:      fmt.Sprintf("trading_%d", id),
 		Type:      "spot",
 		APIKey:    fmt.Sprintf("test_api_key_%d", id),
 		APISecret: fmt.Sprintf("test_api_secret_%d", id),
@@ -144,60 +144,60 @@ func (f *ExchangeFactory) Build() *models.Exchange {
 }
 
 // WithUserID sets the user ID
-func (f *ExchangeFactory) WithUserID(userID uuid.UUID) *models.Exchange {
-	exchange := f.Build()
-	exchange.UserID = userID
-	return exchange
+func (f *TradingFactory) WithUserID(userID uuid.UUID) *models.Trading {
+	trading := f.Build()
+	trading.UserID = userID
+	return trading
 }
 
 // WithName sets the exchange name
-func (f *ExchangeFactory) WithName(name string) *models.Exchange {
-	exchange := f.Build()
-	exchange.Name = name
-	return exchange
+func (f *TradingFactory) WithName(name string) *models.Trading {
+	trading := f.Build()
+	trading.Name = name
+	return trading
 }
 
-// WithType sets the exchange type
-func (f *ExchangeFactory) WithType(exchangeType string) *models.Exchange {
-	exchange := f.Build()
-	exchange.Type = exchangeType
-	return exchange
+// WithType sets the trading type
+func (f *TradingFactory) WithType(tradingType string) *models.Trading {
+	trading := f.Build()
+	trading.Type = tradingType
+	return trading
 }
 
 // WithCredentials sets API credentials
-func (f *ExchangeFactory) WithCredentials(apiKey, apiSecret string) *models.Exchange {
-	exchange := f.Build()
-	exchange.APIKey = apiKey
-	exchange.APISecret = apiSecret
-	return exchange
+func (f *TradingFactory) WithCredentials(apiKey, apiSecret string) *models.Trading {
+	trading := f.Build()
+	trading.APIKey = apiKey
+	trading.APISecret = apiSecret
+	return trading
 }
 
 // WithStatus sets the exchange status
-func (f *ExchangeFactory) WithStatus(status string) *models.Exchange {
-	exchange := f.Build()
-	exchange.Status = status
-	return exchange
+func (f *TradingFactory) WithStatus(status string) *models.Trading {
+	trading := f.Build()
+	trading.Status = status
+	return trading
 }
 
 // WithInfo sets exchange info
-func (f *ExchangeFactory) WithInfo(info map[string]interface{}) *models.Exchange {
-	exchange := f.Build()
-	exchange.Info = models.JSON(info)
-	return exchange
+func (f *TradingFactory) WithInfo(info map[string]interface{}) *models.Trading {
+	trading := f.Build()
+	trading.Info = models.JSON(info)
+	return trading
 }
 
-// BinanceExchange creates a Binance exchange
-func (f *ExchangeFactory) BinanceExchange() *models.Exchange {
-	exchange := f.Build()
-	exchange.Name = "binance"
-	exchange.Type = "spot"
+// BinanceTrading creates a Binance trading platform
+func (f *TradingFactory) BinanceTrading() *models.Trading {
+	trading := f.Build()
+	trading.Name = "binance"
+	trading.Type = "spot"
 	binanceInfo := map[string]interface{}{
 		"sandbox":   true,
 		"base_url":  "https://testnet.binance.vision",
 		"rate_limit": 1200,
 	}
-	exchange.Info = models.JSON(binanceInfo)
-	return exchange
+	trading.Info = models.JSON(binanceInfo)
+	return trading
 }
 
 // SubAccountFactory creates SubAccount test data
@@ -218,7 +218,7 @@ func (f *SubAccountFactory) Build() *models.SubAccount {
 	return &models.SubAccount{
 		ID:         uuid.New(),
 		UserID:     uuid.New(), // Will be overridden
-		ExchangeID: uuid.New(), // Will be overridden
+		TradingID: uuid.New(), // Will be overridden
 		Name:       fmt.Sprintf("account_%d", id),
 		Symbol:     "USDT",
 		Balance:    1000.0 + float64(rand.Intn(9000)), // Random balance between 1000-10000
@@ -235,18 +235,18 @@ func (f *SubAccountFactory) WithUserID(userID uuid.UUID) *models.SubAccount {
 	return account
 }
 
-// WithExchangeID sets the exchange ID
-func (f *SubAccountFactory) WithExchangeID(exchangeID uuid.UUID) *models.SubAccount {
+// WithTradingID sets the trading ID
+func (f *SubAccountFactory) WithTradingID(tradingID uuid.UUID) *models.SubAccount {
 	account := f.Build()
-	account.ExchangeID = exchangeID
+	account.TradingID = tradingID
 	return account
 }
 
-// WithUserAndExchange sets both user and exchange IDs
-func (f *SubAccountFactory) WithUserAndExchange(userID, exchangeID uuid.UUID) *models.SubAccount {
+// WithUserAndTrading sets both user and trading IDs
+func (f *SubAccountFactory) WithUserAndTrading(userID, tradingID uuid.UUID) *models.SubAccount {
 	account := f.Build()
 	account.UserID = userID
-	account.ExchangeID = exchangeID
+	account.TradingID = tradingID
 	return account
 }
 
@@ -317,7 +317,7 @@ func (f *TransactionFactory) Build() *models.Transaction {
 	return &models.Transaction{
 		ID:             uuid.New(),
 		UserID:         uuid.New(), // Will be overridden
-		ExchangeID:     uuid.New(), // Will be overridden
+		TradingID:     uuid.New(), // Will be overridden
 		SubAccountID:   uuid.New(), // Will be overridden
 		Timestamp:      time.Now().Add(-time.Duration(rand.Intn(168)) * time.Hour), // Last week
 		Direction:      "credit",
@@ -335,10 +335,10 @@ func (f *TransactionFactory) WithUserID(userID uuid.UUID) *models.Transaction {
 	return tx
 }
 
-// WithExchangeID sets the exchange ID
-func (f *TransactionFactory) WithExchangeID(exchangeID uuid.UUID) *models.Transaction {
+// WithTradingID sets the trading ID
+func (f *TransactionFactory) WithTradingID(tradingID uuid.UUID) *models.Transaction {
 	tx := f.Build()
-	tx.ExchangeID = exchangeID
+	tx.TradingID = tradingID
 	return tx
 }
 
@@ -435,7 +435,7 @@ func (f *TradingLogFactory) Build() *models.TradingLog {
 	return &models.TradingLog{
 		ID:           uuid.New(),
 		UserID:       uuid.New(), // Will be overridden
-		ExchangeID:   uuid.New(), // Will be overridden
+		TradingID:   uuid.New(), // Will be overridden
 		SubAccountID: nil,
 		Timestamp:    time.Now().Add(-time.Duration(rand.Intn(24)) * time.Hour),
 		Type:         "trade",
@@ -452,10 +452,10 @@ func (f *TradingLogFactory) WithUserID(userID uuid.UUID) *models.TradingLog {
 	return log
 }
 
-// WithExchangeID sets the exchange ID
-func (f *TradingLogFactory) WithExchangeID(exchangeID uuid.UUID) *models.TradingLog {
+// WithTradingID sets the trading ID
+func (f *TradingLogFactory) WithTradingID(tradingID uuid.UUID) *models.TradingLog {
 	log := f.Build()
-	log.ExchangeID = exchangeID
+	log.TradingID = tradingID
 	return log
 }
 
@@ -507,7 +507,7 @@ func (f *TradingLogFactory) ErrorLog() *models.TradingLog {
 // CompleteSetupFactory creates a complete user setup with related entities
 type CompleteSetupFactory struct {
 	UserFactory       *UserFactory
-	ExchangeFactory   *ExchangeFactory
+	TradingFactory   *TradingFactory
 	SubAccountFactory *SubAccountFactory
 	TransactionFactory *TransactionFactory
 	TradingLogFactory *TradingLogFactory
@@ -517,45 +517,45 @@ type CompleteSetupFactory struct {
 func NewCompleteSetupFactory() *CompleteSetupFactory {
 	return &CompleteSetupFactory{
 		UserFactory:        NewUserFactory(),
-		ExchangeFactory:    NewExchangeFactory(),
+		TradingFactory:    NewTradingFactory(),
 		SubAccountFactory:  NewSubAccountFactory(),
 		TransactionFactory: NewTransactionFactory(),
 		TradingLogFactory:  NewTradingLogFactory(),
 	}
 }
 
-// CreateUserWithExchange creates a user with one exchange
-func (f *CompleteSetupFactory) CreateUserWithExchange() (*models.User, *models.Exchange) {
+// CreateUserWithTrading creates a user with one trading platform
+func (f *CompleteSetupFactory) CreateUserWithTrading() (*models.User, *models.Trading) {
 	user := f.UserFactory.Build()
-	exchange := f.ExchangeFactory.WithUserID(user.ID)
-	return user, exchange
+	trading := f.TradingFactory.WithUserID(user.ID)
+	return user, trading
 }
 
-// CreateCompleteUserSetup creates a user with exchange, sub-account, and initial transaction
-func (f *CompleteSetupFactory) CreateCompleteUserSetup() (*models.User, *models.Exchange, *models.SubAccount, *models.Transaction) {
+// CreateCompleteUserSetup creates a user with trading platform, sub-account, and initial transaction
+func (f *CompleteSetupFactory) CreateCompleteUserSetup() (*models.User, *models.Trading, *models.SubAccount, *models.Transaction) {
 	user := f.UserFactory.Build()
-	exchange := f.ExchangeFactory.BinanceExchange()
-	exchange.UserID = user.ID
+	trading := f.TradingFactory.BinanceTrading()
+	trading.UserID = user.ID
 	subAccount := f.SubAccountFactory.SpotAccount()
 	subAccount.UserID = user.ID
-	subAccount.ExchangeID = exchange.ID
+	subAccount.TradingID = trading.ID
 	transaction := f.TransactionFactory.DepositTransaction(1000.0, 1000.0)
 	transaction.UserID = user.ID
-	transaction.ExchangeID = exchange.ID
+	transaction.TradingID = trading.ID
 	transaction.SubAccountID = subAccount.ID
 	
-	return user, exchange, subAccount, transaction
+	return user, trading, subAccount, transaction
 }
 
 // CreateTradingScenario creates a full trading scenario with logs and transactions
-func (f *CompleteSetupFactory) CreateTradingScenario() (*models.User, *models.Exchange, *models.SubAccount, *models.Transaction, *models.TradingLog) {
-	user, exchange, subAccount, transaction := f.CreateCompleteUserSetup()
+func (f *CompleteSetupFactory) CreateTradingScenario() (*models.User, *models.Trading, *models.SubAccount, *models.Transaction, *models.TradingLog) {
+	user, trading, subAccount, transaction := f.CreateCompleteUserSetup()
 	
 	tradingLog := f.TradingLogFactory.BotLog()
 	tradingLog.UserID = user.ID
-	tradingLog.ExchangeID = exchange.ID
+	tradingLog.TradingID = trading.ID
 	tradingLog.SubAccountID = &subAccount.ID
 	tradingLog.TransactionID = &transaction.ID
 	
-	return user, exchange, subAccount, transaction, tradingLog
+	return user, trading, subAccount, transaction, tradingLog
 }

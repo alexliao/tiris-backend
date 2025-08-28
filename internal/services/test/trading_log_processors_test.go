@@ -24,7 +24,7 @@ func TestTradingLogProcessor_ProcessLongPosition(t *testing.T) {
 
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      mockSubAccountRepo,
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -181,7 +181,7 @@ func TestTradingLogProcessor_ProcessShortPosition(t *testing.T) {
 
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      mockSubAccountRepo,
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -400,7 +400,7 @@ func TestTradingLogProcessor_ProcessWithdraw(t *testing.T) {
 
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      mockSubAccountRepo,
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -505,7 +505,7 @@ func TestTradingLogProcessor_ProcessWithdraw(t *testing.T) {
 
 		reposFail := &repositories.Repositories{
 			User:            &mocks.MockUserRepository{},
-			Exchange:        &mocks.MockExchangeRepository{},
+			Trading:        &mocks.MockTradingRepository{},
 			SubAccount:      mockSubAccountRepoFail,
 			Transaction:     mockTransactionRepoFail,
 			TradingLog:      &mocks.MockTradingLogRepository{},
@@ -540,7 +540,7 @@ func TestTradingLogProcessor_ProcessWithdraw(t *testing.T) {
 
 		reposZero := &repositories.Repositories{
 			User:            &mocks.MockUserRepository{},
-			Exchange:        &mocks.MockExchangeRepository{},
+			Trading:        &mocks.MockTradingRepository{},
 			SubAccount:      mockSubAccountRepoZero,
 			Transaction:     mockTransactionRepoZero,
 			TradingLog:      &mocks.MockTradingLogRepository{},
@@ -598,7 +598,7 @@ func TestTradingLogProcessor_ProcessWithdraw(t *testing.T) {
 
 		reposExact := &repositories.Repositories{
 			User:            &mocks.MockUserRepository{},
-			Exchange:        &mocks.MockExchangeRepository{},
+			Trading:        &mocks.MockTradingRepository{},
 			SubAccount:      mockSubAccountRepoExact,
 			Transaction:     mockTransactionRepoExact,
 			TradingLog:      &mocks.MockTradingLogRepository{},
@@ -656,7 +656,7 @@ func TestTradingLogProcessor_ProcessWithdraw(t *testing.T) {
 
 		reposTxFail := &repositories.Repositories{
 			User:            &mocks.MockUserRepository{},
-			Exchange:        &mocks.MockExchangeRepository{},
+			Trading:        &mocks.MockTradingRepository{},
 			SubAccount:      mockSubAccountRepoTxFail,
 			Transaction:     mockTransactionRepoTxFail,
 			TradingLog:      &mocks.MockTradingLogRepository{},
@@ -730,7 +730,7 @@ func TestTradingLogProcessor_ProcessWithdraw(t *testing.T) {
 
 		reposPrecision := &repositories.Repositories{
 			User:            &mocks.MockUserRepository{},
-			Exchange:        &mocks.MockExchangeRepository{},
+			Trading:        &mocks.MockTradingRepository{},
 			SubAccount:      mockSubAccountRepoPrecision,
 			Transaction:     mockTransactionRepoPrecision,
 			TradingLog:      &mocks.MockTradingLogRepository{},

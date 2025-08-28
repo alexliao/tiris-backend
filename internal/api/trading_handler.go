@@ -11,33 +11,33 @@ import (
 	"github.com/google/uuid"
 )
 
-// ExchangeHandler handles exchange management endpoints
-type ExchangeHandler struct {
-	exchangeService ExchangeServiceInterface
+// TradingHandler handles trading platform management endpoints
+type TradingHandler struct {
+	tradingService TradingServiceInterface
 }
 
-// NewExchangeHandler creates a new exchange handler
-func NewExchangeHandler(exchangeService ExchangeServiceInterface) *ExchangeHandler {
-	return &ExchangeHandler{
-		exchangeService: exchangeService,
+// NewTradingHandler creates a new trading handler
+func NewTradingHandler(tradingService TradingServiceInterface) *TradingHandler {
+	return &TradingHandler{
+		tradingService: tradingService,
 	}
 }
 
-// CreateExchange creates a new exchange configuration
-// @Summary Create new exchange
-// @Description Creates a new exchange configuration for the authenticated user
-// @Tags Exchanges
+// CreateTrading creates a new trading platform configuration
+// @Summary Create new trading platform
+// @Description Creates a new trading platform configuration for the authenticated user
+// @Tags Tradings
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body services.CreateExchangeRequest true "Create exchange request"
-// @Success 201 {object} services.ExchangeResponse
+// @Param request body services.CreateTradingRequest true "Create trading platform request"
+// @Success 201 {object} services.TradingResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 409 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /exchanges [post]
-func (h *ExchangeHandler) CreateExchange(c *gin.Context) {
+// @Router /tradings [post]
+func (h *TradingHandler) CreateTrading(c *gin.Context) {
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, CreateErrorResponse(
@@ -49,7 +49,7 @@ func (h *ExchangeHandler) CreateExchange(c *gin.Context) {
 		return
 	}
 
-	var req services.CreateExchangeRequest
+	var req services.CreateTradingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
 			"INVALID_REQUEST",
@@ -60,12 +60,12 @@ func (h *ExchangeHandler) CreateExchange(c *gin.Context) {
 		return
 	}
 
-	exchange, err := h.exchangeService.CreateExchange(c.Request.Context(), userID, &req)
+	trading, err := h.tradingService.CreateTrading(c.Request.Context(), userID, &req)
 	if err != nil {
-		if err.Error() == "exchange name already exists" {
+		if err.Error() == "trading platform name already exists" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
-				"EXCHANGE_NAME_EXISTS",
-				"Exchange name already exists",
+				"TRADING_NAME_EXISTS",
+				"Trading platform name already exists",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -91,28 +91,28 @@ func (h *ExchangeHandler) CreateExchange(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
-			"EXCHANGE_CREATE_FAILED",
-			"Failed to create exchange",
+			"TRADING_CREATE_FAILED",
+			"Failed to create trading platform",
 			err.Error(),
 			getTraceID(c),
 		))
 		return
 	}
 
-	c.JSON(http.StatusCreated, CreateSuccessResponse(exchange, getTraceID(c)))
+	c.JSON(http.StatusCreated, CreateSuccessResponse(trading, getTraceID(c)))
 }
 
-// GetUserExchanges retrieves all exchanges for the current user
-// @Summary Get user exchanges
-// @Description Retrieves all exchange configurations for the authenticated user
-// @Tags Exchanges
+// GetUserTradings retrieves all trading platforms for the current user
+// @Summary Get user trading platforms
+// @Description Retrieves all trading platform configurations for the authenticated user
+// @Tags Tradings
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} services.ExchangeResponse
+// @Success 200 {array} services.TradingResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /exchanges [get]
-func (h *ExchangeHandler) GetUserExchanges(c *gin.Context) {
+// @Router /tradings [get]
+func (h *TradingHandler) GetUserTradings(c *gin.Context) {
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, CreateErrorResponse(
@@ -124,11 +124,11 @@ func (h *ExchangeHandler) GetUserExchanges(c *gin.Context) {
 		return
 	}
 
-	exchanges, err := h.exchangeService.GetUserExchanges(c.Request.Context(), userID)
+	tradings, err := h.tradingService.GetUserTradings(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
-			"EXCHANGES_GET_FAILED",
-			"Failed to get exchanges",
+			"TRADINGS_GET_FAILED",
+			"Failed to get trading platforms",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -136,26 +136,26 @@ func (h *ExchangeHandler) GetUserExchanges(c *gin.Context) {
 	}
 
 	response := map[string]interface{}{
-		"exchanges": exchanges,
+		"tradings": tradings,
 	}
 
 	c.JSON(http.StatusOK, CreateSuccessResponse(response, getTraceID(c)))
 }
 
-// GetExchange retrieves a specific exchange by ID
-// @Summary Get exchange by ID
-// @Description Retrieves a specific exchange configuration by ID (must belong to authenticated user)
-// @Tags Exchanges
+// GetTrading retrieves a specific trading platform by ID
+// @Summary Get trading platform by ID
+// @Description Retrieves a specific trading platform configuration by ID (must belong to authenticated user)
+// @Tags Tradings
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Exchange ID"
-// @Success 200 {object} services.ExchangeResponse
+// @Param id path string true "Trading Platform ID"
+// @Success 200 {object} services.TradingResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /exchanges/{id} [get]
-func (h *ExchangeHandler) GetExchange(c *gin.Context) {
+// @Router /tradings/{id} [get]
+func (h *TradingHandler) GetTrading(c *gin.Context) {
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, CreateErrorResponse(
@@ -167,24 +167,24 @@ func (h *ExchangeHandler) GetExchange(c *gin.Context) {
 		return
 	}
 
-	exchangeIDStr := c.Param("id")
-	exchangeID, err := uuid.Parse(exchangeIDStr)
+	tradingIDStr := c.Param("id")
+	tradingID, err := uuid.Parse(tradingIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
-			"INVALID_EXCHANGE_ID",
-			"Invalid exchange ID format",
+			"INVALID_TRADING_ID",
+			"Invalid trading platform ID format",
 			err.Error(),
 			getTraceID(c),
 		))
 		return
 	}
 
-	exchange, err := h.exchangeService.GetExchange(c.Request.Context(), userID, exchangeID)
+	trading, err := h.tradingService.GetTrading(c.Request.Context(), userID, tradingID)
 	if err != nil {
-		if err.Error() == "exchange not found" {
+		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
-				"EXCHANGE_NOT_FOUND",
-				"Exchange not found",
+				"TRADING_NOT_FOUND",
+				"Trading platform not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -192,34 +192,34 @@ func (h *ExchangeHandler) GetExchange(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
-			"EXCHANGE_GET_FAILED",
-			"Failed to get exchange",
+			"TRADING_GET_FAILED",
+			"Failed to get trading platform",
 			err.Error(),
 			getTraceID(c),
 		))
 		return
 	}
 
-	c.JSON(http.StatusOK, CreateSuccessResponse(exchange, getTraceID(c)))
+	c.JSON(http.StatusOK, CreateSuccessResponse(trading, getTraceID(c)))
 }
 
-// UpdateExchange updates an existing exchange
-// @Summary Update exchange
-// @Description Updates an existing exchange configuration (must belong to authenticated user)
-// @Tags Exchanges
+// UpdateTrading updates an existing trading platform
+// @Summary Update trading platform
+// @Description Updates an existing trading platform configuration (must belong to authenticated user)
+// @Tags Tradings
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Exchange ID"
-// @Param request body services.UpdateExchangeRequest true "Update exchange request"
-// @Success 200 {object} services.ExchangeResponse
+// @Param id path string true "Trading Platform ID"
+// @Param request body services.UpdateTradingRequest true "Update trading platform request"
+// @Success 200 {object} services.TradingResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 409 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /exchanges/{id} [put]
-func (h *ExchangeHandler) UpdateExchange(c *gin.Context) {
+// @Router /tradings/{id} [put]
+func (h *TradingHandler) UpdateTrading(c *gin.Context) {
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, CreateErrorResponse(
@@ -231,19 +231,19 @@ func (h *ExchangeHandler) UpdateExchange(c *gin.Context) {
 		return
 	}
 
-	exchangeIDStr := c.Param("id")
-	exchangeID, err := uuid.Parse(exchangeIDStr)
+	tradingIDStr := c.Param("id")
+	tradingID, err := uuid.Parse(tradingIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
-			"INVALID_EXCHANGE_ID",
-			"Invalid exchange ID format",
+			"INVALID_TRADING_ID",
+			"Invalid trading platform ID format",
 			err.Error(),
 			getTraceID(c),
 		))
 		return
 	}
 
-	var req services.UpdateExchangeRequest
+	var req services.UpdateTradingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
 			"INVALID_REQUEST",
@@ -254,21 +254,21 @@ func (h *ExchangeHandler) UpdateExchange(c *gin.Context) {
 		return
 	}
 
-	exchange, err := h.exchangeService.UpdateExchange(c.Request.Context(), userID, exchangeID, &req)
+	trading, err := h.tradingService.UpdateTrading(c.Request.Context(), userID, tradingID, &req)
 	if err != nil {
-		if err.Error() == "exchange not found" {
+		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
-				"EXCHANGE_NOT_FOUND",
-				"Exchange not found",
+				"TRADING_NOT_FOUND",
+				"Trading platform not found",
 				err.Error(),
 				getTraceID(c),
 			))
 			return
 		}
-		if err.Error() == "exchange name already exists" {
+		if err.Error() == "trading platform name already exists" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
-				"EXCHANGE_NAME_EXISTS",
-				"Exchange name already exists",
+				"TRADING_NAME_EXISTS",
+				"Trading platform name already exists",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -294,32 +294,32 @@ func (h *ExchangeHandler) UpdateExchange(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
-			"EXCHANGE_UPDATE_FAILED",
-			"Failed to update exchange",
+			"TRADING_UPDATE_FAILED",
+			"Failed to update trading platform",
 			err.Error(),
 			getTraceID(c),
 		))
 		return
 	}
 
-	c.JSON(http.StatusOK, CreateSuccessResponse(exchange, getTraceID(c)))
+	c.JSON(http.StatusOK, CreateSuccessResponse(trading, getTraceID(c)))
 }
 
-// DeleteExchange deletes an exchange
-// @Summary Delete exchange
-// @Description Deletes an exchange configuration (must belong to authenticated user)
-// @Tags Exchanges
+// DeleteTrading deletes a trading platform
+// @Summary Delete trading platform
+// @Description Deletes a trading platform configuration (must belong to authenticated user)
+// @Tags Tradings
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Exchange ID"
+// @Param id path string true "Trading Platform ID"
 // @Success 200 {object} SuccessResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 409 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /exchanges/{id} [delete]
-func (h *ExchangeHandler) DeleteExchange(c *gin.Context) {
+// @Router /tradings/{id} [delete]
+func (h *TradingHandler) DeleteTrading(c *gin.Context) {
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, CreateErrorResponse(
@@ -331,33 +331,33 @@ func (h *ExchangeHandler) DeleteExchange(c *gin.Context) {
 		return
 	}
 
-	exchangeIDStr := c.Param("id")
-	exchangeID, err := uuid.Parse(exchangeIDStr)
+	tradingIDStr := c.Param("id")
+	tradingID, err := uuid.Parse(tradingIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
-			"INVALID_EXCHANGE_ID",
-			"Invalid exchange ID format",
+			"INVALID_TRADING_ID",
+			"Invalid trading platform ID format",
 			err.Error(),
 			getTraceID(c),
 		))
 		return
 	}
 
-	err = h.exchangeService.DeleteExchange(c.Request.Context(), userID, exchangeID)
+	err = h.tradingService.DeleteTrading(c.Request.Context(), userID, tradingID)
 	if err != nil {
-		if err.Error() == "exchange not found" {
+		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
-				"EXCHANGE_NOT_FOUND",
-				"Exchange not found",
+				"TRADING_NOT_FOUND",
+				"Trading platform not found",
 				err.Error(),
 				getTraceID(c),
 			))
 			return
 		}
-		if err.Error() == "cannot delete exchange with existing sub-accounts" {
+		if err.Error() == "cannot delete trading platform with existing sub-accounts" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
-				"EXCHANGE_HAS_SUBACCOUNTS",
-				"Cannot delete exchange with existing sub-accounts",
+				"TRADING_HAS_SUBACCOUNTS",
+				"Cannot delete trading platform with existing sub-accounts",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -365,8 +365,8 @@ func (h *ExchangeHandler) DeleteExchange(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
-			"EXCHANGE_DELETE_FAILED",
-			"Failed to delete exchange",
+			"TRADING_DELETE_FAILED",
+			"Failed to delete trading platform",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -374,26 +374,26 @@ func (h *ExchangeHandler) DeleteExchange(c *gin.Context) {
 	}
 
 	response := map[string]interface{}{
-		"message": "Exchange deleted successfully",
+		"message": "Trading platform deleted successfully",
 	}
 
 	c.JSON(http.StatusOK, CreateSuccessResponse(response, getTraceID(c)))
 }
 
-// ListExchanges lists all exchanges (admin only)
-// @Summary List all exchanges
-// @Description Lists all exchange configurations with pagination (admin only)
-// @Tags Exchanges
+// ListTradings lists all trading platforms (admin only)
+// @Summary List all trading platforms
+// @Description Lists all trading platform configurations with pagination (admin only)
+// @Tags Tradings
 // @Produce json
 // @Security BearerAuth
-// @Param limit query int false "Number of exchanges to return" default(100)
-// @Param offset query int false "Number of exchanges to skip" default(0)
+// @Param limit query int false "Number of trading platforms to return" default(100)
+// @Param offset query int false "Number of trading platforms to skip" default(0)
 // @Success 200 {object} PaginatedResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 403 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /admin/exchanges [get]
-func (h *ExchangeHandler) ListExchanges(c *gin.Context) {
+// @Router /admin/tradings [get]
+func (h *TradingHandler) ListTradings(c *gin.Context) {
 	// Parse pagination parameters
 	limit := 100
 	if l := c.Query("limit"); l != "" {
@@ -409,11 +409,11 @@ func (h *ExchangeHandler) ListExchanges(c *gin.Context) {
 		}
 	}
 
-	exchanges, total, err := h.exchangeService.ListExchanges(c.Request.Context(), limit, offset)
+	tradings, total, err := h.tradingService.ListTradings(c.Request.Context(), limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
-			"EXCHANGES_LIST_FAILED",
-			"Failed to list exchanges",
+			"TRADINGS_LIST_FAILED",
+			"Failed to list trading platforms",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -437,45 +437,45 @@ func (h *ExchangeHandler) ListExchanges(c *gin.Context) {
 	}
 
 	response := map[string]interface{}{
-		"exchanges": exchanges,
+		"tradings": tradings,
 	}
 
 	c.JSON(http.StatusOK, CreatePaginatedResponse(response, pagination, getTraceID(c)))
 }
 
-// GetExchangeByID retrieves exchange by ID (admin only)
-// @Summary Get exchange by ID
-// @Description Retrieves an exchange by ID (admin only)
-// @Tags Exchanges
+// GetTradingByID retrieves trading platform by ID (admin only)
+// @Summary Get trading platform by ID
+// @Description Retrieves a trading platform by ID (admin only)
+// @Tags Tradings
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Exchange ID"
-// @Success 200 {object} services.ExchangeResponse
+// @Param id path string true "Trading Platform ID"
+// @Success 200 {object} services.TradingResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 403 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /admin/exchanges/{id} [get]
-func (h *ExchangeHandler) GetExchangeByID(c *gin.Context) {
-	exchangeIDStr := c.Param("id")
-	exchangeID, err := uuid.Parse(exchangeIDStr)
+// @Router /admin/tradings/{id} [get]
+func (h *TradingHandler) GetTradingByID(c *gin.Context) {
+	tradingIDStr := c.Param("id")
+	tradingID, err := uuid.Parse(tradingIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
-			"INVALID_EXCHANGE_ID",
-			"Invalid exchange ID format",
+			"INVALID_TRADING_ID",
+			"Invalid trading platform ID format",
 			err.Error(),
 			getTraceID(c),
 		))
 		return
 	}
 
-	exchange, err := h.exchangeService.GetExchangeByID(c.Request.Context(), exchangeID)
+	trading, err := h.tradingService.GetTradingByID(c.Request.Context(), tradingID)
 	if err != nil {
-		if err.Error() == "exchange not found" {
+		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
-				"EXCHANGE_NOT_FOUND",
-				"Exchange not found",
+				"TRADING_NOT_FOUND",
+				"Trading platform not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -483,13 +483,13 @@ func (h *ExchangeHandler) GetExchangeByID(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
-			"EXCHANGE_GET_FAILED",
-			"Failed to get exchange",
+			"TRADING_GET_FAILED",
+			"Failed to get trading platform",
 			err.Error(),
 			getTraceID(c),
 		))
 		return
 	}
 
-	c.JSON(http.StatusOK, CreateSuccessResponse(exchange, getTraceID(c)))
+	c.JSON(http.StatusOK, CreateSuccessResponse(trading, getTraceID(c)))
 }

@@ -30,22 +30,22 @@ type OAuthTokenRepository interface {
 	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
 }
 
-// ExchangeRepository defines the interface for exchange operations
-type ExchangeRepository interface {
-	Create(ctx context.Context, exchange *models.Exchange) error
-	GetByID(ctx context.Context, id uuid.UUID) (*models.Exchange, error)
-	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*models.Exchange, error)
-	Update(ctx context.Context, exchange *models.Exchange) error
+// TradingRepository defines the interface for trading platform operations
+type TradingRepository interface {
+	Create(ctx context.Context, trading *models.Trading) error
+	GetByID(ctx context.Context, id uuid.UUID) (*models.Trading, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*models.Trading, error)
+	Update(ctx context.Context, trading *models.Trading) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetByUserIDAndType(ctx context.Context, userID uuid.UUID, exchangeType string) ([]*models.Exchange, error)
+	GetByUserIDAndType(ctx context.Context, userID uuid.UUID, tradingType string) ([]*models.Trading, error)
 }
 
 // SubAccountRepository defines the interface for sub-account operations
 type SubAccountRepository interface {
 	Create(ctx context.Context, subAccount *models.SubAccount) error
 	GetByID(ctx context.Context, id uuid.UUID) (*models.SubAccount, error)
-	GetByUserID(ctx context.Context, userID uuid.UUID, exchangeID *uuid.UUID) ([]*models.SubAccount, error)
-	GetByExchangeID(ctx context.Context, exchangeID uuid.UUID) ([]*models.SubAccount, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID, tradingID *uuid.UUID) ([]*models.SubAccount, error)
+	GetByTradingID(ctx context.Context, tradingID uuid.UUID) ([]*models.SubAccount, error)
 	Update(ctx context.Context, subAccount *models.SubAccount) error
 	UpdateBalance(ctx context.Context, subAccountID uuid.UUID, newBalance float64, amount float64, direction, reason string, info interface{}) (*uuid.UUID, error)
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -58,7 +58,7 @@ type TransactionRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Transaction, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID, filters TransactionFilters) ([]*models.Transaction, int64, error)
 	GetBySubAccountID(ctx context.Context, subAccountID uuid.UUID, filters TransactionFilters) ([]*models.Transaction, int64, error)
-	GetByExchangeID(ctx context.Context, exchangeID uuid.UUID, filters TransactionFilters) ([]*models.Transaction, int64, error)
+	GetByTradingID(ctx context.Context, tradingID uuid.UUID, filters TransactionFilters) ([]*models.Transaction, int64, error)
 	GetByTimeRange(ctx context.Context, startTime, endTime time.Time, filters TransactionFilters) ([]*models.Transaction, int64, error)
 }
 
@@ -68,7 +68,7 @@ type TradingLogRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.TradingLog, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID, filters TradingLogFilters) ([]*models.TradingLog, int64, error)
 	GetBySubAccountID(ctx context.Context, subAccountID uuid.UUID, filters TradingLogFilters) ([]*models.TradingLog, int64, error)
-	GetByExchangeID(ctx context.Context, exchangeID uuid.UUID, filters TradingLogFilters) ([]*models.TradingLog, int64, error)
+	GetByTradingID(ctx context.Context, tradingID uuid.UUID, filters TradingLogFilters) ([]*models.TradingLog, int64, error)
 	GetByTimeRange(ctx context.Context, startTime, endTime time.Time, filters TradingLogFilters) ([]*models.TradingLog, int64, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }

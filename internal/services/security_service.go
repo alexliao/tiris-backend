@@ -295,7 +295,7 @@ func (ss *SecurityService) GetExchangeCredentials(ctx context.Context, userID, e
 	if err := ss.db.WithContext(ctx).
 		Where("id = ? AND user_id = ?", exchangeID, userID).
 		First(&exchange).Error; err != nil {
-		return "", "", fmt.Errorf("exchange not found: %v", err)
+		return "", "", fmt.Errorf("trading platform not found: %v", err)
 	}
 
 	return ss.exchangeManager.GetAPICredentials(&exchange)

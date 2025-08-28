@@ -27,7 +27,7 @@ func NewTransactionService(repos *repositories.Repositories) *TransactionService
 type TransactionResponse struct {
 	ID             uuid.UUID              `json:"id"`
 	UserID         uuid.UUID              `json:"user_id"`
-	ExchangeID     uuid.UUID              `json:"exchange_id"`
+	TradingID      uuid.UUID              `json:"trading_id"`
 	SubAccountID   uuid.UUID              `json:"sub_account_id"`
 	Timestamp      string                 `json:"timestamp"`
 	Direction      string                 `json:"direction"`
@@ -170,12 +170,12 @@ func (s *TransactionService) GetSubAccountTransactions(ctx context.Context, user
 // GetExchangeTransactions retrieves transactions for a specific exchange
 func (s *TransactionService) GetExchangeTransactions(ctx context.Context, userID, exchangeID uuid.UUID, req *TransactionQueryRequest) (*TransactionQueryResponse, error) {
 	// Verify user owns the exchange
-	exchange, err := s.repos.Exchange.GetByID(ctx, exchangeID)
+	exchange, err := s.repos.Trading.GetByID(ctx, exchangeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify exchange: %w", err)
 	}
 	if exchange == nil || exchange.UserID != userID {
-		return nil, fmt.Errorf("exchange not found")
+		return nil, fmt.Errorf("trading platform not found")
 	}
 
 	// Set default pagination
@@ -204,7 +204,7 @@ func (s *TransactionService) GetExchangeTransactions(ctx context.Context, userID
 	}
 
 	// Query transactions
-	transactions, total, err := s.repos.Transaction.GetByExchangeID(ctx, exchangeID, filters)
+	transactions, total, err := s.repos.Transaction.GetByTradingID(ctx, exchangeID, filters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get exchange transactions: %w", err)
 	}
@@ -388,7 +388,7 @@ func (s *TransactionService) convertToTransactionResponse(transaction *models.Tr
 	return &TransactionResponse{
 		ID:             transaction.ID,
 		UserID:         transaction.UserID,
-		ExchangeID:     transaction.ExchangeID,
+		TradingID:      transaction.TradingID,
 		SubAccountID:   transaction.SubAccountID,
 		Timestamp:      transaction.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
 		Direction:      transaction.Direction,

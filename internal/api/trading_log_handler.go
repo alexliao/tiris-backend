@@ -115,7 +115,7 @@ func (h *TradingLogHandler) CreateTradingLog(c *gin.Context) {
 
 	tradingLog, err := h.tradingLogService.CreateTradingLog(c.Request.Context(), userID, &req)
 	if err != nil {
-		if err.Error() == "exchange not found" {
+		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"EXCHANGE_NOT_FOUND",
 				"Exchange not found",
@@ -362,7 +362,7 @@ func (h *TradingLogHandler) GetExchangeTradingLogs(c *gin.Context) {
 
 	tradingLogs, err := h.tradingLogService.GetExchangeTradingLogs(c.Request.Context(), userID, exchangeID, &req)
 	if err != nil {
-		if err.Error() == "exchange not found" {
+		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"EXCHANGE_NOT_FOUND",
 				"Exchange not found",

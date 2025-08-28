@@ -95,7 +95,7 @@ func TestAuthService_InitiateLogin(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:         &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -193,7 +193,7 @@ func TestAuthService_HandleCallback(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:         &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -451,7 +451,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:         &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -630,7 +630,7 @@ func TestAuthService_Performance(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:         &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},

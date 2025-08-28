@@ -44,8 +44,8 @@ func (r *transactionRepository) GetBySubAccountID(ctx context.Context, subAccoun
 	return r.getTransactions(ctx, filters, "sub_account_id = ?", subAccountID)
 }
 
-func (r *transactionRepository) GetByExchangeID(ctx context.Context, exchangeID uuid.UUID, filters TransactionFilters) ([]*models.Transaction, int64, error) {
-	return r.getTransactions(ctx, filters, "exchange_id = ?", exchangeID)
+func (r *transactionRepository) GetByTradingID(ctx context.Context, tradingID uuid.UUID, filters TransactionFilters) ([]*models.Transaction, int64, error) {
+	return r.getTransactions(ctx, filters, "trading_id = ?", tradingID)
 }
 
 func (r *transactionRepository) GetByTimeRange(ctx context.Context, startTime, endTime time.Time, filters TransactionFilters) ([]*models.Transaction, int64, error) {

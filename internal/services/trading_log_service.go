@@ -32,7 +32,7 @@ func NewTradingLogService(repos *repositories.Repositories, db *gorm.DB) *Tradin
 type TradingLogResponse struct {
 	ID            uuid.UUID              `json:"id"`
 	UserID        uuid.UUID              `json:"user_id"`
-	ExchangeID    uuid.UUID              `json:"exchange_id"`
+	TradingID     uuid.UUID              `json:"trading_id"`
 	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty"`
 	TransactionID *uuid.UUID             `json:"transaction_id,omitempty"`
 	Timestamp     string                 `json:"timestamp"`
@@ -48,7 +48,7 @@ type TradingLogResponse struct {
 // @Description - For types 'deposit', 'withdraw': Must use DepositWithdrawInfo structure  
 // @Description - For other types: Can use any object structure
 type CreateTradingLogRequest struct {
-	ExchangeID    uuid.UUID              `json:"exchange_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c" description:"ID of the exchange where the trading activity occurred"`
+	TradingID     uuid.UUID              `json:"trading_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c" description:"ID of the trading platform where the trading activity occurred"`
 	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty" example:"b4e006d0-1069-4ef4-b33f-7690af4929f4" description:"Optional sub-account ID (used for some trading log types)"`
 	TransactionID *uuid.UUID             `json:"transaction_id,omitempty" example:"1a098613-e738-447d-b921-74c3594df3a5" description:"Optional transaction ID for linking to specific transactions"`
 	Type          string                 `json:"type" binding:"required,min=1,max=50" example:"long" enums:"long,short,stop_loss,deposit,withdraw,trade_execution,api_call,system_event,error,custom" description:"Type of trading log entry. Business logic types (long, short, stop_loss, deposit, withdraw) require specific 'info' field structures and trigger automatic financial calculations"`
@@ -60,7 +60,7 @@ type CreateTradingLogRequest struct {
 // CreateLongTradingLogExample shows example structure for long trading log requests
 // @Description Example request structure for creating a long position trading log
 type CreateLongTradingLogExample struct {
-	ExchangeID uuid.UUID              `json:"exchange_id" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
+	TradingID  uuid.UUID              `json:"trading_id" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
 	Type       string                 `json:"type" example:"long"`
 	Source     string                 `json:"source" example:"bot"`
 	Message    string                 `json:"message" example:"ETH long position opened"`
@@ -70,7 +70,7 @@ type CreateLongTradingLogExample struct {
 // CreateDepositTradingLogExample shows example structure for deposit trading log requests  
 // @Description Example request structure for creating a deposit trading log
 type CreateDepositTradingLogExample struct {
-	ExchangeID uuid.UUID              `json:"exchange_id" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
+	TradingID  uuid.UUID              `json:"trading_id" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
 	Type       string                 `json:"type" example:"deposit"`
 	Source     string                 `json:"source" example:"api"`
 	Message    string                 `json:"message" example:"USDT deposit to account"`
@@ -225,12 +225,12 @@ func (s *TradingLogService) GetSubAccountTradingLogs(ctx context.Context, userID
 // GetExchangeTradingLogs retrieves trading logs for a specific exchange
 func (s *TradingLogService) GetExchangeTradingLogs(ctx context.Context, userID, exchangeID uuid.UUID, req *TradingLogQueryRequest) (*TradingLogQueryResponse, error) {
 	// Verify user owns the exchange
-	exchange, err := s.repos.Exchange.GetByID(ctx, exchangeID)
+	exchange, err := s.repos.Trading.GetByID(ctx, exchangeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify exchange: %w", err)
 	}
 	if exchange == nil || exchange.UserID != userID {
-		return nil, fmt.Errorf("exchange not found")
+		return nil, fmt.Errorf("trading platform not found")
 	}
 
 	// Set default pagination
@@ -254,7 +254,7 @@ func (s *TradingLogService) GetExchangeTradingLogs(ctx context.Context, userID, 
 	}
 
 	// Query trading logs
-	tradingLogs, total, err := s.repos.TradingLog.GetByExchangeID(ctx, exchangeID, filters)
+	tradingLogs, total, err := s.repos.TradingLog.GetByTradingID(ctx, exchangeID, filters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get exchange trading logs: %w", err)
 	}
@@ -455,7 +455,7 @@ func (s *TradingLogService) convertToTradingLogResponse(tradingLog *models.Tradi
 	return &TradingLogResponse{
 		ID:            tradingLog.ID,
 		UserID:        tradingLog.UserID,
-		ExchangeID:    tradingLog.ExchangeID,
+		TradingID:     tradingLog.TradingID,
 		SubAccountID:  tradingLog.SubAccountID,
 		TransactionID: tradingLog.TransactionID,
 		Timestamp:     tradingLog.Timestamp.Format("2006-01-02T15:04:05Z07:00"),

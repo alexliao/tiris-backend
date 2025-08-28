@@ -162,7 +162,7 @@ func (suite *PerformanceTestSuite) runMigrations() {
 	err := db.AutoMigrate(
 		&models.User{},
 		&models.OAuthToken{},
-		&models.Exchange{},
+		&models.Trading{},
 		&models.SubAccount{},
 		&models.Transaction{},
 		&models.TradingLog{},
@@ -591,7 +591,7 @@ func (suite *PerformanceTestSuite) createTestExchanges(count int) {
 	for i := 0; i < count; i++ {
 		userIndex := i % len(suite.userIDs)
 		
-		exchange := &models.Exchange{
+		exchange := &models.Trading{
 			UserID:    suite.userIDs[userIndex],
 			Name:      fmt.Sprintf("PerfTestExchange_%d", i),
 			Type:      "spot",
@@ -600,7 +600,7 @@ func (suite *PerformanceTestSuite) createTestExchanges(count int) {
 			Status:    "active",
 		}
 		
-		suite.repos.Exchange.Create(context.Background(), exchange)
+		suite.repos.Trading.Create(context.Background(), exchange)
 	}
 }
 
@@ -608,7 +608,7 @@ func (suite *PerformanceTestSuite) createTestDataWithRelationships(exchangesPerU
 	for i, userID := range suite.userIDs[:10] { // Use first 10 users
 		// Create exchanges
 		for j := 0; j < exchangesPerUser; j++ {
-			exchange := &models.Exchange{
+			exchange := &models.Trading{
 				UserID:    userID,
 				Name:      fmt.Sprintf("ComplexExchange_%d_%d", i, j),
 				Type:      "spot",
@@ -617,7 +617,7 @@ func (suite *PerformanceTestSuite) createTestDataWithRelationships(exchangesPerU
 				Status:    "active",
 			}
 			
-			err := suite.repos.Exchange.Create(context.Background(), exchange)
+			err := suite.repos.Trading.Create(context.Background(), exchange)
 			if err != nil {
 				continue
 			}
@@ -626,7 +626,7 @@ func (suite *PerformanceTestSuite) createTestDataWithRelationships(exchangesPerU
 			for k := 0; k < 3; k++ {
 				subAccount := &models.SubAccount{
 					UserID:     userID,
-					ExchangeID: exchange.ID,
+					TradingID: exchange.ID,
 					Name:       fmt.Sprintf("SubAccount_%d_%d_%d", i, j, k),
 					Symbol:     fmt.Sprintf("SYM%d%d%d", i, j, k),
 					Balance:    float64(rand.Intn(10000)),

@@ -29,7 +29,7 @@ func TestTransactionService_GetUserTransactions(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -216,7 +216,7 @@ func TestTransactionService_GetSubAccountTransactions(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      mockSubAccountRepo,
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -232,7 +232,7 @@ func TestTransactionService_GetSubAccountTransactions(t *testing.T) {
 	exchangeID := uuid.New()
 	subAccountID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
-	testSubAccount := subAccountFactory.WithUserAndExchange(userID, exchangeID)
+	testSubAccount := subAccountFactory.WithUserAndTrading(userID, exchangeID)
 	testSubAccount.ID = subAccountID
 
 	transactionFactory := helpers.NewTransactionFactory()
@@ -298,7 +298,7 @@ func TestTransactionService_GetSubAccountTransactions(t *testing.T) {
 	// Test sub-account belongs to different user
 	t.Run("subaccount_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserSubAccount := subAccountFactory.WithUserAndExchange(differentUserID, exchangeID)
+		wrongUserSubAccount := subAccountFactory.WithUserAndTrading(differentUserID, exchangeID)
 		wrongUserSubAccount.ID = subAccountID
 
 		request := &services.TransactionQueryRequest{}
@@ -324,12 +324,12 @@ func TestTransactionService_GetSubAccountTransactions(t *testing.T) {
 func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 	// Create mocks
 	mockTransactionRepo := &mocks.MockTransactionRepository{}
-	mockExchangeRepo := &mocks.MockExchangeRepository{}
+	mockExchangeRepo := &mocks.MockTradingRepository{}
 
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        mockExchangeRepo,
+		Trading:        mockExchangeRepo,
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -343,7 +343,7 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 	// Create test data
 	userID := uuid.New()
 	exchangeID := uuid.New()
-	exchangeFactory := helpers.NewExchangeFactory()
+	exchangeFactory := helpers.NewTradingFactory()
 	testExchange := exchangeFactory.WithUserID(userID)
 	testExchange.ID = exchangeID
 
@@ -356,8 +356,8 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 		}
 
 		testTransactions := []*models.Transaction{
-			transactionFactory.WithExchangeID(exchangeID),
-			transactionFactory.WithExchangeID(exchangeID),
+			transactionFactory.WithTradingID(exchangeID),
+			transactionFactory.WithTradingID(exchangeID),
 		}
 		testTransactions[0].UserID = userID
 		testTransactions[1].UserID = userID
@@ -369,7 +369,7 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 		// Setup mock expectations
 		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
 			Return(testExchange, nil).Once()
-		mockTransactionRepo.On("GetByExchangeID", mock.Anything, exchangeID, expectedFilters).
+		mockTransactionRepo.On("GetByTradingID", mock.Anything, exchangeID, expectedFilters).
 			Return(testTransactions, int64(2), nil).Once()
 
 		// Execute test
@@ -401,7 +401,7 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "exchange not found")
+		assert.Contains(t, err.Error(), "trading platform not found")
 
 		// Verify mock expectations
 		mockExchangeRepo.AssertExpectations(t)
@@ -425,7 +425,7 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "exchange not found")
+		assert.Contains(t, err.Error(), "trading platform not found")
 
 		// Verify mock expectations
 		mockExchangeRepo.AssertExpectations(t)
@@ -440,7 +440,7 @@ func TestTransactionService_GetTransaction(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -526,7 +526,7 @@ func TestTransactionService_GetTransactionsByTimeRange(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -646,7 +646,7 @@ func TestTransactionService_ListAllTransactions(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -740,7 +740,7 @@ func TestTransactionService_GetTransactionByID(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -807,7 +807,7 @@ func TestTransactionService_Performance(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},

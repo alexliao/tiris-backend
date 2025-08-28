@@ -60,13 +60,13 @@ var UserFixtures = struct {
 	},
 }
 
-// ExchangeFixtures provides test exchange data
-var ExchangeFixtures = struct {
-	BinanceExchange *models.Exchange
-	OKXExchange     *models.Exchange
-	TestExchange    *models.Exchange
+// TradingFixtures provides test trading data
+var TradingFixtures = struct {
+	BinanceTrading *models.Trading
+	OKXTrading     *models.Trading
+	TestTrading    *models.Trading
 }{
-	BinanceExchange: &models.Exchange{
+	BinanceTrading: &models.Trading{
 		ID:        uuid.MustParse("223e4567-e89b-12d3-a456-426614174000"),
 		UserID:    UserFixtures.ValidUser.ID,
 		Name:      "binance",
@@ -78,7 +78,7 @@ var ExchangeFixtures = struct {
 		CreatedAt: time.Now().Add(-12 * time.Hour),
 		UpdatedAt: time.Now().Add(-1 * time.Hour),
 	},
-	OKXExchange: &models.Exchange{
+	OKXTrading: &models.Trading{
 		ID:        uuid.MustParse("223e4567-e89b-12d3-a456-426614174001"),
 		UserID:    UserFixtures.ValidUser.ID,
 		Name:      "okx",
@@ -90,7 +90,7 @@ var ExchangeFixtures = struct {
 		CreatedAt: time.Now().Add(-6 * time.Hour),
 		UpdatedAt: time.Now().Add(-30 * time.Minute),
 	},
-	TestExchange: &models.Exchange{
+	TestTrading: &models.Trading{
 		ID:        uuid.MustParse("223e4567-e89b-12d3-a456-426614174002"),
 		UserID:    UserFixtures.AdminUser.ID,
 		Name:      "test_exchange",
@@ -113,7 +113,7 @@ var SubAccountFixtures = struct {
 	SpotAccount: &models.SubAccount{
 		ID:         uuid.MustParse("323e4567-e89b-12d3-a456-426614174000"),
 		UserID:     UserFixtures.ValidUser.ID,
-		ExchangeID: ExchangeFixtures.BinanceExchange.ID,
+		TradingID: TradingFixtures.BinanceTrading.ID,
 		Name:       "spot",
 		Symbol:     "USDT",
 		Balance:    1000.0,
@@ -124,7 +124,7 @@ var SubAccountFixtures = struct {
 	FuturesAccount: &models.SubAccount{
 		ID:         uuid.MustParse("323e4567-e89b-12d3-a456-426614174001"),
 		UserID:     UserFixtures.ValidUser.ID,
-		ExchangeID: ExchangeFixtures.BinanceExchange.ID,
+		TradingID: TradingFixtures.BinanceTrading.ID,
 		Name:       "futures",
 		Symbol:     "USDT",
 		Balance:    5000.0,
@@ -135,7 +135,7 @@ var SubAccountFixtures = struct {
 	MarginAccount: &models.SubAccount{
 		ID:         uuid.MustParse("323e4567-e89b-12d3-a456-426614174002"),
 		UserID:     UserFixtures.ValidUser.ID,
-		ExchangeID: ExchangeFixtures.OKXExchange.ID,
+		TradingID: TradingFixtures.OKXTrading.ID,
 		Name:       "margin",
 		Symbol:     "USDT",
 		Balance:    2000.0,
@@ -154,7 +154,7 @@ var TransactionFixtures = struct {
 	DepositTransaction: &models.Transaction{
 		ID:             uuid.MustParse("423e4567-e89b-12d3-a456-426614174000"),
 		UserID:         UserFixtures.ValidUser.ID,
-		ExchangeID:     ExchangeFixtures.BinanceExchange.ID,
+		TradingID:     TradingFixtures.BinanceTrading.ID,
 		SubAccountID:   SubAccountFixtures.SpotAccount.ID,
 		Timestamp:      time.Now().Add(-2 * time.Hour),
 		Direction:      "credit",
@@ -166,7 +166,7 @@ var TransactionFixtures = struct {
 	WithdrawTransaction: &models.Transaction{
 		ID:             uuid.MustParse("423e4567-e89b-12d3-a456-426614174001"),
 		UserID:         UserFixtures.ValidUser.ID,
-		ExchangeID:     ExchangeFixtures.BinanceExchange.ID,
+		TradingID:     TradingFixtures.BinanceTrading.ID,
 		SubAccountID:   SubAccountFixtures.SpotAccount.ID,
 		Timestamp:      time.Now().Add(-1 * time.Hour),
 		Direction:      "debit",
@@ -178,7 +178,7 @@ var TransactionFixtures = struct {
 	TradeTransaction: &models.Transaction{
 		ID:             uuid.MustParse("423e4567-e89b-12d3-a456-426614174002"),
 		UserID:         UserFixtures.ValidUser.ID,
-		ExchangeID:     ExchangeFixtures.BinanceExchange.ID,
+		TradingID:     TradingFixtures.BinanceTrading.ID,
 		SubAccountID:   SubAccountFixtures.FuturesAccount.ID,
 		Timestamp:      time.Now().Add(-30 * time.Minute),
 		Direction:      "credit",
@@ -198,7 +198,7 @@ var TradingLogFixtures = struct {
 	ManualLog: &models.TradingLog{
 		ID:            uuid.MustParse("523e4567-e89b-12d3-a456-426614174000"),
 		UserID:        UserFixtures.ValidUser.ID,
-		ExchangeID:    ExchangeFixtures.BinanceExchange.ID,
+		TradingID:    TradingFixtures.BinanceTrading.ID,
 		SubAccountID:  &SubAccountFixtures.SpotAccount.ID,
 		TransactionID: &TransactionFixtures.TradeTransaction.ID,
 		Timestamp:     time.Now().Add(-1 * time.Hour),
@@ -210,7 +210,7 @@ var TradingLogFixtures = struct {
 	BotLog: &models.TradingLog{
 		ID:           uuid.MustParse("523e4567-e89b-12d3-a456-426614174001"),
 		UserID:       UserFixtures.ValidUser.ID,
-		ExchangeID:   ExchangeFixtures.BinanceExchange.ID,
+		TradingID:   TradingFixtures.BinanceTrading.ID,
 		SubAccountID: &SubAccountFixtures.FuturesAccount.ID,
 		Timestamp:    time.Now().Add(-30 * time.Minute),
 		Type:         "strategy",
@@ -221,7 +221,7 @@ var TradingLogFixtures = struct {
 	ErrorLog: &models.TradingLog{
 		ID:           uuid.MustParse("523e4567-e89b-12d3-a456-426614174002"),
 		UserID:       UserFixtures.ValidUser.ID,
-		ExchangeID:   ExchangeFixtures.OKXExchange.ID,
+		TradingID:   TradingFixtures.OKXTrading.ID,
 		SubAccountID: nil,
 		Timestamp:    time.Now().Add(-15 * time.Minute),
 		Type:         "error",
@@ -276,12 +276,12 @@ func CreateUser() *models.User {
 	}
 }
 
-// CreateExchange creates a new exchange with randomized values for testing
-func CreateExchange(userID uuid.UUID) *models.Exchange {
-	return &models.Exchange{
+// CreateTrading creates a new trading platform with randomized values for testing
+func CreateTrading(userID uuid.UUID) *models.Trading {
+	return &models.Trading{
 		ID:        uuid.New(),
 		UserID:    userID,
-		Name:      "test_exchange_" + uuid.New().String()[:8],
+		Name:      "test_trading_" + uuid.New().String()[:8],
 		Type:      "spot",
 		APIKey:    "test_api_key",
 		APISecret: "test_api_secret",
@@ -293,11 +293,11 @@ func CreateExchange(userID uuid.UUID) *models.Exchange {
 }
 
 // CreateSubAccount creates a new sub-account with randomized values for testing
-func CreateSubAccount(userID, exchangeID uuid.UUID) *models.SubAccount {
+func CreateSubAccount(userID, tradingID uuid.UUID) *models.SubAccount {
 	return &models.SubAccount{
 		ID:         uuid.New(),
 		UserID:     userID,
-		ExchangeID: exchangeID,
+		TradingID: tradingID,
 		Name:       "test_subaccount_" + uuid.New().String()[:8],
 		Symbol:     "USDT",
 		Balance:    1000.0,

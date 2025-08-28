@@ -47,7 +47,7 @@ func (ec *EventConsumer) createTradingLogFromOrderEvent(event *OrderEvent) error
 
 	log := &models.TradingLog{
 		UserID:       event.UserID,
-		ExchangeID:   event.ExchangeID,
+		TradingID:   event.ExchangeID,
 		SubAccountID: &event.SubAccountID,
 		Timestamp:    event.Timestamp,
 		Type:         fmt.Sprintf("order_%s", getOrderAction(event.EventType)),
@@ -78,7 +78,7 @@ func (ec *EventConsumer) createTradingLogFromBalanceEvent(event *BalanceEvent, t
 
 	log := &models.TradingLog{
 		UserID:        event.UserID,
-		ExchangeID:    event.ExchangeID,
+		TradingID:    event.ExchangeID,
 		SubAccountID:  &event.SubAccountID,
 		TransactionID: transactionID,
 		Timestamp:     event.Timestamp,
@@ -106,7 +106,7 @@ func (ec *EventConsumer) createTradingLogFromErrorEvent(event *ErrorEvent) error
 
 	log := &models.TradingLog{
 		UserID:       event.UserID,
-		ExchangeID:   event.ExchangeID,
+		TradingID:   event.ExchangeID,
 		SubAccountID: event.SubAccountID,
 		Timestamp:    event.Timestamp,
 		Type:         "system_error",
@@ -136,7 +136,7 @@ func (ec *EventConsumer) createTradingLogFromSignalEvent(event *SignalEvent) err
 
 	log := &models.TradingLog{
 		UserID:       event.UserID,
-		ExchangeID:   event.ExchangeID,
+		TradingID:   event.ExchangeID,
 		SubAccountID: event.SubAccountID,
 		Timestamp:    event.Timestamp,
 		Type:         "trading_signal",

@@ -44,8 +44,8 @@ func (r *tradingLogRepository) GetBySubAccountID(ctx context.Context, subAccount
 	return r.getTradingLogs(ctx, filters, "sub_account_id = ?", subAccountID)
 }
 
-func (r *tradingLogRepository) GetByExchangeID(ctx context.Context, exchangeID uuid.UUID, filters TradingLogFilters) ([]*models.TradingLog, int64, error) {
-	return r.getTradingLogs(ctx, filters, "exchange_id = ?", exchangeID)
+func (r *tradingLogRepository) GetByTradingID(ctx context.Context, tradingID uuid.UUID, filters TradingLogFilters) ([]*models.TradingLog, int64, error) {
+	return r.getTradingLogs(ctx, filters, "trading_id = ?", tradingID)
 }
 
 func (r *tradingLogRepository) GetByTimeRange(ctx context.Context, startTime, endTime time.Time, filters TradingLogFilters) ([]*models.TradingLog, int64, error) {

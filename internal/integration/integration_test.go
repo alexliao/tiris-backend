@@ -154,7 +154,7 @@ func (suite *IntegrationTestSuite) cleanDatabase() {
 
 	// Drop only the tables we're testing
 	tables := []string{
-		"sub_accounts", "exchanges", "users",
+		"sub_accounts", "tradings", "users",
 	}
 
 	for _, table := range tables {
@@ -168,7 +168,7 @@ func (suite *IntegrationTestSuite) runMigrations() {
 	err := db.AutoMigrate(
 		&models.User{},
 		&models.OAuthToken{},
-		&models.Exchange{},
+		&models.Trading{},
 		&models.SubAccount{},
 		&models.Transaction{},
 		&models.TradingLog{},
@@ -186,9 +186,9 @@ func (suite *IntegrationTestSuite) runSQLMigrations() {
 	// Run only the specific migrations needed for constraints
 	// Migration 000002: Add soft delete columns 
 	migration002 := `
-		-- Add deleted_at to exchanges table
-		ALTER TABLE exchanges ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
-		CREATE INDEX IF NOT EXISTS idx_exchanges_deleted_at ON exchanges(deleted_at);
+		-- Add deleted_at to tradings table
+		ALTER TABLE tradings ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+		CREATE INDEX IF NOT EXISTS idx_tradings_deleted_at ON tradings(deleted_at);
 		
 		-- Add deleted_at to sub_accounts table
 		ALTER TABLE sub_accounts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
@@ -199,18 +199,18 @@ func (suite *IntegrationTestSuite) runSQLMigrations() {
 	migration004 := `
 		-- Create partial unique indexes that exclude soft-deleted records
 		-- Exchange name uniqueness per user (only for active records)
-		CREATE UNIQUE INDEX IF NOT EXISTS exchanges_user_name_active_unique 
-		ON exchanges (user_id, name) 
+		CREATE UNIQUE INDEX IF NOT EXISTS tradings_user_name_active_unique 
+		ON tradings (user_id, name) 
 		WHERE deleted_at IS NULL;
 		
 		-- API key uniqueness per user (only for active records)  
-		CREATE UNIQUE INDEX IF NOT EXISTS exchanges_user_api_key_active_unique
-		ON exchanges (user_id, api_key)
+		CREATE UNIQUE INDEX IF NOT EXISTS tradings_user_api_key_active_unique
+		ON tradings (user_id, api_key)
 		WHERE deleted_at IS NULL;
 		
 		-- API secret uniqueness per user (only for active records)
-		CREATE UNIQUE INDEX IF NOT EXISTS exchanges_user_api_secret_active_unique
-		ON exchanges (user_id, api_secret)
+		CREATE UNIQUE INDEX IF NOT EXISTS tradings_user_api_secret_active_unique
+		ON tradings (user_id, api_secret)
 		WHERE deleted_at IS NULL;
 		
 		-- Sub-account name uniqueness per exchange (only for active records)
@@ -232,7 +232,7 @@ func (suite *IntegrationTestSuite) cleanTransactionalData() {
 
 	// Clean transactional data but keep users (only for tables that exist)
 	db.Exec("DELETE FROM sub_accounts")
-	db.Exec("DELETE FROM exchanges")
+	db.Exec("DELETE FROM tradings")
 }
 
 func (suite *IntegrationTestSuite) createTestUsers() {
@@ -457,7 +457,7 @@ func (suite *IntegrationTestSuite) TestUserManagement() {
 		assert.True(t, response.Success)
 
 		stats := response.Data.(map[string]interface{})
-		assert.Contains(t, stats, "total_exchanges")
+		assert.Contains(t, stats, "total_tradings")
 		assert.Contains(t, stats, "total_subaccounts")
 	})
 
@@ -491,7 +491,7 @@ func (suite *IntegrationTestSuite) TestExchangeManagement() {
 			"api_secret": "test_api_secret_67890",
 		}
 
-		w := suite.makeRequest("POST", "/v1/exchanges", createRequest, suite.userToken)
+		w := suite.makeRequest("POST", "/v1/tradings", createRequest, suite.userToken)
 		assert.Equal(t, http.StatusCreated, w.Code)
 
 		var response api.SuccessResponse
@@ -504,8 +504,8 @@ func (suite *IntegrationTestSuite) TestExchangeManagement() {
 		assert.Equal(t, "binance", exchangeData["type"])
 	})
 
-	suite.T().Run("get_user_exchanges", func(t *testing.T) {
-		w := suite.makeRequest("GET", "/v1/exchanges", nil, suite.userToken)
+	suite.T().Run("get_user_tradings", func(t *testing.T) {
+		w := suite.makeRequest("GET", "/v1/tradings", nil, suite.userToken)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response api.SuccessResponse
@@ -513,12 +513,12 @@ func (suite *IntegrationTestSuite) TestExchangeManagement() {
 		assert.True(t, response.Success)
 
 		data := response.Data.(map[string]interface{})
-		exchanges := data["exchanges"].([]interface{})
-		assert.Len(t, exchanges, 1)
+		tradings := data["tradings"].([]interface{})
+		assert.Len(t, tradings, 1)
 	})
 
 	suite.T().Run("get_exchange_by_id", func(t *testing.T) {
-		w := suite.makeRequest("GET", "/v1/exchanges/"+exchangeID, nil, suite.userToken)
+		w := suite.makeRequest("GET", "/v1/tradings/"+exchangeID, nil, suite.userToken)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response api.SuccessResponse
@@ -535,7 +535,7 @@ func (suite *IntegrationTestSuite) TestExchangeManagement() {
 			"name": "updated-binance-main",
 		}
 
-		w := suite.makeRequest("PUT", "/v1/exchanges/"+exchangeID, updateRequest, suite.userToken)
+		w := suite.makeRequest("PUT", "/v1/tradings/"+exchangeID, updateRequest, suite.userToken)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response api.SuccessResponse
@@ -547,7 +547,7 @@ func (suite *IntegrationTestSuite) TestExchangeManagement() {
 	})
 
 	suite.T().Run("delete_exchange", func(t *testing.T) {
-		w := suite.makeRequest("DELETE", "/v1/exchanges/"+exchangeID, nil, suite.userToken)
+		w := suite.makeRequest("DELETE", "/v1/tradings/"+exchangeID, nil, suite.userToken)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response api.SuccessResponse
@@ -566,7 +566,7 @@ func (suite *IntegrationTestSuite) TestSubAccountManagement() {
 		"api_secret": "test_api_secret_sub",
 	}
 
-	exchangeResp := suite.makeRequest("POST", "/v1/exchanges", createExchangeReq, suite.userToken)
+	exchangeResp := suite.makeRequest("POST", "/v1/tradings", createExchangeReq, suite.userToken)
 	var exchangeData api.SuccessResponse
 	suite.parseResponse(exchangeResp, &exchangeData)
 	exchangeID := exchangeData.Data.(map[string]interface{})["id"].(string)
@@ -664,7 +664,7 @@ func (suite *IntegrationTestSuite) TestTradingLogManagement() {
 		"api_secret": "test_api_secret_trading",
 	}
 
-	exchangeResp := suite.makeRequest("POST", "/v1/exchanges", createExchangeReq, suite.userToken)
+	exchangeResp := suite.makeRequest("POST", "/v1/tradings", createExchangeReq, suite.userToken)
 	var exchangeData api.SuccessResponse
 	suite.parseResponse(exchangeResp, &exchangeData)
 	exchangeID := exchangeData.Data.(map[string]interface{})["id"].(string)
@@ -764,7 +764,7 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 		"api_key":    "test_api_key_12345",
 		"api_secret": "test_api_secret_67890",
 	}
-	suite.makeRequest("POST", "/v1/exchanges", baselineExchangeRequest, suite.userToken)
+	suite.makeRequest("POST", "/v1/tradings", baselineExchangeRequest, suite.userToken)
 
 	suite.T().Run("unauthorized_access", func(t *testing.T) {
 		w := suite.makeRequest("GET", "/v1/users/me", nil, "") // No token
@@ -788,7 +788,7 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 
 	suite.T().Run("not_found", func(t *testing.T) {
 		nonExistentID := uuid.New().String()
-		w := suite.makeRequest("GET", "/v1/exchanges/"+nonExistentID, nil, suite.userToken)
+		w := suite.makeRequest("GET", "/v1/tradings/"+nonExistentID, nil, suite.userToken)
 		assert.Equal(t, http.StatusNotFound, w.Code)
 
 		var response api.ErrorResponse
@@ -802,7 +802,7 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 			"name": "", // Empty name should be invalid
 		}
 
-		w := suite.makeRequest("POST", "/v1/exchanges", invalidRequest, suite.userToken)
+		w := suite.makeRequest("POST", "/v1/tradings", invalidRequest, suite.userToken)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
 		var response api.ErrorResponse
@@ -820,7 +820,7 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 			"api_secret": "different_api_secret",
 		}
 
-		w := suite.makeRequest("POST", "/v1/exchanges", duplicateNameRequest, suite.userToken)
+		w := suite.makeRequest("POST", "/v1/tradings", duplicateNameRequest, suite.userToken)
 		assert.Equal(t, http.StatusConflict, w.Code)
 
 		var response api.ErrorResponse
@@ -837,7 +837,7 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 			"api_secret": "different_api_secret",
 		}
 
-		w := suite.makeRequest("POST", "/v1/exchanges", duplicateAPIKeyRequest, suite.userToken)
+		w := suite.makeRequest("POST", "/v1/tradings", duplicateAPIKeyRequest, suite.userToken)
 		assert.Equal(t, http.StatusConflict, w.Code)
 
 		var response api.ErrorResponse
@@ -854,7 +854,7 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 			"api_secret": "test_api_secret_67890", // Same API secret as first exchange
 		}
 
-		w := suite.makeRequest("POST", "/v1/exchanges", duplicateAPISecretRequest, suite.userToken)
+		w := suite.makeRequest("POST", "/v1/tradings", duplicateAPISecretRequest, suite.userToken)
 		assert.Equal(t, http.StatusConflict, w.Code)
 
 		var response api.ErrorResponse
@@ -874,7 +874,7 @@ func (suite *IntegrationTestSuite) getExchangeID() string {
 		"exchange_url": "https://api.testexchange.com",
 	}
 
-	w := suite.makeRequest("POST", "/v1/exchanges", createExchangeReq, suite.userToken)
+	w := suite.makeRequest("POST", "/v1/tradings", createExchangeReq, suite.userToken)
 	if w.Code == http.StatusCreated {
 		var response api.SuccessResponse
 		suite.parseResponse(w, &response)
@@ -883,14 +883,14 @@ func (suite *IntegrationTestSuite) getExchangeID() string {
 	}
 	
 	// If creation failed, try to get existing exchange
-	w = suite.makeRequest("GET", "/v1/exchanges", nil, suite.userToken)
+	w = suite.makeRequest("GET", "/v1/tradings", nil, suite.userToken)
 	if w.Code == http.StatusOK {
 		var response api.SuccessResponse
 		suite.parseResponse(w, &response)
 		data := response.Data.(map[string]interface{})
-		if exchangesData, ok := data["exchanges"]; ok && exchangesData != nil {
-			if exchanges, ok := exchangesData.([]interface{}); ok && len(exchanges) > 0 {
-				exchange := exchanges[0].(map[string]interface{})
+		if tradingsData, ok := data["tradings"]; ok && tradingsData != nil {
+			if tradings, ok := tradingsData.([]interface{}); ok && len(tradings) > 0 {
+				exchange := tradings[0].(map[string]interface{})
 				return exchange["id"].(string)
 			}
 		}

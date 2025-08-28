@@ -75,42 +75,42 @@ func (m *MockUserRepository) Disable(ctx context.Context, userID uuid.UUID) erro
 
 // Note: UserStats doesn't exist in models, this method might not be used
 
-// MockExchangeRepository is a mock implementation of ExchangeRepository
-type MockExchangeRepository struct {
+// MockTradingRepository is a mock implementation of ExchangeRepository
+type MockTradingRepository struct {
 	mock.Mock
 }
 
-func (m *MockExchangeRepository) Create(ctx context.Context, exchange *models.Exchange) error {
+func (m *MockTradingRepository) Create(ctx context.Context, exchange *models.Trading) error {
 	args := m.Called(ctx, exchange)
 	return args.Error(0)
 }
 
-func (m *MockExchangeRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Exchange, error) {
+func (m *MockTradingRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Trading, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Exchange), args.Error(1)
+	return args.Get(0).(*models.Trading), args.Error(1)
 }
 
-func (m *MockExchangeRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*models.Exchange, error) {
+func (m *MockTradingRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*models.Trading, error) {
 	args := m.Called(ctx, userID)
-	return args.Get(0).([]*models.Exchange), args.Error(1)
+	return args.Get(0).([]*models.Trading), args.Error(1)
 }
 
-func (m *MockExchangeRepository) Update(ctx context.Context, exchange *models.Exchange) error {
+func (m *MockTradingRepository) Update(ctx context.Context, exchange *models.Trading) error {
 	args := m.Called(ctx, exchange)
 	return args.Error(0)
 }
 
-func (m *MockExchangeRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (m *MockTradingRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
 
-func (m *MockExchangeRepository) GetByUserIDAndType(ctx context.Context, userID uuid.UUID, exchangeType string) ([]*models.Exchange, error) {
+func (m *MockTradingRepository) GetByUserIDAndType(ctx context.Context, userID uuid.UUID, exchangeType string) ([]*models.Trading, error) {
 	args := m.Called(ctx, userID, exchangeType)
-	return args.Get(0).([]*models.Exchange), args.Error(1)
+	return args.Get(0).([]*models.Trading), args.Error(1)
 }
 
 // MockSubAccountRepository is a mock implementation of SubAccountRepository
@@ -131,13 +131,13 @@ func (m *MockSubAccountRepository) GetByID(ctx context.Context, id uuid.UUID) (*
 	return args.Get(0).(*models.SubAccount), args.Error(1)
 }
 
-func (m *MockSubAccountRepository) GetByUserID(ctx context.Context, userID uuid.UUID, exchangeID *uuid.UUID) ([]*models.SubAccount, error) {
-	args := m.Called(ctx, userID, exchangeID)
+func (m *MockSubAccountRepository) GetByUserID(ctx context.Context, userID uuid.UUID, tradingID *uuid.UUID) ([]*models.SubAccount, error) {
+	args := m.Called(ctx, userID, tradingID)
 	return args.Get(0).([]*models.SubAccount), args.Error(1)
 }
 
-func (m *MockSubAccountRepository) GetByExchangeID(ctx context.Context, exchangeID uuid.UUID) ([]*models.SubAccount, error) {
-	args := m.Called(ctx, exchangeID)
+func (m *MockSubAccountRepository) GetByTradingID(ctx context.Context, tradingID uuid.UUID) ([]*models.SubAccount, error) {
+	args := m.Called(ctx, tradingID)
 	return args.Get(0).([]*models.SubAccount), args.Error(1)
 }
 
@@ -192,8 +192,8 @@ func (m *MockTransactionRepository) GetBySubAccountID(ctx context.Context, subAc
 	return args.Get(0).([]*models.Transaction), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *MockTransactionRepository) GetByExchangeID(ctx context.Context, exchangeID uuid.UUID, filters repositories.TransactionFilters) ([]*models.Transaction, int64, error) {
-	args := m.Called(ctx, exchangeID, filters)
+func (m *MockTransactionRepository) GetByTradingID(ctx context.Context, tradingID uuid.UUID, filters repositories.TransactionFilters) ([]*models.Transaction, int64, error) {
+	args := m.Called(ctx, tradingID, filters)
 	return args.Get(0).([]*models.Transaction), args.Get(1).(int64), args.Error(2)
 }
 
@@ -230,8 +230,8 @@ func (m *MockTradingLogRepository) GetBySubAccountID(ctx context.Context, subAcc
 	return args.Get(0).([]*models.TradingLog), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *MockTradingLogRepository) GetByExchangeID(ctx context.Context, exchangeID uuid.UUID, filters repositories.TradingLogFilters) ([]*models.TradingLog, int64, error) {
-	args := m.Called(ctx, exchangeID, filters)
+func (m *MockTradingLogRepository) GetByTradingID(ctx context.Context, tradingID uuid.UUID, filters repositories.TradingLogFilters) ([]*models.TradingLog, int64, error) {
+	args := m.Called(ctx, tradingID, filters)
 	return args.Get(0).([]*models.TradingLog), args.Get(1).(int64), args.Error(2)
 }
 
@@ -401,57 +401,57 @@ type MockExchangeService struct {
 	mock.Mock
 }
 
-func (m *MockExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, req *services.CreateExchangeRequest) (*services.ExchangeResponse, error) {
+func (m *MockExchangeService) CreateExchange(ctx context.Context, userID uuid.UUID, req *services.CreateTradingRequest) (*services.TradingResponse, error) {
 	args := m.Called(ctx, userID, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*services.ExchangeResponse), args.Error(1)
+	return args.Get(0).(*services.TradingResponse), args.Error(1)
 }
 
-func (m *MockExchangeService) GetUserExchanges(ctx context.Context, userID uuid.UUID) ([]*services.ExchangeResponse, error) {
+func (m *MockExchangeService) GetUserExchanges(ctx context.Context, userID uuid.UUID) ([]*services.TradingResponse, error) {
 	args := m.Called(ctx, userID)
-	return args.Get(0).([]*services.ExchangeResponse), args.Error(1)
+	return args.Get(0).([]*services.TradingResponse), args.Error(1)
 }
 
-func (m *MockExchangeService) GetExchange(ctx context.Context, userID, exchangeID uuid.UUID) (*services.ExchangeResponse, error) {
-	args := m.Called(ctx, userID, exchangeID)
+func (m *MockExchangeService) GetExchange(ctx context.Context, userID, tradingID uuid.UUID) (*services.TradingResponse, error) {
+	args := m.Called(ctx, userID, tradingID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*services.ExchangeResponse), args.Error(1)
+	return args.Get(0).(*services.TradingResponse), args.Error(1)
 }
 
-func (m *MockExchangeService) UpdateExchange(ctx context.Context, userID, exchangeID uuid.UUID, req *services.UpdateExchangeRequest) (*services.ExchangeResponse, error) {
-	args := m.Called(ctx, userID, exchangeID, req)
+func (m *MockExchangeService) UpdateExchange(ctx context.Context, userID, tradingID uuid.UUID, req *services.UpdateTradingRequest) (*services.TradingResponse, error) {
+	args := m.Called(ctx, userID, tradingID, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*services.ExchangeResponse), args.Error(1)
+	return args.Get(0).(*services.TradingResponse), args.Error(1)
 }
 
-func (m *MockExchangeService) DeleteExchange(ctx context.Context, userID, exchangeID uuid.UUID) error {
-	args := m.Called(ctx, userID, exchangeID)
+func (m *MockExchangeService) DeleteExchange(ctx context.Context, userID, tradingID uuid.UUID) error {
+	args := m.Called(ctx, userID, tradingID)
 	return args.Error(0)
 }
 
-func (m *MockExchangeService) ListExchanges(ctx context.Context, limit, offset int) ([]*services.ExchangeResponse, int64, error) {
+func (m *MockExchangeService) ListExchanges(ctx context.Context, limit, offset int) ([]*services.TradingResponse, int64, error) {
 	args := m.Called(ctx, limit, offset)
-	return args.Get(0).([]*services.ExchangeResponse), args.Get(1).(int64), args.Error(2)
+	return args.Get(0).([]*services.TradingResponse), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *MockExchangeService) GetExchangeByID(ctx context.Context, exchangeID uuid.UUID) (*services.ExchangeResponse, error) {
-	args := m.Called(ctx, exchangeID)
+func (m *MockExchangeService) GetExchangeByID(ctx context.Context, tradingID uuid.UUID) (*services.TradingResponse, error) {
+	args := m.Called(ctx, tradingID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*services.ExchangeResponse), args.Error(1)
+	return args.Get(0).(*services.TradingResponse), args.Error(1)
 }
 
 // MockRepositories combines all mock repositories
 type MockRepositories struct {
 	User            repositories.UserRepository
-	Exchange        repositories.ExchangeRepository
+	Exchange        repositories.TradingRepository
 	SubAccount      repositories.SubAccountRepository
 	Transaction     repositories.TransactionRepository
 	TradingLog      repositories.TradingLogRepository
@@ -463,7 +463,7 @@ type MockRepositories struct {
 func NewMockRepositories() *MockRepositories {
 	return &MockRepositories{
 		User:            &MockUserRepository{},
-		Exchange:        &MockExchangeRepository{},
+		Exchange:        &MockTradingRepository{},
 		SubAccount:      &MockSubAccountRepository{},
 		Transaction:     &MockTransactionRepository{},
 		TradingLog:      &MockTradingLogRepository{},

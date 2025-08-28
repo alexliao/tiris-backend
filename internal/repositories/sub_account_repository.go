@@ -37,12 +37,12 @@ func (r *subAccountRepository) GetByID(ctx context.Context, id uuid.UUID) (*mode
 	return &subAccount, nil
 }
 
-func (r *subAccountRepository) GetByUserID(ctx context.Context, userID uuid.UUID, exchangeID *uuid.UUID) ([]*models.SubAccount, error) {
+func (r *subAccountRepository) GetByUserID(ctx context.Context, userID uuid.UUID, tradingID *uuid.UUID) ([]*models.SubAccount, error) {
 	var subAccounts []*models.SubAccount
 	query := r.db.WithContext(ctx).Where("user_id = ?", userID)
 
-	if exchangeID != nil {
-		query = query.Where("exchange_id = ?", *exchangeID)
+	if tradingID != nil {
+		query = query.Where("trading_id = ?", *tradingID)
 	}
 
 	err := query.Order("created_at DESC").Find(&subAccounts).Error
@@ -52,10 +52,10 @@ func (r *subAccountRepository) GetByUserID(ctx context.Context, userID uuid.UUID
 	return subAccounts, nil
 }
 
-func (r *subAccountRepository) GetByExchangeID(ctx context.Context, exchangeID uuid.UUID) ([]*models.SubAccount, error) {
+func (r *subAccountRepository) GetByTradingID(ctx context.Context, tradingID uuid.UUID) ([]*models.SubAccount, error) {
 	var subAccounts []*models.SubAccount
 	err := r.db.WithContext(ctx).
-		Where("exchange_id = ?", exchangeID).
+		Where("trading_id = ?", tradingID).
 		Order("created_at DESC").
 		Find(&subAccounts).Error
 	if err != nil {

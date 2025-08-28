@@ -28,7 +28,7 @@ func TestUserService_GetCurrentUser(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -96,7 +96,7 @@ func TestUserService_UpdateCurrentUser(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -178,7 +178,7 @@ func TestUserService_ListUsers(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -232,13 +232,13 @@ func TestUserService_ListUsers(t *testing.T) {
 func TestUserService_GetUserStats(t *testing.T) {
 	// Create mocks
 	mockUserRepo := &mocks.MockUserRepository{}
-	mockExchRepo := &mocks.MockExchangeRepository{}
+	mockExchRepo := &mocks.MockTradingRepository{}
 	mockSubRepo := &mocks.MockSubAccountRepository{}
 
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
-		Exchange:        mockExchRepo,
+		Trading:        mockExchRepo,
 		SubAccount:      mockSubRepo,
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -251,7 +251,7 @@ func TestUserService_GetUserStats(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	testExchanges := []*models.Exchange{
+	testTradings := []*models.Trading{
 		{ID: uuid.New(), UserID: userID},
 		{ID: uuid.New(), UserID: userID},
 	}
@@ -265,7 +265,7 @@ func TestUserService_GetUserStats(t *testing.T) {
 	t.Run("successful_stats_calculation", func(t *testing.T) {
 		// Setup mock expectations
 		mockExchRepo.On("GetByUserID", mock.Anything, userID).
-			Return(testExchanges, nil).Once()
+			Return(testTradings, nil).Once()
 		mockSubRepo.On("GetByUserID", mock.Anything, userID, mock.Anything).
 			Return(testSubAccounts, nil).Once()
 
@@ -295,7 +295,7 @@ func TestUserService_DisableUser(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -361,7 +361,7 @@ func TestUserService_Performance(t *testing.T) {
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            mockUserRepo,
-		Exchange:        &mocks.MockExchangeRepository{},
+		Trading:        &mocks.MockTradingRepository{},
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      &mocks.MockTradingLogRepository{},

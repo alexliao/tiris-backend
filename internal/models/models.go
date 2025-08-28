@@ -56,7 +56,7 @@ type User struct {
 
 	// Relationships
 	OAuthTokens  []OAuthToken  `json:"-"`
-	Exchanges    []Exchange    `json:"-"`
+	Tradings     []Trading     `json:"-"`
 	SubAccounts  []SubAccount  `json:"-"`
 	Transactions []Transaction `json:"-"`
 	TradingLogs  []TradingLog  `json:"-"`
@@ -81,8 +81,8 @@ type OAuthToken struct {
 	User User `gorm:"foreignKey:UserID" json:"-"`
 }
 
-// Exchange represents a trading exchange connection
-type Exchange struct {
+// Trading represents a trading platform connection
+type Trading struct {
 	ID        uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
 	Name      string    `gorm:"type:varchar(100);not null" json:"name"`
@@ -103,9 +103,9 @@ type Exchange struct {
 
 // SubAccount represents a trading sub-account
 type SubAccount struct {
-	ID         uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	UserID     uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
-	ExchangeID uuid.UUID `gorm:"type:uuid;not null;index" json:"exchange_id"`
+	ID        uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	TradingID uuid.UUID `gorm:"type:uuid;not null;index" json:"trading_id"`
 	Name       string    `gorm:"type:varchar(100);not null" json:"name"`
 	Symbol     string    `gorm:"type:varchar(20);not null;index" json:"symbol"`
 	Balance    float64   `gorm:"type:decimal(20,8);default:0" json:"balance"`
@@ -116,19 +116,19 @@ type SubAccount struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relationships
-	User         User          `gorm:"foreignKey:UserID" json:"-"`
-	Exchange     Exchange      `gorm:"foreignKey:ExchangeID" json:"-"`
+	User        User         `gorm:"foreignKey:UserID" json:"-"`
+	Trading     Trading      `gorm:"foreignKey:TradingID" json:"-"`
 	Transactions []Transaction `json:"-"`
 	TradingLogs  []TradingLog  `json:"-"`
 }
 
 // Transaction represents a financial transaction
 type Transaction struct {
-	ID             uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	UserID         uuid.UUID `gorm:"type:uuid;not null;index:idx_transactions_user_timestamp" json:"user_id"`
-	ExchangeID     uuid.UUID `gorm:"type:uuid;not null;index:idx_transactions_exchange_timestamp" json:"exchange_id"`
-	SubAccountID   uuid.UUID `gorm:"type:uuid;not null;index:idx_transactions_sub_account_timestamp" json:"sub_account_id"`
-	Timestamp      time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;index:idx_transactions_user_timestamp,sort:desc;index:idx_transactions_exchange_timestamp,sort:desc;index:idx_transactions_sub_account_timestamp,sort:desc" json:"timestamp"`
+	ID            uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID        uuid.UUID `gorm:"type:uuid;not null;index:idx_transactions_user_timestamp" json:"user_id"`
+	TradingID     uuid.UUID `gorm:"type:uuid;not null;index:idx_transactions_trading_timestamp" json:"trading_id"`
+	SubAccountID  uuid.UUID `gorm:"type:uuid;not null;index:idx_transactions_sub_account_timestamp" json:"sub_account_id"`
+	Timestamp     time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;index:idx_transactions_user_timestamp,sort:desc;index:idx_transactions_trading_timestamp,sort:desc;index:idx_transactions_sub_account_timestamp,sort:desc" json:"timestamp"`
 	Direction      string    `gorm:"type:varchar(10);not null;check:direction IN ('debit', 'credit');index" json:"direction"`
 	Reason         string    `gorm:"type:varchar(50);not null;index" json:"reason"`
 	Amount         float64   `gorm:"type:decimal(20,8);not null" json:"amount"`
@@ -139,19 +139,19 @@ type Transaction struct {
 
 	// Relationships (no DeletedAt for time-series data)
 	User       User        `gorm:"foreignKey:UserID" json:"-"`
-	Exchange   Exchange    `gorm:"foreignKey:ExchangeID" json:"-"`
+	Trading    Trading     `gorm:"foreignKey:TradingID" json:"-"`
 	SubAccount SubAccount  `gorm:"foreignKey:SubAccountID" json:"-"`
 	TradingLog *TradingLog `gorm:"-" json:"-"`
 }
 
 // TradingLog represents a trading operation log entry
 type TradingLog struct {
-	ID            uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	UserID        uuid.UUID  `gorm:"type:uuid;not null;index:idx_trading_logs_user_timestamp" json:"user_id"`
-	ExchangeID    uuid.UUID  `gorm:"type:uuid;not null;index:idx_trading_logs_exchange_timestamp" json:"exchange_id"`
+	ID           uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID       uuid.UUID  `gorm:"type:uuid;not null;index:idx_trading_logs_user_timestamp" json:"user_id"`
+	TradingID    uuid.UUID  `gorm:"type:uuid;not null;index:idx_trading_logs_trading_timestamp" json:"trading_id"`
 	SubAccountID  *uuid.UUID `gorm:"type:uuid;index:idx_trading_logs_sub_account_timestamp" json:"sub_account_id,omitempty"`
 	TransactionID *uuid.UUID `gorm:"type:uuid;index" json:"transaction_id,omitempty"`
-	Timestamp     time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP;index:idx_trading_logs_user_timestamp,sort:desc;index:idx_trading_logs_exchange_timestamp,sort:desc;index:idx_trading_logs_sub_account_timestamp,sort:desc" json:"timestamp"`
+	Timestamp     time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP;index:idx_trading_logs_user_timestamp,sort:desc;index:idx_trading_logs_trading_timestamp,sort:desc;index:idx_trading_logs_sub_account_timestamp,sort:desc" json:"timestamp"`
 	Type          string     `gorm:"type:varchar(50);not null;index" json:"type"`
 	Source        string     `gorm:"type:varchar(20);not null;check:source IN ('manual', 'bot');index" json:"source"`
 	Message       string     `gorm:"type:text;not null" json:"message"`
@@ -159,7 +159,7 @@ type TradingLog struct {
 
 	// Relationships (no DeletedAt for time-series data)
 	User        User         `gorm:"foreignKey:UserID" json:"-"`
-	Exchange    Exchange     `gorm:"foreignKey:ExchangeID" json:"-"`
+	Trading     Trading      `gorm:"foreignKey:TradingID" json:"-"`
 	SubAccount  *SubAccount  `gorm:"foreignKey:SubAccountID" json:"-"`
 	Transaction *Transaction `gorm:"-" json:"-"`
 }

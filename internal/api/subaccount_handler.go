@@ -62,19 +62,19 @@ func (h *SubAccountHandler) CreateSubAccount(c *gin.Context) {
 
 	subAccount, err := h.subAccountService.CreateSubAccount(c.Request.Context(), userID, &req)
 	if err != nil {
-		if err.Error() == "exchange not found" {
+		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
-				"EXCHANGE_NOT_FOUND",
-				"Exchange not found",
+				"TRADING_NOT_FOUND",
+				"Trading platform not found",
 				err.Error(),
 				getTraceID(c),
 			))
 			return
 		}
-		if err.Error() == "sub-account name already exists for this exchange" {
+		if err.Error() == "sub-account name already exists for this trading platform" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
 				"SUBACCOUNT_NAME_EXISTS",
-				"Sub-account name already exists for this exchange",
+				"Sub-account name already exists for this trading platform",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -95,11 +95,11 @@ func (h *SubAccountHandler) CreateSubAccount(c *gin.Context) {
 
 // GetUserSubAccounts retrieves all sub-accounts for the current user
 // @Summary Get user sub-accounts
-// @Description Retrieves all sub-account configurations for the authenticated user, optionally filtered by exchange
+// @Description Retrieves all sub-account configurations for the authenticated user, optionally filtered by trading platform
 // @Tags SubAccounts
 // @Produce json
 // @Security BearerAuth
-// @Param exchange_id query string false "Filter by exchange ID"
+// @Param trading_id query string false "Filter by trading platform ID"
 // @Success 200 {array} services.SubAccountResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
@@ -117,15 +117,15 @@ func (h *SubAccountHandler) GetUserSubAccounts(c *gin.Context) {
 		return
 	}
 
-	// Parse optional exchange_id filter
-	var exchangeID *uuid.UUID
-	if exchangeIDStr := c.Query("exchange_id"); exchangeIDStr != "" {
-		if parsed, err := uuid.Parse(exchangeIDStr); err == nil {
-			exchangeID = &parsed
+	// Parse optional trading_id filter
+	var tradingID *uuid.UUID
+	if tradingIDStr := c.Query("trading_id"); tradingIDStr != "" {
+		if parsed, err := uuid.Parse(tradingIDStr); err == nil {
+			tradingID = &parsed
 		} else {
 			c.JSON(http.StatusBadRequest, CreateErrorResponse(
-				"INVALID_EXCHANGE_ID",
-				"Invalid exchange ID format",
+				"INVALID_TRADING_ID",
+				"Invalid trading platform ID format",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -133,12 +133,12 @@ func (h *SubAccountHandler) GetUserSubAccounts(c *gin.Context) {
 		}
 	}
 
-	subAccounts, err := h.subAccountService.GetUserSubAccounts(c.Request.Context(), userID, exchangeID)
+	subAccounts, err := h.subAccountService.GetUserSubAccounts(c.Request.Context(), userID, tradingID)
 	if err != nil {
-		if err.Error() == "exchange not found" {
+		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
-				"EXCHANGE_NOT_FOUND",
-				"Exchange not found",
+				"TRADING_NOT_FOUND",
+				"Trading platform not found",
 				err.Error(),
 				getTraceID(c),
 			))

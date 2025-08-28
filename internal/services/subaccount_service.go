@@ -26,7 +26,7 @@ func NewSubAccountService(repos *repositories.Repositories) *SubAccountService {
 type SubAccountResponse struct {
 	ID         uuid.UUID              `json:"id"`
 	UserID     uuid.UUID              `json:"user_id"`
-	ExchangeID uuid.UUID              `json:"exchange_id"`
+	TradingID  uuid.UUID              `json:"trading_id"`
 	Name       string                 `json:"name"`
 	Symbol     string                 `json:"symbol"`
 	Balance    float64                `json:"balance"`
@@ -37,7 +37,7 @@ type SubAccountResponse struct {
 
 // CreateSubAccountRequest represents sub-account creation request
 type CreateSubAccountRequest struct {
-	ExchangeID uuid.UUID `json:"exchange_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
+	TradingID  uuid.UUID `json:"trading_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c"`
 	Name       string    `json:"name" binding:"required,min=1,max=100" example:"BTC Trading Account"`
 	Symbol     string    `json:"symbol" binding:"required,min=1,max=20" example:"BTC/USDT"`
 }
@@ -60,12 +60,12 @@ type UpdateBalanceRequest struct {
 // CreateSubAccount creates a new sub-account
 func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UUID, req *CreateSubAccountRequest) (*SubAccountResponse, error) {
 	// Verify user owns the exchange
-	exchange, err := s.repos.Exchange.GetByID(ctx, req.ExchangeID)
+	exchange, err := s.repos.Trading.GetByID(ctx, req.TradingID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify exchange: %w", err)
 	}
 	if exchange == nil || exchange.UserID != userID {
-		return nil, fmt.Errorf("exchange not found")
+		return nil, fmt.Errorf("trading platform not found")
 	}
 
 	// Create info map with metadata
@@ -79,7 +79,7 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 	subAccount := &models.SubAccount{
 		ID:         uuid.New(),
 		UserID:     userID,
-		ExchangeID: req.ExchangeID,
+		TradingID: req.TradingID,
 		Name:       req.Name,
 		Symbol:     req.Symbol,
 		Balance:    0.0, // Start with zero balance
@@ -102,12 +102,12 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 func (s *SubAccountService) GetUserSubAccounts(ctx context.Context, userID uuid.UUID, exchangeID *uuid.UUID) ([]*SubAccountResponse, error) {
 	// If exchangeID is provided, verify user owns it
 	if exchangeID != nil {
-		exchange, err := s.repos.Exchange.GetByID(ctx, *exchangeID)
+		exchange, err := s.repos.Trading.GetByID(ctx, *exchangeID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to verify exchange: %w", err)
 		}
 		if exchange == nil || exchange.UserID != userID {
-			return nil, fmt.Errorf("exchange not found")
+			return nil, fmt.Errorf("trading platform not found")
 		}
 	}
 
@@ -279,7 +279,7 @@ func (s *SubAccountService) convertToSubAccountResponse(subAccount *models.SubAc
 	return &SubAccountResponse{
 		ID:         subAccount.ID,
 		UserID:     subAccount.UserID,
-		ExchangeID: subAccount.ExchangeID,
+		TradingID: subAccount.TradingID,
 		Name:       subAccount.Name,
 		Symbol:     subAccount.Symbol,
 		Balance:    subAccount.Balance,

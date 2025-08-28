@@ -156,7 +156,7 @@ func (s *UserService) GetUserByID(ctx context.Context, userID uuid.UUID) (*UserR
 // GetUserStats retrieves user statistics
 func (s *UserService) GetUserStats(ctx context.Context, userID uuid.UUID) (map[string]interface{}, error) {
 	// Get user's exchanges count
-	exchanges, err := s.repos.Exchange.GetByUserID(ctx, userID)
+	exchanges, err := s.repos.Trading.GetByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user exchanges: %w", err)
 	}

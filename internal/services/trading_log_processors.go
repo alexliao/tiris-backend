@@ -70,12 +70,12 @@ func (p *TradingLogProcessor) ProcessTradingLog(ctx context.Context, db *gorm.DB
 // processBusinessLogicType handles long, short, and stop_loss trading log types
 func (p *TradingLogProcessor) processBusinessLogicType(ctx context.Context, tx *gorm.DB, userID uuid.UUID, req *CreateTradingLogRequest, tradingInfo *TradingLogInfo) (*ProcessingResult, error) {
 	// Verify exchange ownership
-	exchange, err := p.repos.Exchange.GetByID(ctx, req.ExchangeID)
+	exchange, err := p.repos.Trading.GetByID(ctx, req.TradingID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify exchange: %w", err)
 	}
 	if exchange == nil || exchange.UserID != userID {
-		return nil, fmt.Errorf("exchange not found")
+		return nil, fmt.Errorf("trading platform not found")
 	}
 
 	// Verify and get sub-accounts
@@ -103,7 +103,7 @@ func (p *TradingLogProcessor) processBusinessLogicType(ctx context.Context, tx *
 	tradingLogRecord := &models.TradingLog{
 		ID:           uuid.New(),
 		UserID:       userID,
-		ExchangeID:   req.ExchangeID,
+		TradingID:   req.TradingID,
 		SubAccountID: req.SubAccountID,
 		Timestamp:    time.Now().UTC(),
 		Type:         req.Type,
@@ -414,12 +414,12 @@ func (p *TradingLogProcessor) ProcessWithdraw(ctx context.Context, tradingInfo *
 // createSimpleTradingLog creates a trading log without business logic processing
 func (p *TradingLogProcessor) createSimpleTradingLog(ctx context.Context, db *gorm.DB, userID uuid.UUID, req *CreateTradingLogRequest) (*ProcessingResult, error) {
 	// Verify exchange ownership
-	exchange, err := p.repos.Exchange.GetByID(ctx, req.ExchangeID)
+	exchange, err := p.repos.Trading.GetByID(ctx, req.TradingID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify exchange: %w", err)
 	}
 	if exchange == nil || exchange.UserID != userID {
-		return nil, fmt.Errorf("exchange not found")
+		return nil, fmt.Errorf("trading platform not found")
 	}
 
 	// Verify sub-account ownership if provided
@@ -458,7 +458,7 @@ func (p *TradingLogProcessor) createSimpleTradingLog(ctx context.Context, db *go
 	tradingLog := &models.TradingLog{
 		ID:            uuid.New(),
 		UserID:        userID,
-		ExchangeID:    req.ExchangeID,
+		TradingID:    req.TradingID,
 		SubAccountID:  req.SubAccountID,
 		TransactionID: req.TransactionID,
 		Timestamp:     time.Now().UTC(),

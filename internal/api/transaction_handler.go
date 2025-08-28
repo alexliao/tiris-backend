@@ -238,7 +238,7 @@ func (h *TransactionHandler) GetExchangeTransactions(c *gin.Context) {
 
 	transactions, err := h.transactionService.GetExchangeTransactions(c.Request.Context(), userID, exchangeID, &req)
 	if err != nil {
-		if err.Error() == "exchange not found" {
+		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"EXCHANGE_NOT_FOUND",
 				"Exchange not found",
