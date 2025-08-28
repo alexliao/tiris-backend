@@ -45,7 +45,7 @@ The `test-api.sh` script has been enhanced to properly demonstrate the new tradi
 ### Trading Log Demonstration
 ```json
 {
-  "exchange_id": "uuid",
+  "trading_id": "uuid",
   "type": "long",
   "source": "bot",
   "message": "ETH long position: 2.0 ETH @ $3000 (fee: $12)",

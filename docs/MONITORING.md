@@ -39,7 +39,7 @@ Collects comprehensive metrics including:
 
 #### Business Metrics
 - User registrations, logins
-- Exchange operations
+- Trading platform operations
 - Transaction volumes
 - Trading activities
 
@@ -224,7 +224,7 @@ logger := monitoringManager.GetLogger()
 // Log with context
 logger.LogInfo("User operation completed", map[string]interface{}{
     "user_id": userID,
-    "operation": "create_exchange",
+    "operation": "create_trading_platform",
     "duration_ms": duration.Milliseconds(),
 })
 

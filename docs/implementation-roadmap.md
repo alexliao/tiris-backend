@@ -60,7 +60,7 @@ This document outlines the complete implementation roadmap for the Tiris Backend
 
 - [ ] **Task 8:** Implement OAuth integration (Google, WeChat)
   - Implement OAuth 2.0 flows for Google and WeChat
-  - Add OAuth callback handlers and token exchange
+  - Add OAuth callback handlers and token management
   - Create user registration from OAuth profile data
   - **Acceptance:** Users can login via Google and WeChat OAuth
 
@@ -74,13 +74,13 @@ This document outlines the complete implementation roadmap for the Tiris Backend
   - `PUT /users/{id}/disable` - Disable user account (admin)
   - **Acceptance:** All user endpoints working with proper validation
 
-- [ ] **Task 10:** Create exchange management API endpoints
-  - `GET /exchanges` - List user exchanges
-  - `POST /exchanges` - Create exchange binding
-  - `GET /exchanges/{id}` - Get exchange details
-  - `PUT /exchanges/{id}` - Update exchange
-  - `DELETE /exchanges/{id}` - Remove exchange
-  - **Acceptance:** Exchange CRUD operations with encrypted API keys
+- [ ] **Task 10:** Create trading platform management API endpoints
+  - `GET /tradings` - List user trading platforms
+  - `POST /tradings` - Create trading platform binding
+  - `GET /tradings/{id}` - Get trading platform details
+  - `PUT /tradings/{id}` - Update trading platform
+  - `DELETE /tradings/{id}` - Remove trading platform
+  - **Acceptance:** Trading platform CRUD operations with encrypted API keys
 
 - [ ] **Task 11:** Create sub-account management API endpoints
   - `GET /sub-accounts` - List sub-accounts

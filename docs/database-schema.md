@@ -67,10 +67,10 @@ CREATE TRIGGER update_users_updated_at
 - `info`: Extended user information (profile data, OAuth details)
 - `status`: Account status (active, disabled, deleted)
 
-### 2.2 Exchanges Table
+### 2.2 Trading Platforms Table
 
 ```sql
-CREATE TABLE exchanges (
+CREATE TABLE tradings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
@@ -83,21 +83,21 @@ CREATE TABLE exchanges (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- Constraints
-    CONSTRAINT exchanges_type_valid CHECK (type IN ('binance', 'kraken', 'gate', 'virtual')),
-    CONSTRAINT exchanges_user_name_unique UNIQUE (user_id, name),
-    CONSTRAINT exchanges_user_api_key_unique UNIQUE (user_id, api_key),
-    CONSTRAINT exchanges_user_api_secret_unique UNIQUE (user_id, api_secret)
+    CONSTRAINT tradings_type_valid CHECK (type IN ('binance', 'kraken', 'gate', 'virtual')),
+    CONSTRAINT tradings_user_name_unique UNIQUE (user_id, name),
+    CONSTRAINT tradings_user_api_key_unique UNIQUE (user_id, api_key),
+    CONSTRAINT tradings_user_api_secret_unique UNIQUE (user_id, api_secret)
 );
 
 -- Indexes
-CREATE INDEX idx_exchanges_user_id ON exchanges(user_id);
-CREATE INDEX idx_exchanges_type ON exchanges(type);
-CREATE INDEX idx_exchanges_status ON exchanges(status);
-CREATE INDEX idx_exchanges_info_gin ON exchanges USING gin(info);
+CREATE INDEX idx_tradings_user_id ON tradings(user_id);
+CREATE INDEX idx_tradings_type ON tradings(type);
+CREATE INDEX idx_tradings_status ON tradings(status);
+CREATE INDEX idx_tradings_info_gin ON tradings USING gin(info);
 
 -- Trigger for updated_at
-CREATE TRIGGER update_exchanges_updated_at 
-    BEFORE UPDATE ON exchanges 
+CREATE TRIGGER update_tradings_updated_at 
+    BEFORE UPDATE ON tradings 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 ```
@@ -105,12 +105,12 @@ CREATE TRIGGER update_exchanges_updated_at
 **Fields Description:**
 - `id`: Unique identifier (UUID)
 - `user_id`: Foreign key to users table
-- `name`: User-defined name for the exchange
-- `type`: Exchange type (binance, kraken, gate, virtual)
+- `name`: User-defined name for the trading platform
+- `type`: Trading platform type (binance, kraken, gate, virtual)
 - `api_key_encrypted`: Encrypted API key
 - `api_secret_encrypted`: Encrypted API secret
-- `status`: Exchange connection status
-- `info`: Additional exchange data (permissions, testnet flag, sync status)
+- `status`: Trading platform connection status
+- `info`: Additional trading platform data (permissions, testnet flag, sync status)
 
 ### 2.3 Sub-accounts Table
 
@@ -118,7 +118,7 @@ CREATE TRIGGER update_exchanges_updated_at
 CREATE TABLE sub_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    exchange_id UUID NOT NULL REFERENCES exchanges(id) ON DELETE CASCADE,
+    trading_id UUID NOT NULL REFERENCES tradings(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     symbol VARCHAR(20) NOT NULL,
     balance DECIMAL(20,8) DEFAULT 0 CHECK (balance >= 0),
@@ -127,12 +127,12 @@ CREATE TABLE sub_accounts (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- Constraints
-    CONSTRAINT sub_accounts_exchange_name_unique UNIQUE (exchange_id, name)
+    CONSTRAINT sub_accounts_trading platform_name_unique UNIQUE (trading_id, name)
 );
 
 -- Indexes
 CREATE INDEX idx_sub_accounts_user_id ON sub_accounts(user_id);
-CREATE INDEX idx_sub_accounts_exchange_id ON sub_accounts(exchange_id);
+CREATE INDEX idx_sub_accounts_trading_id ON sub_accounts(trading_id);
 CREATE INDEX idx_sub_accounts_symbol ON sub_accounts(symbol);
 CREATE INDEX idx_sub_accounts_balance ON sub_accounts(balance);
 
@@ -146,7 +146,7 @@ CREATE TRIGGER update_sub_accounts_updated_at
 **Fields Description:**
 - `id`: Unique identifier (UUID)
 - `user_id`: Foreign key to users table
-- `exchange_id`: Foreign key to exchanges table
+- `trading_id`: Foreign key to tradings table
 - `name`: User-defined sub-account name
 - `symbol`: Asset symbol (BTC, ETH, USDT, etc.)
 - `balance`: Current available balance (updated when orders complete)
@@ -158,7 +158,7 @@ CREATE TRIGGER update_sub_accounts_updated_at
 CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    exchange_id UUID NOT NULL REFERENCES exchanges(id) ON DELETE CASCADE,
+    trading_id UUID NOT NULL REFERENCES tradings(id) ON DELETE CASCADE,
     sub_account_id UUID NOT NULL REFERENCES sub_accounts(id) ON DELETE CASCADE,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     direction VARCHAR(10) NOT NULL CHECK (direction IN ('debit', 'credit')),
@@ -182,7 +182,7 @@ SELECT create_hypertable('transactions', 'timestamp', chunk_time_interval => INT
 -- Indexes
 CREATE INDEX idx_transactions_user_timestamp ON transactions(user_id, timestamp DESC);
 CREATE INDEX idx_transactions_sub_account_timestamp ON transactions(sub_account_id, timestamp DESC);
-CREATE INDEX idx_transactions_exchange_timestamp ON transactions(exchange_id, timestamp DESC);
+CREATE INDEX idx_transactions_trading platform_timestamp ON transactions(trading_id, timestamp DESC);
 CREATE INDEX idx_transactions_reason ON transactions(reason);
 CREATE INDEX idx_transactions_direction ON transactions(direction);
 CREATE INDEX idx_transactions_info_gin ON transactions USING gin(info);
@@ -197,7 +197,7 @@ SELECT add_retention_policy('transactions', INTERVAL '2 years');
 **Fields Description:**
 - `id`: Unique identifier (UUID)
 - `user_id`: Foreign key to users table
-- `exchange_id`: Foreign key to exchanges table
+- `trading_id`: Foreign key to tradings table
 - `sub_account_id`: Foreign key to sub_accounts table
 - `timestamp`: Transaction timestamp (indexed for time-series queries)
 - `direction`: Transaction direction (debit/credit)
@@ -214,7 +214,7 @@ SELECT add_retention_policy('transactions', INTERVAL '2 years');
 CREATE TABLE trading_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    exchange_id UUID NOT NULL REFERENCES exchanges(id) ON DELETE CASCADE,
+    trading_id UUID NOT NULL REFERENCES tradings(id) ON DELETE CASCADE,
     sub_account_id UUID REFERENCES sub_accounts(id) ON DELETE SET NULL,
     transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -236,7 +236,7 @@ SELECT create_hypertable('trading_logs', 'timestamp', chunk_time_interval => INT
 
 -- Indexes
 CREATE INDEX idx_trading_logs_user_timestamp ON trading_logs(user_id, timestamp DESC);
-CREATE INDEX idx_trading_logs_exchange_timestamp ON trading_logs(exchange_id, timestamp DESC);
+CREATE INDEX idx_trading_logs_trading platform_timestamp ON trading_logs(trading_id, timestamp DESC);
 CREATE INDEX idx_trading_logs_sub_account_timestamp ON trading_logs(sub_account_id, timestamp DESC);
 CREATE INDEX idx_trading_logs_type ON trading_logs(type);
 CREATE INDEX idx_trading_logs_source ON trading_logs(source);
@@ -253,7 +253,7 @@ SELECT add_retention_policy('trading_logs', INTERVAL '1 year');
 **Fields Description:**
 - `id`: Unique identifier (UUID)
 - `user_id`: Foreign key to users table
-- `exchange_id`: Foreign key to exchanges table
+- `trading_id`: Foreign key to tradings table
 - `sub_account_id`: Optional foreign key to sub_accounts table
 - `transaction_id`: Optional foreign key to related transaction
 - `timestamp`: Log timestamp (indexed for time-series queries)
@@ -305,7 +305,7 @@ CREATE TABLE event_processing (
     event_type VARCHAR(100) NOT NULL,
     subject VARCHAR(255) NOT NULL,
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    exchange_id UUID REFERENCES exchanges(id) ON DELETE SET NULL,
+    trading_id UUID REFERENCES tradings(id) ON DELETE SET NULL,
     sub_account_id UUID REFERENCES sub_accounts(id) ON DELETE SET NULL,
     status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'retrying')),
     attempt_count INTEGER DEFAULT 1,
@@ -382,17 +382,17 @@ CREATE VIEW user_portfolios AS
 SELECT 
     u.id as user_id,
     u.username,
-    e.id as exchange_id,
-    e.name as exchange_name,
-    e.type as exchange_type,
+    e.id as trading_id,
+    e.name as trading platform_name,
+    e.type as trading platform_type,
     COUNT(sa.id) as sub_account_count,
     COALESCE(SUM(CASE WHEN sa.symbol = 'BTC' THEN sa.balance ELSE 0 END), 0) as btc_balance,
     COALESCE(SUM(CASE WHEN sa.symbol = 'ETH' THEN sa.balance ELSE 0 END), 0) as eth_balance,
     COALESCE(SUM(CASE WHEN sa.symbol = 'USDT' THEN sa.balance ELSE 0 END), 0) as usdt_balance,
-    e.created_at as exchange_added_at
+    e.created_at as trading platform_added_at
 FROM users u
-LEFT JOIN exchanges e ON u.id = e.user_id AND e.status = 'active'
-LEFT JOIN sub_accounts sa ON e.id = sa.exchange_id
+LEFT JOIN tradings e ON u.id = e.user_id AND e.status = 'active'
+LEFT JOIN sub_accounts sa ON e.id = sa.trading_id
 WHERE u.status = 'active'
 GROUP BY u.id, u.username, e.id, e.name, e.type, e.created_at;
 ```
@@ -403,7 +403,7 @@ GROUP BY u.id, u.username, e.id, e.name, e.type, e.created_at;
 CREATE MATERIALIZED VIEW daily_transaction_summary AS
 SELECT 
     user_id,
-    exchange_id,
+    trading_id,
     sub_account_id,
     DATE_TRUNC('day', timestamp) as date,
     COUNT(*) as transaction_count,
@@ -414,7 +414,7 @@ SELECT
     MIN(closing_balance) as min_balance,
     COUNT(DISTINCT reason) as unique_reasons
 FROM transactions
-GROUP BY user_id, exchange_id, sub_account_id, DATE_TRUNC('day', timestamp);
+GROUP BY user_id, trading_id, sub_account_id, DATE_TRUNC('day', timestamp);
 
 -- Indexes
 CREATE INDEX idx_daily_transaction_summary_date ON daily_transaction_summary(date DESC);
@@ -449,11 +449,11 @@ RETURNS UUID AS $$
 DECLARE
     v_transaction_id UUID;
     v_user_id UUID;
-    v_exchange_id UUID;
+    v_trading_id UUID;
 BEGIN
     -- Get related IDs
-    SELECT user_id, exchange_id 
-    INTO v_user_id, v_exchange_id
+    SELECT user_id, trading_id 
+    INTO v_user_id, v_trading_id
     FROM sub_accounts 
     WHERE id = p_sub_account_id;
     
@@ -469,10 +469,10 @@ BEGIN
     
     -- Create transaction record
     INSERT INTO transactions (
-        user_id, exchange_id, sub_account_id,
+        user_id, trading_id, sub_account_id,
         direction, reason, amount, closing_balance, info
     ) VALUES (
-        v_user_id, v_exchange_id, p_sub_account_id,
+        v_user_id, v_trading_id, p_sub_account_id,
         p_direction, p_reason, p_amount, p_new_balance, p_info
     ) RETURNING id INTO v_transaction_id;
     
@@ -494,12 +494,12 @@ RETURNS UUID AS $$
 DECLARE
     v_processing_id UUID;
     v_user_id UUID;
-    v_exchange_id UUID;
+    v_trading_id UUID;
     v_sub_account_id UUID;
 BEGIN
     -- Extract common fields from event data
     v_user_id := (p_event_data->>'user_id')::UUID;
-    v_exchange_id := (p_event_data->>'exchange_id')::UUID;
+    v_trading_id := (p_event_data->>'trading_id')::UUID;
     v_sub_account_id := (p_event_data->>'sub_account_id')::UUID;
     
     -- Check for duplicate event
@@ -514,10 +514,10 @@ BEGIN
     
     -- Insert event processing record
     INSERT INTO event_processing (
-        event_id, event_type, subject, user_id, exchange_id, sub_account_id,
+        event_id, event_type, subject, user_id, trading_id, sub_account_id,
         status, event_data
     ) VALUES (
-        p_event_id, p_event_type, p_subject, v_user_id, v_exchange_id, v_sub_account_id,
+        p_event_id, p_event_type, p_subject, v_user_id, v_trading_id, v_sub_account_id,
         'pending', p_event_data
     ) RETURNING id INTO v_processing_id;
     
@@ -531,8 +531,8 @@ $$ LANGUAGE plpgsql;
 ```sql
 CREATE OR REPLACE FUNCTION get_user_statistics(p_user_id UUID)
 RETURNS TABLE(
-    total_exchanges INT,
-    active_exchanges INT,
+    total_tradings INT,
+    active_tradings INT,
     total_sub_accounts INT,
     total_transactions BIGINT,
     first_transaction_date TIMESTAMPTZ,
@@ -541,15 +541,15 @@ RETURNS TABLE(
 BEGIN
     RETURN QUERY
     SELECT 
-        COUNT(DISTINCT e.id)::INT as total_exchanges,
-        COUNT(DISTINCT CASE WHEN e.status = 'active' THEN e.id END)::INT as active_exchanges,
+        COUNT(DISTINCT e.id)::INT as total_tradings,
+        COUNT(DISTINCT CASE WHEN e.status = 'active' THEN e.id END)::INT as active_tradings,
         COUNT(DISTINCT sa.id)::INT as total_sub_accounts,
         COALESCE(COUNT(t.id), 0) as total_transactions,
         MIN(t.timestamp) as first_transaction_date,
         MAX(t.timestamp) as last_transaction_date
     FROM users u
-    LEFT JOIN exchanges e ON u.id = e.user_id
-    LEFT JOIN sub_accounts sa ON e.id = sa.exchange_id
+    LEFT JOIN tradings e ON u.id = e.user_id
+    LEFT JOIN sub_accounts sa ON e.id = sa.trading_id
     LEFT JOIN transactions t ON sa.id = t.sub_account_id
     WHERE u.id = p_user_id
     GROUP BY u.id;
@@ -580,7 +580,7 @@ $$ LANGUAGE plpgsql;
 
 **Composite Indexes:**
 - (user_id, timestamp) for user-specific time queries
-- (exchange_id, timestamp) for exchange-specific queries
+- (trading_id, timestamp) for trading platform-specific queries
 - (sub_account_id, timestamp) for account-specific queries
 
 **GIN Indexes:**
@@ -644,27 +644,27 @@ CHECK (closing_balance >= 0);
 - `users.username`: Usernames must be globally unique across all users
 
 **Per-User Uniqueness:**
-- `exchanges.name`: Exchange names must be unique within each user's account
-- `exchanges.api_key`: API keys must be unique within each user's account (prevents accidental reuse)
-- `exchanges.api_secret`: API secrets must be unique within each user's account (prevents accidental reuse)
+- `tradings.name`: Trading platform names must be unique within each user's account
+- `tradings.api_key`: API keys must be unique within each user's account (prevents accidental reuse)
+- `tradings.api_secret`: API secrets must be unique within each user's account (prevents accidental reuse)
 
-**Per-Exchange Uniqueness:**
-- `sub_accounts.name`: Sub-account names must be unique within each exchange
+**Per-Trading Platform Uniqueness:**
+- `sub_accounts.name`: Sub-account names must be unique within each trading platform
 
 ```sql
--- Exchange uniqueness constraints (per user)
-ALTER TABLE exchanges ADD CONSTRAINT exchanges_user_name_unique UNIQUE (user_id, name);
-ALTER TABLE exchanges ADD CONSTRAINT exchanges_user_api_key_unique UNIQUE (user_id, api_key);
-ALTER TABLE exchanges ADD CONSTRAINT exchanges_user_api_secret_unique UNIQUE (user_id, api_secret);
+-- Trading platform uniqueness constraints (per user)
+ALTER TABLE tradings ADD CONSTRAINT tradings_user_name_unique UNIQUE (user_id, name);
+ALTER TABLE tradings ADD CONSTRAINT tradings_user_api_key_unique UNIQUE (user_id, api_key);
+ALTER TABLE tradings ADD CONSTRAINT tradings_user_api_secret_unique UNIQUE (user_id, api_secret);
 
--- Sub-account uniqueness constraints (per exchange)  
-ALTER TABLE sub_accounts ADD CONSTRAINT sub_accounts_exchange_name_unique UNIQUE (exchange_id, name);
+-- Sub-account uniqueness constraints (per trading platform)  
+ALTER TABLE sub_accounts ADD CONSTRAINT sub_accounts_trading platform_name_unique UNIQUE (trading_id, name);
 ```
 
 ### 7.3 Referential Integrity
 
 **Foreign Key Policies:**
-- `CASCADE`: Delete child records when parent is deleted (users -> exchanges -> sub_accounts)
+- `CASCADE`: Delete child records when parent is deleted (users -> tradings -> sub_accounts)
 - `SET NULL`: Set foreign key to NULL when referenced record is deleted (optional references)
 - `RESTRICT`: Prevent deletion if child records exist (where appropriate)
 
@@ -689,8 +689,8 @@ CHECK (symbol ~* '^[A-Z]{2,10}$');
 ### 8.1 Data Encryption
 
 **Encrypted Fields:**
-- `exchanges.api_key_encrypted`
-- `exchanges.api_secret_encrypted`
+- `tradings.api_key_encrypted`
+- `tradings.api_secret_encrypted`
 - `oauth_tokens.access_token_encrypted`
 - `oauth_tokens.refresh_token_encrypted`
 
@@ -722,7 +722,7 @@ GRANT tiris_write TO tiris_app;
 ```sql
 -- Enable RLS on sensitive tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE exchanges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tradings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sub_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trading_logs ENABLE ROW LEVEL SECURITY;
@@ -732,7 +732,7 @@ CREATE POLICY user_own_data ON users
 FOR ALL TO tiris_app
 USING (id = current_setting('app.current_user_id')::UUID);
 
-CREATE POLICY exchange_own_data ON exchanges
+CREATE POLICY trading platform_own_data ON tradings
 FOR ALL TO tiris_app
 USING (user_id = current_setting('app.current_user_id')::UUID);
 

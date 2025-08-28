@@ -214,7 +214,7 @@ The performance tests measure and validate:
 - Concurrent transaction safety
 
 ### 🚀 Future Enhancements
-- Integration with external exchange APIs
+- Integration with external trading platform APIs
 - Real-time market data validation
 - Advanced financial instruments (futures, options)
 - Load balancing and horizontal scaling tests

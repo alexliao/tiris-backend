@@ -8,7 +8,7 @@
 - Verify security measures and access controls
 - Confirm performance requirements are met
 - Ensure system reliability and error handling
-- Validate integration with external services (OAuth, exchanges)
+- Validate integration with external services (OAuth, tradings)
 
 ### 1.2 Testing Principles
 - **Test-Driven Development (TDD)**: Write tests before implementation
@@ -125,7 +125,7 @@ func TestUserService_CreateUser(t *testing.T) {
 - API endpoint functionality
 - Database operations
 - OAuth provider integration
-- Exchange API communication
+- Trading Platform API communication
 - Service layer interactions
 - NATS event processing integration
 - Event consumer functionality
@@ -137,7 +137,7 @@ func TestUserService_CreateUser(t *testing.T) {
 **Test Environment:**
 - PostgreSQL test database
 - Mock OAuth providers
-- Mock exchange APIs
+- Mock trading platform APIs
 - In-memory caching
 - NATS test server
 - Mock event publishers
@@ -148,7 +148,7 @@ func TestUserService_CreateUser(t *testing.T) {
 
 **Test Areas:**
 - User registration and authentication flow
-- Exchange binding and management
+- Trading Platform binding and management
 - Sub-account creation and operations
 - Trading log creation and transaction generation
 - Complete trading workflow simulation
@@ -257,7 +257,7 @@ export TEST_DB_USER=test_user
 export TEST_DB_PASS=test_pass
 export TEST_NATS_URL=nats://localhost:4222
 export TEST_OAUTH_MOCK=true
-export TEST_EXCHANGE_MOCK=true
+export TEST_TRADING_PLATFORM_MOCK=true
 ```
 
 ### 4.2 CI/CD Environment
@@ -373,15 +373,15 @@ func TestJWTTokenValidation(t *testing.T) {
 - Info column JSON storage and retrieval
 - Info field updates and merging
 
-### 5.3 Exchange Management Tests
+### 5.3 Trading Platform Management Tests
 
 **Test Scenarios:**
-- Exchange binding with valid credentials
-- Exchange binding with invalid credentials
-- Exchange configuration updates
-- Exchange removal
+- Trading Platform binding with valid credentials
+- Trading Platform binding with invalid credentials
+- Trading Platform configuration updates
+- Trading Platform removal
 - API key encryption/decryption
-- Multiple exchanges per user
+- Multiple tradings per user
 
 ### 5.4 Sub-account Management Tests
 
@@ -547,7 +547,7 @@ var TestUsers = []User{
     // More users...
 }
 
-var TestExchanges = []Exchange{
+var TestTradingPlatforms = []TradingPlatform{
     {
         ID:     uuid.MustParse("456e7890-e89b-12d3-a456-426614174001"),
         UserID: uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
@@ -555,7 +555,7 @@ var TestExchanges = []Exchange{
         Type:   "binance",
         Status: "active",
     },
-    // More exchanges...
+    // More tradings...
 }
 ```
 
@@ -565,17 +565,17 @@ type TestDataFactory struct {
     db *sql.DB
 }
 
-func (f *TestDataFactory) CreateUserWithExchange() (*User, *Exchange) {
+func (f *TestDataFactory) CreateUserWithTradingPlatform() (*User, *TradingPlatform) {
     user := f.CreateUser()
-    exchange := f.CreateExchange(user.ID)
-    return user, exchange
+    tradingPlatform := f.CreateTradingPlatform(user.ID)
+    return user, tradingPlatform
 }
 
-func (f *TestDataFactory) CreateCompleteUserSetup() (*User, *Exchange, *SubAccount) {
+func (f *TestDataFactory) CreateCompleteUserSetup() (*User, *TradingPlatform, *SubAccount) {
     user := f.CreateUser()
-    exchange := f.CreateExchange(user.ID)
-    subAccount := f.CreateSubAccount(user.ID, exchange.ID)
-    return user, exchange, subAccount
+    tradingPlatform := f.CreateTradingPlatform(user.ID)
+    subAccount := f.CreateSubAccount(user.ID, tradingPlatform.ID)
+    return user, tradingPlatform, subAccount
 }
 ```
 
@@ -607,7 +607,7 @@ func SetupTestDB(t *testing.T) *sql.DB {
 }
 
 func CleanupTestData(db *sql.DB) {
-    tables := []string{"trading_logs", "transactions", "sub_accounts", "exchanges", "oauth_tokens", "users"}
+    tables := []string{"trading_logs", "transactions", "sub_accounts", "tradings", "oauth_tokens", "users"}
     for _, table := range tables {
         db.Exec(fmt.Sprintf("TRUNCATE TABLE %s CASCADE", table))
     }
@@ -711,7 +711,7 @@ go test -bench=. -benchmem ./...
 - Financial calculations and balance updates
 - Transaction integrity and consistency
 - User authentication and authorization
-- Exchange API integrations
+- Trading Platform API integrations
 - Data encryption and security
 
 **High-Impact Components:**
@@ -752,7 +752,7 @@ go test -bench=. -benchmem ./...
 
 **Week 3-4: Core Functionality Testing**
 - User management testing
-- Exchange integration testing
+- Trading Platform integration testing
 - Sub-account operations testing
 
 **Week 5-6: Advanced Features Testing**

@@ -115,35 +115,8 @@ definitions:
     - provider
     - state
     type: object
-  services.CreateExchangeRequest:
-    properties:
-      api_key:
-        example: your_api_key_here
-        minLength: 1
-        type: string
-      api_secret:
-        example: your_api_secret_here
-        minLength: 1
-        type: string
-      name:
-        example: My Exchange Account
-        maxLength: 100
-        minLength: 1
-        type: string
-      type:
-        example: binance
-        type: string
-    required:
-    - api_key
-    - api_secret
-    - name
-    - type
-    type: object
   services.CreateSubAccountRequest:
     properties:
-      exchange_id:
-        example: 453f0347-3959-49de-8e3f-1cf7c8e0827c
-        type: string
       name:
         example: BTC Trading Account
         maxLength: 100
@@ -154,10 +127,13 @@ definitions:
         maxLength: 20
         minLength: 1
         type: string
+      trading_id:
+        example: 453f0347-3959-49de-8e3f-1cf7c8e0827c
+        type: string
     required:
-    - exchange_id
     - name
     - symbol
+    - trading_id
     type: object
   services.CreateTradingLogRequest:
     description: 'Request for creating a new trading log entry. The ''info'' field
@@ -165,9 +141,6 @@ definitions:
       Must use TradingLogInfo structure - For types ''deposit'', ''withdraw'': Must
       use DepositWithdrawInfo structure - For other types: Can use any object structure'
     properties:
-      exchange_id:
-        example: 453f0347-3959-49de-8e3f-1cf7c8e0827c
-        type: string
       info:
         additionalProperties: true
         type: object
@@ -183,6 +156,9 @@ definitions:
         type: string
       sub_account_id:
         example: b4e006d0-1069-4ef4-b33f-7690af4929f4
+        type: string
+      trading_id:
+        example: 453f0347-3959-49de-8e3f-1cf7c8e0827c
         type: string
       transaction_id:
         example: 1a098613-e738-447d-b921-74c3594df3a5
@@ -204,33 +180,34 @@ definitions:
         minLength: 1
         type: string
     required:
-    - exchange_id
     - message
     - source
+    - trading_id
     - type
     type: object
-  services.ExchangeResponse:
+  services.CreateTradingRequest:
     properties:
       api_key:
-        description: Masked in production
+        example: your_api_key_here
+        minLength: 1
         type: string
-      created_at:
+      api_secret:
+        example: your_api_secret_here
+        minLength: 1
         type: string
-      id:
-        type: string
-      info:
-        additionalProperties: true
-        type: object
       name:
-        type: string
-      status:
+        example: My Trading Account
+        maxLength: 100
+        minLength: 1
         type: string
       type:
+        example: binance
         type: string
-      updated_at:
-        type: string
-      user_id:
-        type: string
+    required:
+    - api_key
+    - api_secret
+    - name
+    - type
     type: object
   services.LoginRequest:
     properties:
@@ -270,8 +247,6 @@ definitions:
         type: number
       created_at:
         type: string
-      exchange_id:
-        type: string
       id:
         type: string
       info:
@@ -280,6 +255,8 @@ definitions:
       name:
         type: string
       symbol:
+        type: string
+      trading_id:
         type: string
       updated_at:
         type: string
@@ -303,8 +280,6 @@ definitions:
     type: object
   services.TradingLogResponse:
     properties:
-      exchange_id:
-        type: string
       id:
         type: string
       info:
@@ -318,9 +293,34 @@ definitions:
         type: string
       timestamp:
         type: string
+      trading_id:
+        type: string
       transaction_id:
         type: string
       type:
+        type: string
+      user_id:
+        type: string
+    type: object
+  services.TradingResponse:
+    properties:
+      api_key:
+        description: Masked in production
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      info:
+        additionalProperties: true
+        type: object
+      name:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      updated_at:
         type: string
       user_id:
         type: string
@@ -348,8 +348,6 @@ definitions:
         type: number
       direction:
         type: string
-      exchange_id:
-        type: string
       id:
         type: string
       info:
@@ -364,6 +362,8 @@ definitions:
       sub_account_id:
         type: string
       timestamp:
+        type: string
+      trading_id:
         type: string
       user_id:
         type: string
@@ -392,28 +392,6 @@ definitions:
     - direction
     - reason
     type: object
-  services.UpdateExchangeRequest:
-    properties:
-      api_key:
-        example: updated_api_key_12345
-        minLength: 1
-        type: string
-      api_secret:
-        example: updated_api_secret_67890
-        minLength: 1
-        type: string
-      name:
-        example: My Updated Exchange Account
-        maxLength: 100
-        minLength: 1
-        type: string
-      status:
-        enum:
-        - active
-        - inactive
-        example: active
-        type: string
-    type: object
   services.UpdateSubAccountRequest:
     properties:
       balance:
@@ -429,6 +407,28 @@ definitions:
         example: ETH/USD
         maxLength: 20
         minLength: 1
+        type: string
+    type: object
+  services.UpdateTradingRequest:
+    properties:
+      api_key:
+        example: updated_api_key_12345
+        minLength: 1
+        type: string
+      api_secret:
+        example: updated_api_secret_67890
+        minLength: 1
+        type: string
+      name:
+        example: My Updated Trading Account
+        maxLength: 100
+        minLength: 1
+        type: string
+      status:
+        enum:
+        - active
+        - inactive
+        example: active
         type: string
     type: object
   services.UpdateUserRequest:
@@ -499,85 +499,6 @@ info:
   title: Tiris Backend API
   version: "1.0"
 paths:
-  /admin/exchanges:
-    get:
-      description: Lists all exchange configurations with pagination (admin only)
-      parameters:
-      - default: 100
-        description: Number of exchanges to return
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Number of exchanges to skip
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.PaginatedResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: List all exchanges
-      tags:
-      - Exchanges
-  /admin/exchanges/{id}:
-    get:
-      description: Retrieves an exchange by ID (admin only)
-      parameters:
-      - description: Exchange ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/services.ExchangeResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get exchange by ID
-      tags:
-      - Exchanges
   /admin/trading-logs:
     get:
       description: Lists all trading logs with filtering and pagination (admin only)
@@ -680,6 +601,86 @@ paths:
       summary: Get trading log by ID
       tags:
       - TradingLogs
+  /admin/tradings:
+    get:
+      description: Lists all trading platform configurations with pagination (admin
+        only)
+      parameters:
+      - default: 100
+        description: Number of trading platforms to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of trading platforms to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PaginatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all trading platforms
+      tags:
+      - Tradings
+  /admin/tradings/{id}:
+    get:
+      description: Retrieves a trading platform by ID (admin only)
+      parameters:
+      - description: Trading Platform ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get trading platform by ID
+      tags:
+      - Tradings
   /admin/transactions:
     get:
       description: Lists all transactions with filtering and pagination (admin only)
@@ -911,198 +912,6 @@ paths:
       summary: Refresh access token
       tags:
       - Authentication
-  /exchanges:
-    get:
-      description: Retrieves all exchange configurations for the authenticated user
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/services.ExchangeResponse'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get user exchanges
-      tags:
-      - Exchanges
-    post:
-      consumes:
-      - application/json
-      description: Creates a new exchange configuration for the authenticated user
-      parameters:
-      - description: Create exchange request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/services.CreateExchangeRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/services.ExchangeResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create new exchange
-      tags:
-      - Exchanges
-  /exchanges/{id}:
-    delete:
-      description: Deletes an exchange configuration (must belong to authenticated
-        user)
-      parameters:
-      - description: Exchange ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.SuccessResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete exchange
-      tags:
-      - Exchanges
-    get:
-      description: Retrieves a specific exchange configuration by ID (must belong
-        to authenticated user)
-      parameters:
-      - description: Exchange ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/services.ExchangeResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get exchange by ID
-      tags:
-      - Exchanges
-    put:
-      consumes:
-      - application/json
-      description: Updates an existing exchange configuration (must belong to authenticated
-        user)
-      parameters:
-      - description: Exchange ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update exchange request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/services.UpdateExchangeRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/services.ExchangeResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update exchange
-      tags:
-      - Exchanges
   /health:
     get:
       description: Provides detailed health information about the service and its
@@ -1155,11 +964,11 @@ paths:
   /sub-accounts:
     get:
       description: Retrieves all sub-account configurations for the authenticated
-        user, optionally filtered by exchange
+        user, optionally filtered by trading platform
       parameters:
-      - description: Filter by exchange ID
+      - description: Filter by trading platform ID
         in: query
-        name: exchange_id
+        name: trading_id
         type: string
       produces:
       - application/json
@@ -1869,6 +1678,200 @@ paths:
       summary: Get trading logs by time range
       tags:
       - TradingLogs
+  /tradings:
+    get:
+      description: Retrieves all trading platform configurations for the authenticated
+        user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/services.TradingResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user trading platforms
+      tags:
+      - Tradings
+    post:
+      consumes:
+      - application/json
+      description: Creates a new trading platform configuration for the authenticated
+        user
+      parameters:
+      - description: Create trading platform request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateTradingRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.TradingResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create new trading platform
+      tags:
+      - Tradings
+  /tradings/{id}:
+    delete:
+      description: Deletes a trading platform configuration (must belong to authenticated
+        user)
+      parameters:
+      - description: Trading Platform ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete trading platform
+      tags:
+      - Tradings
+    get:
+      description: Retrieves a specific trading platform configuration by ID (must
+        belong to authenticated user)
+      parameters:
+      - description: Trading Platform ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get trading platform by ID
+      tags:
+      - Tradings
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing trading platform configuration (must belong
+        to authenticated user)
+      parameters:
+      - description: Trading Platform ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update trading platform request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateTradingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update trading platform
+      tags:
+      - Tradings
   /transactions:
     get:
       description: Retrieves transaction history for the authenticated user with filtering

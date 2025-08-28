@@ -24,129 +24,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/admin/exchanges": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Lists all exchange configurations with pagination (admin only)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Exchanges"
-                ],
-                "summary": "List all exchanges",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 100,
-                        "description": "Number of exchanges to return",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Number of exchanges to skip",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/api.PaginatedResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/exchanges/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves an exchange by ID (admin only)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Exchanges"
-                ],
-                "summary": "Get exchange by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Exchange ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/services.ExchangeResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/admin/trading-logs": {
             "get": {
                 "security": [
@@ -269,6 +146,129 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/services.TradingLogResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/tradings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lists all trading platform configurations with pagination (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tradings"
+                ],
+                "summary": "List all trading platforms",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Number of trading platforms to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of trading platforms to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.PaginatedResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/tradings/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a trading platform by ID (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tradings"
+                ],
+                "summary": "Get trading platform by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trading Platform ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/services.TradingResponse"
                         }
                     },
                     "400": {
@@ -660,301 +660,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/exchanges": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves all exchange configurations for the authenticated user",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Exchanges"
-                ],
-                "summary": "Get user exchanges",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/services.ExchangeResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a new exchange configuration for the authenticated user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Exchanges"
-                ],
-                "summary": "Create new exchange",
-                "parameters": [
-                    {
-                        "description": "Create exchange request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.CreateExchangeRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/services.ExchangeResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/exchanges/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves a specific exchange configuration by ID (must belong to authenticated user)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Exchanges"
-                ],
-                "summary": "Get exchange by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Exchange ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/services.ExchangeResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Updates an existing exchange configuration (must belong to authenticated user)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Exchanges"
-                ],
-                "summary": "Update exchange",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Exchange ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Update exchange request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.UpdateExchangeRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/services.ExchangeResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Deletes an exchange configuration (must belong to authenticated user)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Exchanges"
-                ],
-                "summary": "Delete exchange",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Exchange ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/api.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/health": {
             "get": {
                 "description": "Provides detailed health information about the service and its dependencies",
@@ -1034,7 +739,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves all sub-account configurations for the authenticated user, optionally filtered by exchange",
+                "description": "Retrieves all sub-account configurations for the authenticated user, optionally filtered by trading platform",
                 "produces": [
                     "application/json"
                 ],
@@ -1045,8 +750,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by exchange ID",
-                        "name": "exchange_id",
+                        "description": "Filter by trading platform ID",
+                        "name": "trading_id",
                         "in": "query"
                     }
                 ],
@@ -1979,6 +1684,301 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Trading Log ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tradings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all trading platform configurations for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tradings"
+                ],
+                "summary": "Get user trading platforms",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/services.TradingResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new trading platform configuration for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tradings"
+                ],
+                "summary": "Create new trading platform",
+                "parameters": [
+                    {
+                        "description": "Create trading platform request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.CreateTradingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/services.TradingResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tradings/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a specific trading platform configuration by ID (must belong to authenticated user)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tradings"
+                ],
+                "summary": "Get trading platform by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trading Platform ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/services.TradingResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing trading platform configuration (must belong to authenticated user)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tradings"
+                ],
+                "summary": "Update trading platform",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trading Platform ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update trading platform request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.UpdateTradingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/services.TradingResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a trading platform configuration (must belong to authenticated user)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tradings"
+                ],
+                "summary": "Delete trading platform",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trading Platform ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -3002,49 +3002,14 @@ const docTemplate = `{
                 }
             }
         },
-        "services.CreateExchangeRequest": {
-            "type": "object",
-            "required": [
-                "api_key",
-                "api_secret",
-                "name",
-                "type"
-            ],
-            "properties": {
-                "api_key": {
-                    "type": "string",
-                    "minLength": 1,
-                    "example": "your_api_key_here"
-                },
-                "api_secret": {
-                    "type": "string",
-                    "minLength": 1,
-                    "example": "your_api_secret_here"
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 1,
-                    "example": "My Exchange Account"
-                },
-                "type": {
-                    "type": "string",
-                    "example": "binance"
-                }
-            }
-        },
         "services.CreateSubAccountRequest": {
             "type": "object",
             "required": [
-                "exchange_id",
                 "name",
-                "symbol"
+                "symbol",
+                "trading_id"
             ],
             "properties": {
-                "exchange_id": {
-                    "type": "string",
-                    "example": "453f0347-3959-49de-8e3f-1cf7c8e0827c"
-                },
                 "name": {
                     "type": "string",
                     "maxLength": 100,
@@ -3056,6 +3021,10 @@ const docTemplate = `{
                     "maxLength": 20,
                     "minLength": 1,
                     "example": "BTC/USDT"
+                },
+                "trading_id": {
+                    "type": "string",
+                    "example": "453f0347-3959-49de-8e3f-1cf7c8e0827c"
                 }
             }
         },
@@ -3063,16 +3032,12 @@ const docTemplate = `{
             "description": "Request for creating a new trading log entry. The 'info' field structure depends on the 'type' value: - For types 'long', 'short', 'stop_loss': Must use TradingLogInfo structure - For types 'deposit', 'withdraw': Must use DepositWithdrawInfo structure - For other types: Can use any object structure",
             "type": "object",
             "required": [
-                "exchange_id",
                 "message",
                 "source",
+                "trading_id",
                 "type"
             ],
             "properties": {
-                "exchange_id": {
-                    "type": "string",
-                    "example": "453f0347-3959-49de-8e3f-1cf7c8e0827c"
-                },
                 "info": {
                     "type": "object",
                     "additionalProperties": true
@@ -3093,6 +3058,10 @@ const docTemplate = `{
                 "sub_account_id": {
                     "type": "string",
                     "example": "b4e006d0-1069-4ef4-b33f-7690af4929f4"
+                },
+                "trading_id": {
+                    "type": "string",
+                    "example": "453f0347-3959-49de-8e3f-1cf7c8e0827c"
                 },
                 "transaction_id": {
                     "type": "string",
@@ -3118,37 +3087,34 @@ const docTemplate = `{
                 }
             }
         },
-        "services.ExchangeResponse": {
+        "services.CreateTradingRequest": {
             "type": "object",
+            "required": [
+                "api_key",
+                "api_secret",
+                "name",
+                "type"
+            ],
             "properties": {
                 "api_key": {
-                    "description": "Masked in production",
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "your_api_key_here"
                 },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "info": {
-                    "type": "object",
-                    "additionalProperties": true
+                "api_secret": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "your_api_secret_here"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "example": "My Trading Account"
                 },
                 "type": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "binance"
                 }
             }
         },
@@ -3207,9 +3173,6 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "exchange_id": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -3221,6 +3184,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "symbol": {
+                    "type": "string"
+                },
+                "trading_id": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -3257,9 +3223,6 @@ const docTemplate = `{
         "services.TradingLogResponse": {
             "type": "object",
             "properties": {
-                "exchange_id": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -3279,10 +3242,47 @@ const docTemplate = `{
                 "timestamp": {
                     "type": "string"
                 },
+                "trading_id": {
+                    "type": "string"
+                },
                 "transaction_id": {
                     "type": "string"
                 },
                 "type": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.TradingResponse": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "description": "Masked in production",
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "info": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 },
                 "user_id": {
@@ -3325,9 +3325,6 @@ const docTemplate = `{
                 "direction": {
                     "type": "string"
                 },
-                "exchange_id": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -3348,6 +3345,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "timestamp": {
+                    "type": "string"
+                },
+                "trading_id": {
                     "type": "string"
                 },
                 "user_id": {
@@ -3387,35 +3387,6 @@ const docTemplate = `{
                 }
             }
         },
-        "services.UpdateExchangeRequest": {
-            "type": "object",
-            "properties": {
-                "api_key": {
-                    "type": "string",
-                    "minLength": 1,
-                    "example": "updated_api_key_12345"
-                },
-                "api_secret": {
-                    "type": "string",
-                    "minLength": 1,
-                    "example": "updated_api_secret_67890"
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 1,
-                    "example": "My Updated Exchange Account"
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "active",
-                        "inactive"
-                    ],
-                    "example": "active"
-                }
-            }
-        },
         "services.UpdateSubAccountRequest": {
             "type": "object",
             "properties": {
@@ -3435,6 +3406,35 @@ const docTemplate = `{
                     "maxLength": 20,
                     "minLength": 1,
                     "example": "ETH/USD"
+                }
+            }
+        },
+        "services.UpdateTradingRequest": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "updated_api_key_12345"
+                },
+                "api_secret": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "updated_api_secret_67890"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "example": "My Updated Trading Account"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "inactive"
+                    ],
+                    "example": "active"
                 }
             }
         },

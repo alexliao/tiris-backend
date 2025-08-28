@@ -213,9 +213,9 @@ func (suite *IntegrationTestSuite) runSQLMigrations() {
 		ON tradings (user_id, api_secret)
 		WHERE deleted_at IS NULL;
 		
-		-- Sub-account name uniqueness per exchange (only for active records)
-		CREATE UNIQUE INDEX IF NOT EXISTS sub_accounts_exchange_name_active_unique
-		ON sub_accounts (exchange_id, name)
+		-- Sub-account name uniqueness per trading platform (only for active records)
+		CREATE UNIQUE INDEX IF NOT EXISTS sub_accounts_trading_name_active_unique
+		ON sub_accounts (trading_id, name)
 		WHERE deleted_at IS NULL;
 	`
 	

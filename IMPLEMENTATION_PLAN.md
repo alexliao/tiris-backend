@@ -20,7 +20,7 @@ Complete development of the Tiris Backend project with comprehensive testing, in
 - **Tests Implemented**:
   - ✅ AuthService (13 tests) - login, OAuth, token refresh, logout
   - ✅ UserService (10 tests) - CRUD operations, stats, validation
-  - ✅ ExchangeService (13 tests) - CRUD operations, validation, ownership
+  - ✅ TradingService (13 tests) - CRUD operations, validation, ownership
   - ✅ SubAccountService (14 tests) - CRUD, balance updates, validation
   - ✅ TransactionService (15 tests) - complex queries, filtering, pagination
   - ✅ TradingLogService (16 tests) - CRUD, filtering, source validation

@@ -6,7 +6,7 @@
 Tiris Backend is a RESTful microservice that serves as the data management layer for the Tiris quantitative trading ecosystem. It manages user accounts, trading data, and provides APIs for the frontend portal while ensuring secure, scalable, and efficient data operations.
 
 ### 1.2 Scope
-This document defines the functional and non-functional requirements for the Tiris Backend service, including user management, exchange integration, sub-account management, transaction tracking, and trading log management.
+This document defines the functional and non-functional requirements for the Tiris Backend service, including user management, trading platform integration, sub-account management, transaction tracking, and trading log management.
 
 ## 2. Functional Requirements
 
@@ -29,29 +29,29 @@ This document defines the functional and non-functional requirements for the Tir
 - The system MUST provide APIs to query user information
 - The system MUST enforce proper authorization for user data access
 
-### 2.2 Exchange Management (FR-EM)
+### 2.2 Trading Platform Management (FR-TPM)
 
-**FR-EM-001: Exchange Binding**
-- Users MUST be able to bind multiple exchanges to their account
-- Users MUST provide exchange type, name, API key, and API secret
-- The system MUST validate exchange credentials before binding
-- The system MUST create a virtual exchange for each user by default for simulation trading
+**FR-TPM-001: Trading Platform Binding**
+- Users MUST be able to bind multiple trading platforms to their account
+- Users MUST provide trading platform type, name, API key, and API secret
+- The system MUST validate trading platform credentials before binding
+- The system MUST create a virtual trading platform for each user by default for simulation trading
 
-**FR-EM-002: Exchange Configuration**
-- Users MUST be able to modify exchange configurations
-- Users MUST be able to unbind (remove) exchanges
+**FR-TPM-002: Trading Platform Configuration**
+- Users MUST be able to modify trading platform configurations
+- Users MUST be able to unbind (remove) trading platforms
 - The system MUST secure API keys and secrets using encryption
 
-**FR-EM-003: Exchange Data Queries**
-- Users MUST be able to query their exchange information
+**FR-TPM-003: Trading Platform Data Queries**
+- Users MUST be able to query their trading platform information
 - The system MUST not expose sensitive credentials in API responses
 
 ### 2.3 Sub-account Management (FR-SM)
 
 **FR-SM-001: Sub-account Creation**
-- Users MUST be able to create multiple sub-accounts within an exchange
+- Users MUST be able to create multiple sub-accounts within an trading platform
 - Users MUST specify initial balance, symbol, and name for each sub-account
-- The system MUST validate that sub-account balances do not exceed available exchange funds
+- The system MUST validate that sub-account balances do not exceed available trading platform funds
 
 **FR-SM-002: Sub-account Operations**
 - Users MUST be able to deposit funds into sub-accounts
@@ -177,7 +177,7 @@ This document defines the functional and non-functional requirements for the Tir
 
 ### 4.2 Integration Requirements
 - OAuth providers: Google, WeChat
-- Cryptocurrency exchanges: Binance, Kraken, Gate.io
+- Cryptocurrency trading platforms: Binance, Kraken, Gate.io
 - Internal services: tiris-portal (HTTP), tiris-bot (NATS)
 - Message queue: NATS JetStream for event processing
 
@@ -195,10 +195,10 @@ This document defines the functional and non-functional requirements for the Tir
 - Users can update their profile information successfully
 - Users can disable/enable their accounts
 
-### 5.2 Exchange Management
-- Users can bind exchanges with valid API credentials
+### 5.2 Trading Platform Management
+- Users can bind trading platforms with valid API credentials
 - Invalid credentials are properly rejected with clear error messages
-- Exchange data is securely stored and properly encrypted
+- Trading platform data is securely stored and properly encrypted
 
 ### 5.3 Sub-account Management
 - Users can create sub-accounts with specified balances
@@ -213,14 +213,14 @@ This document defines the functional and non-functional requirements for the Tir
 ## 6. Assumptions and Dependencies
 
 ### 6.1 Assumptions
-- Exchange APIs will remain stable and backward compatible
+- Trading platform APIs will remain stable and backward compatible
 - OAuth providers will maintain service availability
 - Users will have basic understanding of cryptocurrency trading concepts
 
 ### 6.2 Dependencies
 - PostgreSQL database with TimescaleDB extension
 - OAuth provider services (Google, WeChat)
-- Cryptocurrency exchange APIs
+- Cryptocurrency trading platform APIs
 - Docker runtime environment
 
 ## 7. Resources
@@ -242,7 +242,7 @@ This document defines the functional and non-functional requirements for the Tir
 
 ### 8.1 Planned Enhancements
 - Additional OAuth providers
-- Support for more cryptocurrency exchanges
+- Support for more cryptocurrency trading platforms
 - Advanced analytics and reporting features
 - Real-time notification system
 - Multi-language support

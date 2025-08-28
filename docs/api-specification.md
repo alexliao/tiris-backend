@@ -259,12 +259,12 @@ Authorization: Bearer {admin_jwt_token}
 }
 ```
 
-## 4. Exchange Management API
+## 4. Trading Platform Management API
 
-### 4.1 List User Exchanges
-**Endpoint:** `GET /exchanges`
+### 4.1 List User Trading Platforms
+**Endpoint:** `GET /tradings`
 
-**Description:** Get all exchanges bound to the current user.
+**Description:** Get all tradings bound to the current user.
 
 **Headers:**
 ```
@@ -276,9 +276,9 @@ Authorization: Bearer {jwt_token}
 {
   "success": true,
   "data": {
-    "exchanges": [
+    "tradings": [
       {
-        "id": "exchange123",
+        "id": "trading platform123",
         "name": "My Binance Account",
         "type": "binance",
         "status": "active",
@@ -294,10 +294,10 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 4.2 Create Exchange Binding
-**Endpoint:** `POST /exchanges`
+### 4.2 Create Trading Platform Binding
+**Endpoint:** `POST /tradings`
 
-**Description:** Bind a new exchange to the user account.
+**Description:** Bind a new trading platform to the user account.
 
 **Headers:**
 ```
@@ -323,7 +323,7 @@ Authorization: Bearer {jwt_token}
 {
   "success": true,
   "data": {
-    "id": "exchange123",
+    "id": "trading platform123",
     "name": "My Binance Account",
     "type": "binance",
     "status": "active",
@@ -332,10 +332,10 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 4.3 Get Exchange Details
-**Endpoint:** `GET /exchanges/{exchange_id}`
+### 4.3 Get Trading Platform Details
+**Endpoint:** `GET /tradings/{trading_id}`
 
-**Description:** Get details of a specific exchange.
+**Description:** Get details of a specific trading platform.
 
 **Headers:**
 ```
@@ -347,7 +347,7 @@ Authorization: Bearer {jwt_token}
 {
   "success": true,
   "data": {
-    "id": "exchange123",
+    "id": "trading platform123",
     "name": "My Binance Account",
     "type": "binance",
     "status": "active",
@@ -361,10 +361,10 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 4.4 Update Exchange
-**Endpoint:** `PUT /exchanges/{exchange_id}`
+### 4.4 Update Trading Platform
+**Endpoint:** `PUT /tradings/{trading_id}`
 
-**Description:** Update exchange configuration.
+**Description:** Update trading platform configuration.
 
 **Headers:**
 ```
@@ -385,7 +385,7 @@ Authorization: Bearer {jwt_token}
 {
   "success": true,
   "data": {
-    "id": "exchange123",
+    "id": "trading platform123",
     "name": "Updated Binance Account",
     "type": "binance",
     "status": "active",
@@ -394,10 +394,10 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 4.5 Delete Exchange
-**Endpoint:** `DELETE /exchanges/{exchange_id}`
+### 4.5 Delete Trading Platform
+**Endpoint:** `DELETE /tradings/{trading_id}`
 
-**Description:** Remove exchange binding from user account.
+**Description:** Remove trading platform binding from user account.
 
 **Headers:**
 ```
@@ -409,7 +409,7 @@ Authorization: Bearer {jwt_token}
 {
   "success": true,
   "data": {
-    "message": "Exchange removed successfully"
+    "message": "Trading platform removed successfully"
   }
 }
 ```
@@ -422,7 +422,7 @@ Authorization: Bearer {jwt_token}
 **Description:** Get all sub-accounts for the current user.
 
 **Query Parameters:**
-- `exchange_id` (optional): Filter by exchange ID
+- `trading_id` (optional): Filter by trading platform ID
 
 **Headers:**
 ```
@@ -440,7 +440,7 @@ Authorization: Bearer {jwt_token}
         "name": "BTC Trading Account",
         "symbol": "BTC",
         "balance": "0.5",
-        "exchange_id": "exchange123",
+        "trading_id": "trading platform123",
         "created_at": "2024-01-01T00:00:00Z",
         "info": {
           "initial_balance": "0.5",
@@ -472,7 +472,7 @@ Authorization: Bearer {jwt_token}
   "name": "BTC Trading Account",
   "symbol": "BTC",
   "balance": "0.5",
-  "exchange_id": "exchange123",
+  "trading_id": "trading platform123",
   "info": {
     "description": "Account for BTC trading strategies"
   }
@@ -488,7 +488,7 @@ Authorization: Bearer {jwt_token}
     "name": "BTC Trading Account",
     "symbol": "BTC",
     "balance": "0.5",
-    "exchange_id": "exchange123",
+    "trading_id": "trading platform123",
     "created_at": "2024-01-15T10:30:00Z"
   }
 }
@@ -513,7 +513,7 @@ Authorization: Bearer {jwt_token}
     "name": "BTC Trading Account",
     "symbol": "BTC",
     "balance": "0.5",
-    "exchange_id": "exchange123",
+    "trading_id": "trading platform123",
     "created_at": "2024-01-01T00:00:00Z",
     "updated_at": "2024-01-15T10:00:00Z",
     "info": {
@@ -557,7 +557,7 @@ Authorization: Bearer {jwt_token}
     "name": "Updated BTC Account",
     "symbol": "BTC",
     "balance": "0.5",
-    "exchange_id": "exchange123",
+    "trading_id": "trading platform123",
     "updated_at": "2024-01-15T10:35:00Z"
   }
 }
@@ -592,7 +592,7 @@ Authorization: Bearer {jwt_token}
 
 **Query Parameters:**
 - `sub_account_id` (optional): Filter by sub-account
-- `exchange_id` (optional): Filter by exchange
+- `trading_id` (optional): Filter by trading platform
 - `start_date` (optional): Start date (ISO 8601)
 - `end_date` (optional): End date (ISO 8601)
 - `direction` (optional): Filter by direction (debit/credit)
@@ -620,7 +620,7 @@ Authorization: Bearer {jwt_token}
         "price": "45000.00",
         "quote_symbol": "USD",
         "sub_account_id": "sub123",
-        "exchange_id": "exchange123",
+        "trading_id": "trading platform123",
         "info": {
           "trade_id": "trade456",
           "symbol": "BTC/USD",
@@ -663,7 +663,7 @@ Authorization: Bearer {jwt_token}
     "price": "45000.00",
     "quote_symbol": "USD",
     "sub_account_id": "sub123",
-    "exchange_id": "exchange123",
+    "trading_id": "trading platform123",
     "user_id": "user123",
     "info": {
       "trade_id": "trade456",
@@ -684,7 +684,7 @@ Authorization: Bearer {jwt_token}
 
 **Query Parameters:**
 - `sub_account_id` (optional): Filter by sub-account
-- `exchange_id` (optional): Filter by exchange
+- `trading_id` (optional): Filter by trading platform
 - `type` (optional): Filter by log type
 - `source` (optional): Filter by source (manual/bot)
 - `start_date` (optional): Start date (ISO 8601)
@@ -711,7 +711,7 @@ Authorization: Bearer {jwt_token}
         "message": "Executed buy order for 0.001 BTC",
         "transaction_id": "tx123",
         "sub_account_id": "sub123",
-        "exchange_id": "exchange123",
+        "trading_id": "trading platform123",
         "info": {
           "order_id": "order456",
           "symbol": "BTC/USD",
@@ -747,7 +747,7 @@ Authorization: Bearer {jwt_token}
 #### Complete Request Structure
 
 **Required Fields:**
-- `exchange_id` (string): UUID of the exchange where trading activity occurred  
+- `trading_id` (string): UUID of the trading platform where trading activity occurred  
 - `type` (string): Trading log type (1-50 characters, enum values: `long`, `short`, `stop_loss`, `deposit`, `withdraw`, `trade_execution`, `api_call`, `system_event`, `error`, `custom`)
 - `source` (string): Source of the entry (`manual` or `bot`)
 - `message` (string): Human-readable description (minimum 1 character)
@@ -805,7 +805,7 @@ For non-business logic types (`trade_execution`, `api_call`, `system_event`, `er
 **Long Position Request:**
 ```json
 {
-  "exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+  "trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
   "type": "long",
   "source": "bot", 
   "message": "ETH long position opened",
@@ -824,7 +824,7 @@ For non-business logic types (`trade_execution`, `api_call`, `system_event`, `er
 **Deposit Request:**
 ```json
 {
-  "exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+  "trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
   "type": "deposit",
   "source": "api",
   "message": "USDT deposit to account", 
@@ -839,7 +839,7 @@ For non-business logic types (`trade_execution`, `api_call`, `system_event`, `er
 **Custom Type Request:**
 ```json
 {
-  "exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+  "trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
   "type": "custom",
   "source": "bot",
   "message": "Custom trading event",
@@ -865,7 +865,7 @@ For non-business logic types (`trade_execution`, `api_call`, `system_event`, `er
     "message": "ETH long position opened",
     "transaction_id": "tx123",
     "sub_account_id": null,
-    "exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c"
+    "trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c"
   }
 }
 ```
@@ -920,7 +920,7 @@ Authorization: Bearer {jwt_token}
     "message": "Executed buy order for 0.001 BTC",
     "transaction_id": "tx123",
     "sub_account_id": "sub123",
-    "exchange_id": "exchange123",
+    "trading_id": "trading platform123",
     "user_id": "user123",
     "info": {
       "order_id": "order456",
@@ -1080,16 +1080,16 @@ Authorization: Bearer {admin_jwt_token}
 - `INVALID_VALUE`: Field value invalid (400)
 
 ### 9.3 Uniqueness Constraint Errors (409 Conflict)
-- `EXCHANGE_NAME_EXISTS`: Exchange name already exists for this user
+- `TRADING_PLATFORM_NAME_EXISTS`: Trading platform name already exists for this user
 - `API_KEY_EXISTS`: API key already exists for this user  
 - `API_SECRET_EXISTS`: API secret already exists for this user
-- `SUBACCOUNT_NAME_EXISTS`: Sub-account name already exists for this exchange
+- `SUBACCOUNT_NAME_EXISTS`: Sub-account name already exists for this trading platform
 - `EMAIL_EXISTS`: Email address already exists (global uniqueness)
 
 ### 9.4 Resource Errors
 - `NOT_FOUND`: Resource not found (404)
 - `INSUFFICIENT_BALANCE`: Not enough balance (400)
-- `EXCHANGE_ERROR`: Exchange API error (502)
+- `TRADING_PLATFORM_ERROR`: Trading platform API error (502)
 - `INVALID_INFO_STRUCTURE`: Trading log info field structure invalid (400)
 
 ### 9.5 System Errors

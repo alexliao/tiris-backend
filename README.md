@@ -1,11 +1,11 @@
 # Tiris Backend
 
-A Go-based microservice for quantitative trading data management, providing RESTful APIs for user management, exchange integration, and trading operations.
+A Go-based microservice for quantitative trading data management, providing RESTful APIs for user management, trading platform integration, and trading operations.
 
 ## Features
 
 - User authentication with OAuth (Google, WeChat)
-- Exchange API integration and management
+- Trading platform API integration and management
 - Sub-account and balance management
 - Trading log and transaction tracking
 - Event-driven architecture with NATS JetStream

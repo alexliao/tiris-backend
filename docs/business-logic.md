@@ -218,7 +218,7 @@ Identical to short position processing with `reason="stop_loss"` for transaction
 **Request**:
 ```json
 {
-  "exchange_id": "123e4567-e89b-12d3-a456-426614174000",
+  "trading_id": "123e4567-e89b-12d3-a456-426614174000",
   "type": "long",
   "source": "api",
   "message": "ETH long position opened",
@@ -243,7 +243,7 @@ Identical to short position processing with `reason="stop_loss"` for transaction
 **Request**:
 ```json
 {
-  "exchange_id": "123e4567-e89b-12d3-a456-426614174000",
+  "trading_id": "123e4567-e89b-12d3-a456-426614174000",
   "type": "short",
   "source": "api",
   "message": "ETH short position opened",
@@ -268,7 +268,7 @@ Identical to short position processing with `reason="stop_loss"` for transaction
 **Request**:
 ```json
 {
-  "exchange_id": "123e4567-e89b-12d3-a456-426614174000",
+  "trading_id": "123e4567-e89b-12d3-a456-426614174000",
   "type": "deposit",
   "source": "api",
   "message": "USDT deposit to account",
@@ -288,7 +288,7 @@ Identical to short position processing with `reason="stop_loss"` for transaction
 **Request**:
 ```json
 {
-  "exchange_id": "123e4567-e89b-12d3-a456-426614174000",
+  "trading_id": "123e4567-e89b-12d3-a456-426614174000",
   "type": "withdraw",
   "source": "api", 
   "message": "USDT withdrawal from account",
