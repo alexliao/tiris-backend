@@ -652,7 +652,7 @@ cleanup_database() {
     print_header "🔄 Cleaning Tradings"
     echo "Fetching tradings to delete..."
     
-    TRADINGS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/v1/tradings")
+    TRADINGS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/tradings")
     if echo "$TRADINGS_RESPONSE" | jq -e '.success == true and .data.tradings' > /dev/null 2>&1; then
         TRADING_COUNT=$(echo "$TRADINGS_RESPONSE" | jq -r '.data.tradings | length')
         echo "Found $TRADING_COUNT trading(s) to delete"
@@ -660,7 +660,7 @@ cleanup_database() {
         # Delete each trading
         echo "$TRADINGS_RESPONSE" | jq -r '.data.tradings[].id' | while read -r trading_id; do
             if [ -n "$trading_id" ] && [ "$trading_id" != "null" ]; then
-                DELETE_RESPONSE=$(curl -s -X DELETE -H "$AUTH_HEADER" "$BASE_URL/v1/tradings/$trading_id")
+                DELETE_RESPONSE=$(curl -s -X DELETE -H "$AUTH_HEADER" "$BASE_URL/tradings/$trading_id")
                 if echo "$DELETE_RESPONSE" | jq -e '.success == true' > /dev/null 2>&1; then
                     echo "  ✅ Deleted trading: $trading_id"
                 else
@@ -784,7 +784,7 @@ KRAKEN_RESPONSE=$(curl -s -X POST \
   -H "$AUTH_HEADER" \
   -H "$CONTENT_HEADER" \
   -d "$KRAKEN_PAYLOAD" \
-  "$BASE_URL/v1/tradings")
+  "$BASE_URL/tradings")
 
 echo "$KRAKEN_RESPONSE" | jq . 2>/dev/null || echo "$KRAKEN_RESPONSE"
 
@@ -800,7 +800,7 @@ else
     echo "Endpoint: GET /v1/tradings"
     echo ""
     
-    TRADINGS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/v1/tradings")
+    TRADINGS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/tradings")
     echo "All tradings response:"
     echo "$TRADINGS_RESPONSE" | jq . 2>/dev/null || echo "$TRADINGS_RESPONSE"
     echo ""
@@ -816,7 +816,7 @@ else
         # Get specific trading details
         echo ""
         echo "Getting trading details:"
-        KRAKEN_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/v1/tradings/$TRADING_ID")
+        KRAKEN_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/tradings/$TRADING_ID")
         echo "$KRAKEN_DETAILS" | jq . 2>/dev/null || echo "$KRAKEN_DETAILS"
     else
         echo "❌ No existing Binance trading found"
