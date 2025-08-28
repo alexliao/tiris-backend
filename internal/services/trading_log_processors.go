@@ -72,10 +72,10 @@ func (p *TradingLogProcessor) processBusinessLogicType(ctx context.Context, tx *
 	// Verify trading ownership
 	trading, err := p.repos.Trading.GetByID(ctx, req.TradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
+		return nil, fmt.Errorf("failed to verify trading: %w", err)
 	}
 	if trading == nil || trading.UserID != userID {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
 	// Verify and get sub-accounts
@@ -416,10 +416,10 @@ func (p *TradingLogProcessor) createSimpleTradingLog(ctx context.Context, db *go
 	// Verify trading ownership
 	trading, err := p.repos.Trading.GetByID(ctx, req.TradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
+		return nil, fmt.Errorf("failed to verify trading: %w", err)
 	}
 	if trading == nil || trading.UserID != userID {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
 	// Verify sub-account ownership if provided

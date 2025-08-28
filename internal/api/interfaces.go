@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// TradingServiceInterface defines the interface for trading platform service operations
+// TradingServiceInterface defines the interface for trading service operations
 type TradingServiceInterface interface {
 	CreateTrading(ctx context.Context, userID uuid.UUID, req *services.CreateTradingRequest) (*services.TradingResponse, error)
 	GetUserTradings(ctx context.Context, userID uuid.UUID) ([]*services.TradingResponse, error)

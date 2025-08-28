@@ -30,7 +30,7 @@ type OAuthTokenRepository interface {
 	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
 }
 
-// TradingRepository defines the interface for trading platform operations
+// TradingRepository defines the interface for trading operations
 type TradingRepository interface {
 	Create(ctx context.Context, trading *models.Trading) error
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Trading, error)

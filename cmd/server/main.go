@@ -21,7 +21,7 @@ import (
 
 // @title Tiris Backend API
 // @version 1.0
-// @description A Go-based microservice for quantitative trading data management, providing RESTful APIs for user management, trading platform integration, and trading operations.
+// @description A Go-based microservice for quantitative trading data management, providing RESTful APIs for user management, trading integration, and trading operations.
 // @termsOfService https://tiris.ai/terms
 
 // @contact.name Tiris API Support

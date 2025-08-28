@@ -24,7 +24,7 @@ func getSpecificConstraintViolation(err error) string {
 
 	// Check for specific constraint violations by examining constraint names
 	if strings.Contains(errStr, "tradings_user_name_active_unique") {
-		return "trading platform name already exists"
+		return "trading name already exists"
 	}
 	if strings.Contains(errStr, "tradings_user_api_key_active_unique") {
 		return "api key already exists"
@@ -33,7 +33,7 @@ func getSpecificConstraintViolation(err error) string {
 		return "api secret already exists"
 	}
 	if strings.Contains(errStr, "sub_accounts_trading_name_active_unique") {
-		return "sub-account name already exists for this trading platform"
+		return "sub-account name already exists for this trading"
 	}
 
 	// Fallback for generic unique constraint violations

@@ -350,21 +350,21 @@ func (m *Manager) collectApplicationMetrics() {
 	
 	var counts struct {
 		Users        int64
-		TradingPlatforms int64
+		Tradings int64
 		Transactions int64
 		APIKeys      int64
 	}
 	
 	// These table names would need to be adjusted based on your actual schema
 	m.db.Table("users").Count(&counts.Users)
-	m.db.Table("tradings").Count(&counts.TradingPlatforms)
+	m.db.Table("tradings").Count(&counts.Tradings)
 	m.db.Table("transactions").Count(&counts.Transactions)
 	m.db.Table("api_keys").Count(&counts.APIKeys)
 	
 	// Update metrics
 	m.metrics.UpdateApplicationStats(
 		int(counts.Users),
-		int(counts.TradingPlatforms),
+		int(counts.Tradings),
 		int(counts.Transactions),
 		int(counts.APIKeys),
 		0, // sessions - would need to be tracked separately

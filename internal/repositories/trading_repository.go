@@ -64,14 +64,14 @@ func (r *tradingRepository) Update(ctx context.Context, trading *models.Trading)
 }
 
 func (r *tradingRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	// Check if there are any sub-accounts associated with this trading platform
+	// Check if there are any sub-accounts associated with this trading
 	var count int64
 	if err := r.db.WithContext(ctx).Model(&models.SubAccount{}).Where("trading_id = ?", id).Count(&count).Error; err != nil {
 		return err
 	}
 
 	if count > 0 {
-		return errors.New("cannot delete trading platform with existing sub-accounts")
+		return errors.New("cannot delete trading with existing sub-accounts")
 	}
 
 	return r.db.WithContext(ctx).Delete(&models.Trading{}, id).Error

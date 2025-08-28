@@ -59,13 +59,13 @@ type UpdateBalanceRequest struct {
 
 // CreateSubAccount creates a new sub-account
 func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UUID, req *CreateSubAccountRequest) (*SubAccountResponse, error) {
-	// Verify user owns the trading platform
+	// Verify user owns the trading
 	trading, err := s.repos.Trading.GetByID(ctx, req.TradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
+		return nil, fmt.Errorf("failed to verify trading: %w", err)
 	}
 	if trading == nil || trading.UserID != userID {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
 	// Create info map with metadata
@@ -104,10 +104,10 @@ func (s *SubAccountService) GetUserSubAccounts(ctx context.Context, userID uuid.
 	if tradingID != nil {
 		trading, err := s.repos.Trading.GetByID(ctx, *tradingID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to verify trading platform: %w", err)
+			return nil, fmt.Errorf("failed to verify trading: %w", err)
 		}
 		if trading == nil || trading.UserID != userID {
-			return nil, fmt.Errorf("trading platform not found")
+			return nil, fmt.Errorf("trading not found")
 		}
 	}
 

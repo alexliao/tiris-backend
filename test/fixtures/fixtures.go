@@ -276,7 +276,7 @@ func CreateUser() *models.User {
 	}
 }
 
-// CreateTrading creates a new trading platform with randomized values for testing
+// CreateTrading creates a new trading with randomized values for testing
 func CreateTrading(userID uuid.UUID) *models.Trading {
 	return &models.Trading{
 		ID:        uuid.New(),

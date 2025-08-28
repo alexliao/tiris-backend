@@ -155,10 +155,10 @@ func (s *UserService) GetUserByID(ctx context.Context, userID uuid.UUID) (*UserR
 
 // GetUserStats retrieves user statistics
 func (s *UserService) GetUserStats(ctx context.Context, userID uuid.UUID) (map[string]interface{}, error) {
-	// Get user's trading platforms count
-	tradingPlatforms, err := s.repos.Trading.GetByUserID(ctx, userID)
+	// Get user's tradings count
+	tradings, err := s.repos.Trading.GetByUserID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user trading platforms: %w", err)
+		return nil, fmt.Errorf("failed to get user tradings: %w", err)
 	}
 
 	// Get user's sub-accounts count
@@ -178,10 +178,10 @@ func (s *UserService) GetUserStats(ctx context.Context, userID uuid.UUID) (map[s
 	// In a real implementation, you'd add a method to get transaction count by date range
 
 	stats := map[string]interface{}{
-		"total_trading_platforms":   len(tradingPlatforms),
+		"total_tradings":   len(tradings),
 		"total_subaccounts": len(subAccounts),
 		"total_balance":     totalBalance,
-		"active_trading_platforms":  len(tradingPlatforms), // Assuming all are active for now
+		"active_tradings":  len(tradings), // Assuming all are active for now
 	}
 
 	return stats, nil

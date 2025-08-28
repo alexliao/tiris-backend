@@ -125,7 +125,7 @@ func TestUserService_CreateUser(t *testing.T) {
 - API endpoint functionality
 - Database operations
 - OAuth provider integration
-- Trading Platform API communication
+- Trading API communication
 - Service layer interactions
 - NATS event processing integration
 - Event consumer functionality
@@ -137,7 +137,7 @@ func TestUserService_CreateUser(t *testing.T) {
 **Test Environment:**
 - PostgreSQL test database
 - Mock OAuth providers
-- Mock trading platform APIs
+- Mock trading APIs
 - In-memory caching
 - NATS test server
 - Mock event publishers
@@ -148,7 +148,7 @@ func TestUserService_CreateUser(t *testing.T) {
 
 **Test Areas:**
 - User registration and authentication flow
-- Trading Platform binding and management
+- Trading binding and management
 - Sub-account creation and operations
 - Trading log creation and transaction generation
 - Complete trading workflow simulation
@@ -257,7 +257,7 @@ export TEST_DB_USER=test_user
 export TEST_DB_PASS=test_pass
 export TEST_NATS_URL=nats://localhost:4222
 export TEST_OAUTH_MOCK=true
-export TEST_TRADING_PLATFORM_MOCK=true
+export TEST_TRADING_MOCK=true
 ```
 
 ### 4.2 CI/CD Environment
@@ -373,13 +373,13 @@ func TestJWTTokenValidation(t *testing.T) {
 - Info column JSON storage and retrieval
 - Info field updates and merging
 
-### 5.3 Trading Platform Management Tests
+### 5.3 Trading Management Tests
 
 **Test Scenarios:**
-- Trading Platform binding with valid credentials
-- Trading Platform binding with invalid credentials
-- Trading Platform configuration updates
-- Trading Platform removal
+- Trading binding with valid credentials
+- Trading binding with invalid credentials
+- Trading configuration updates
+- Trading removal
 - API key encryption/decryption
 - Multiple tradings per user
 
@@ -547,7 +547,7 @@ var TestUsers = []User{
     // More users...
 }
 
-var TestTradingPlatforms = []TradingPlatform{
+var TestTradings = []Trading{
     {
         ID:     uuid.MustParse("456e7890-e89b-12d3-a456-426614174001"),
         UserID: uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
@@ -565,17 +565,17 @@ type TestDataFactory struct {
     db *sql.DB
 }
 
-func (f *TestDataFactory) CreateUserWithTradingPlatform() (*User, *TradingPlatform) {
+func (f *TestDataFactory) CreateUserWithTrading() (*User, *Trading) {
     user := f.CreateUser()
-    tradingPlatform := f.CreateTradingPlatform(user.ID)
-    return user, tradingPlatform
+    trading := f.CreateTrading(user.ID)
+    return user, trading
 }
 
-func (f *TestDataFactory) CreateCompleteUserSetup() (*User, *TradingPlatform, *SubAccount) {
+func (f *TestDataFactory) CreateCompleteUserSetup() (*User, *Trading, *SubAccount) {
     user := f.CreateUser()
-    tradingPlatform := f.CreateTradingPlatform(user.ID)
-    subAccount := f.CreateSubAccount(user.ID, tradingPlatform.ID)
-    return user, tradingPlatform, subAccount
+    trading := f.CreateTrading(user.ID)
+    subAccount := f.CreateSubAccount(user.ID, trading.ID)
+    return user, trading, subAccount
 }
 ```
 
@@ -711,7 +711,7 @@ go test -bench=. -benchmem ./...
 - Financial calculations and balance updates
 - Transaction integrity and consistency
 - User authentication and authorization
-- Trading Platform API integrations
+- Trading API integrations
 - Data encryption and security
 
 **High-Impact Components:**
@@ -752,7 +752,7 @@ go test -bench=. -benchmem ./...
 
 **Week 3-4: Core Functionality Testing**
 - User management testing
-- Trading Platform integration testing
+- Trading integration testing
 - Sub-account operations testing
 
 **Week 5-6: Advanced Features Testing**

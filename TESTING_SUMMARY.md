@@ -18,7 +18,7 @@
 
 ### **Stage 2: Service Layer Tests** ✅
 - **User Service**: Authentication, profile management, user statistics
-- **Trading Platform Service**: CRUD operations, validation, business logic
+- **Trading Service**: CRUD operations, validation, business logic
 - **SubAccount Service**: Balance management, account operations
 - **Transaction Service**: Financial operations, audit trail
 - **Trading Log Service**: Trading operations tracking
@@ -27,7 +27,7 @@
 
 ### **Stage 3: Repository Layer Tests** ✅
 - **User Repository**: Database operations, CRUD, pagination
-- **Trading Platform Repository**: Data persistence, relationships
+- **Trading Repository**: Data persistence, relationships
 - **SubAccount Repository**: Balance updates, complex queries
 - **OAuth Token Repository**: Token management, security
 

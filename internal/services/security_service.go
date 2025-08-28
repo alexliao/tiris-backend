@@ -252,7 +252,7 @@ func (ss *SecurityService) DecryptSensitiveData(encryptedData string) (string, e
 	return ss.encryptionManager.Decrypt(encryptedData)
 }
 
-// CreateSecureTrading creates a new trading platform with encrypted API credentials
+// CreateSecureTrading creates a new trading with encrypted API credentials
 func (ss *SecurityService) CreateSecureTrading(ctx context.Context, userID uuid.UUID, name, tradingType, apiKey, apiSecret string) (*models.SecureTrading, error) {
 	trading := &models.SecureTrading{
 		ID:     uuid.New(),
@@ -269,10 +269,10 @@ func (ss *SecurityService) CreateSecureTrading(ctx context.Context, userID uuid.
 
 	// Save to database
 	if err := ss.db.WithContext(ctx).Create(trading).Error; err != nil {
-		return nil, fmt.Errorf("failed to create trading platform: %v", err)
+		return nil, fmt.Errorf("failed to create trading: %v", err)
 	}
 
-	// Log trading platform creation
+	// Log trading creation
 	ss.auditLogger.LogSecurityEvent(
 		ctx,
 		security.ActionTradingCreate,
@@ -289,13 +289,13 @@ func (ss *SecurityService) CreateSecureTrading(ctx context.Context, userID uuid.
 	return trading, nil
 }
 
-// GetTradingCredentials retrieves and decrypts trading platform API credentials
+// GetTradingCredentials retrieves and decrypts trading API credentials
 func (ss *SecurityService) GetTradingCredentials(ctx context.Context, userID, tradingID uuid.UUID) (apiKey, apiSecret string, err error) {
 	var trading models.SecureTrading
 	if err := ss.db.WithContext(ctx).
 		Where("id = ? AND user_id = ?", tradingID, userID).
 		First(&trading).Error; err != nil {
-		return "", "", fmt.Errorf("trading platform not found: %v", err)
+		return "", "", fmt.Errorf("trading not found: %v", err)
 	}
 
 	return ss.tradingManager.GetAPICredentials(&trading)

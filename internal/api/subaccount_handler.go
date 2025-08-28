@@ -62,19 +62,19 @@ func (h *SubAccountHandler) CreateSubAccount(c *gin.Context) {
 
 	subAccount, err := h.subAccountService.CreateSubAccount(c.Request.Context(), userID, &req)
 	if err != nil {
-		if err.Error() == "trading platform not found" {
+		if err.Error() == "trading not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"TRADING_NOT_FOUND",
-				"Trading platform not found",
+				"Trading not found",
 				err.Error(),
 				getTraceID(c),
 			))
 			return
 		}
-		if err.Error() == "sub-account name already exists for this trading platform" {
+		if err.Error() == "sub-account name already exists for this trading" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
 				"SUBACCOUNT_NAME_EXISTS",
-				"Sub-account name already exists for this trading platform",
+				"Sub-account name already exists for this trading",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -95,11 +95,11 @@ func (h *SubAccountHandler) CreateSubAccount(c *gin.Context) {
 
 // GetUserSubAccounts retrieves all sub-accounts for the current user
 // @Summary Get user sub-accounts
-// @Description Retrieves all sub-account configurations for the authenticated user, optionally filtered by trading platform
+// @Description Retrieves all sub-account configurations for the authenticated user, optionally filtered by trading
 // @Tags SubAccounts
 // @Produce json
 // @Security BearerAuth
-// @Param trading_id query string false "Filter by trading platform ID"
+// @Param trading_id query string false "Filter by trading ID"
 // @Success 200 {array} services.SubAccountResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
@@ -125,7 +125,7 @@ func (h *SubAccountHandler) GetUserSubAccounts(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusBadRequest, CreateErrorResponse(
 				"INVALID_TRADING_ID",
-				"Invalid trading platform ID format",
+				"Invalid trading ID format",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -135,10 +135,10 @@ func (h *SubAccountHandler) GetUserSubAccounts(c *gin.Context) {
 
 	subAccounts, err := h.subAccountService.GetUserSubAccounts(c.Request.Context(), userID, tradingID)
 	if err != nil {
-		if err.Error() == "trading platform not found" {
+		if err.Error() == "trading not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"TRADING_NOT_FOUND",
-				"Trading platform not found",
+				"Trading not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -284,10 +284,10 @@ func (h *SubAccountHandler) UpdateSubAccount(c *gin.Context) {
 			))
 			return
 		}
-		if err.Error() == "sub-account name already exists for this trading platform" {
+		if err.Error() == "sub-account name already exists for this trading" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
 				"SUBACCOUNT_NAME_EXISTS",
-				"Sub-account name already exists for this trading platform",
+				"Sub-account name already exists for this trading",
 				err.Error(),
 				getTraceID(c),
 			))

@@ -180,13 +180,13 @@ func (h *TransactionHandler) GetSubAccountTransactions(c *gin.Context) {
 	c.JSON(http.StatusOK, CreateSuccessResponse(transactions, getTraceID(c)))
 }
 
-// GetTradingTransactions retrieves transactions for a specific trading platform
-// @Summary Get trading platform transactions
-// @Description Retrieves transaction history for a specific trading platform (must belong to authenticated user)
+// GetTradingTransactions retrieves transactions for a specific trading
+// @Summary Get trading transactions
+// @Description Retrieves transaction history for a specific trading (must belong to authenticated user)
 // @Tags Transactions
 // @Produce json
 // @Security BearerAuth
-// @Param trading_id path string true "Trading Platform ID"
+// @Param trading_id path string true "Trading ID"
 // @Param direction query string false "Filter by direction" Enums(debit, credit)
 // @Param reason query string false "Filter by reason"
 // @Param start_date query string false "Start date (RFC3339 format)"
@@ -218,7 +218,7 @@ func (h *TransactionHandler) GetTradingTransactions(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
 			"INVALID_TRADING_ID",
-			"Invalid trading platform ID format",
+			"Invalid trading ID format",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -238,10 +238,10 @@ func (h *TransactionHandler) GetTradingTransactions(c *gin.Context) {
 
 	transactions, err := h.transactionService.GetTradingTransactions(c.Request.Context(), userID, tradingID, &req)
 	if err != nil {
-		if err.Error() == "trading platform not found" {
+		if err.Error() == "trading not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"TRADING_NOT_FOUND",
-				"Trading platform not found",
+				"Trading not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -260,7 +260,7 @@ func (h *TransactionHandler) GetTradingTransactions(c *gin.Context) {
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRANSACTIONS_QUERY_FAILED",
-			"Failed to query trading platform transactions",
+			"Failed to query trading transactions",
 			err.Error(),
 			getTraceID(c),
 		))

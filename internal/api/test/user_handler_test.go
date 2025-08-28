@@ -611,7 +611,7 @@ func TestUserHandler_GetUserStats(t *testing.T) {
 	t.Run("successful_get_stats", func(t *testing.T) {
 		userID := uuid.New()
 		testStats := map[string]interface{}{
-			"total_trading_platforms":   3,
+			"total_tradings":   3,
 			"total_subaccounts": 15,
 			"total_balance_usd": 25000.50,
 			"active_trades":     8,
@@ -640,7 +640,7 @@ func TestUserHandler_GetUserStats(t *testing.T) {
 		// Verify stats data
 		statsData, ok := response.Data.(map[string]interface{})
 		require.True(t, ok)
-		assert.Equal(t, float64(3), statsData["total_trading_platforms"]) // JSON numbers are float64
+		assert.Equal(t, float64(3), statsData["total_tradings"]) // JSON numbers are float64
 		
 		mockService.AssertExpectations(t)
 	})

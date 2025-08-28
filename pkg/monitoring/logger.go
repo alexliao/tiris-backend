@@ -87,7 +87,7 @@ type LogEntry struct {
 	RowsAffected *int64 `json:"rows_affected,omitempty"`
 	
 	// Business-specific fields
-	TradingPlatform string  `json:"trading_platform,omitempty"`
+	Trading string  `json:"trading,omitempty"`
 	Symbol     string  `json:"symbol,omitempty"`
 	Amount     *float64 `json:"amount,omitempty"`
 }
@@ -341,10 +341,10 @@ func (l *Logger) LogSecurity(eventType, severity, userID, ipAddress string, deta
 	l.log(level, fmt.Sprintf("Security event: %s", eventType), entry)
 }
 
-func (l *Logger) LogBusiness(operation, tradingPlatform, symbol string, amount float64, userID string, details map[string]interface{}) {
+func (l *Logger) LogBusiness(operation, trading, symbol string, amount float64, userID string, details map[string]interface{}) {
 	entry := &LogEntry{
 		Operation: operation,
-		TradingPlatform: tradingPlatform,
+		Trading: trading,
 		Symbol:    symbol,
 		Amount:    &amount,
 		UserID:    userID,
@@ -353,7 +353,7 @@ func (l *Logger) LogBusiness(operation, tradingPlatform, symbol string, amount f
 		Tags:      []string{"business", "trading"},
 	}
 	
-	l.log(LevelInfo, fmt.Sprintf("Business: %s %s %.8f %s", operation, tradingPlatform, amount, symbol), entry)
+	l.log(LevelInfo, fmt.Sprintf("Business: %s %s %.8f %s", operation, trading, amount, symbol), entry)
 }
 
 // Core logging method
@@ -435,8 +435,8 @@ func (l *Logger) log(level LogLevel, message string, extraEntry *LogEntry) {
 		if extraEntry.RowsAffected != nil {
 			entry.RowsAffected = extraEntry.RowsAffected
 		}
-		if extraEntry.TradingPlatform != "" {
-			entry.TradingPlatform = extraEntry.TradingPlatform
+		if extraEntry.Trading != "" {
+			entry.Trading = extraEntry.Trading
 		}
 		if extraEntry.Symbol != "" {
 			entry.Symbol = extraEntry.Symbol

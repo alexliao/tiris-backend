@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// TradingService handles trading platform business logic
+// TradingService handles trading business logic
 type TradingService struct {
 	repos *repositories.Repositories
 }
@@ -22,7 +22,7 @@ func NewTradingService(repos *repositories.Repositories) *TradingService {
 	}
 }
 
-// TradingResponse represents trading platform information in responses
+// TradingResponse represents trading information in responses
 type TradingResponse struct {
 	ID        uuid.UUID              `json:"id"`
 	UserID    uuid.UUID              `json:"user_id"`
@@ -35,7 +35,7 @@ type TradingResponse struct {
 	UpdatedAt string                 `json:"updated_at"`
 }
 
-// CreateTradingRequest represents trading platform creation request
+// CreateTradingRequest represents trading creation request
 type CreateTradingRequest struct {
 	Name      string `json:"name" binding:"required,min=1,max=100" example:"My Trading Account"`
 	Type      string `json:"type" binding:"required" example:"binance"`
@@ -43,7 +43,7 @@ type CreateTradingRequest struct {
 	APISecret string `json:"api_secret" binding:"required,min=1" example:"your_api_secret_here"`
 }
 
-// UpdateTradingRequest represents trading platform update request
+// UpdateTradingRequest represents trading update request
 type UpdateTradingRequest struct {
 	Name      *string `json:"name,omitempty" binding:"omitempty,min=1,max=100" example:"My Updated Trading Account"`
 	APIKey    *string `json:"api_key,omitempty" binding:"omitempty,min=1" example:"updated_api_key_12345"`
@@ -51,7 +51,7 @@ type UpdateTradingRequest struct {
 	Status    *string `json:"status,omitempty" binding:"omitempty,oneof=active inactive" example:"active"`
 }
 
-// CreateTrading creates a new trading platform configuration
+// CreateTrading creates a new trading configuration
 func (s *TradingService) CreateTrading(ctx context.Context, userID uuid.UUID, req *CreateTradingRequest) (*TradingResponse, error) {
 
 	// Create info map with metadata
@@ -78,17 +78,17 @@ func (s *TradingService) CreateTrading(ctx context.Context, userID uuid.UUID, re
 		if constraintMsg := getSpecificConstraintViolation(err); constraintMsg != "" {
 			return nil, fmt.Errorf(constraintMsg)
 		}
-		return nil, fmt.Errorf("failed to create trading platform: %w", err)
+		return nil, fmt.Errorf("failed to create trading: %w", err)
 	}
 
 	return s.convertToTradingResponse(trading), nil
 }
 
-// GetUserTradings retrieves all trading platforms for a user
+// GetUserTradings retrieves all tradings for a user
 func (s *TradingService) GetUserTradings(ctx context.Context, userID uuid.UUID) ([]*TradingResponse, error) {
 	tradings, err := s.repos.Trading.GetByUserID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user trading platforms: %w", err)
+		return nil, fmt.Errorf("failed to get user tradings: %w", err)
 	}
 
 	var responses []*TradingResponse
@@ -99,38 +99,38 @@ func (s *TradingService) GetUserTradings(ctx context.Context, userID uuid.UUID) 
 	return responses, nil
 }
 
-// GetTrading retrieves a specific trading platform by ID (must belong to user)
+// GetTrading retrieves a specific trading by ID (must belong to user)
 func (s *TradingService) GetTrading(ctx context.Context, userID, tradingID uuid.UUID) (*TradingResponse, error) {
 	trading, err := s.repos.Trading.GetByID(ctx, tradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get trading platform: %w", err)
+		return nil, fmt.Errorf("failed to get trading: %w", err)
 	}
 	if trading == nil {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
-	// Check if trading platform belongs to the user
+	// Check if trading belongs to the user
 	if trading.UserID != userID {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
 	return s.convertToTradingResponse(trading), nil
 }
 
-// UpdateTrading updates an existing trading platform
+// UpdateTrading updates an existing trading
 func (s *TradingService) UpdateTrading(ctx context.Context, userID, tradingID uuid.UUID, req *UpdateTradingRequest) (*TradingResponse, error) {
-	// Get existing trading platform
+	// Get existing trading
 	trading, err := s.repos.Trading.GetByID(ctx, tradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get trading platform: %w", err)
+		return nil, fmt.Errorf("failed to get trading: %w", err)
 	}
 	if trading == nil {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
-	// Check if trading platform belongs to the user
+	// Check if trading belongs to the user
 	if trading.UserID != userID {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
 	// Update fields if provided - let database constraints handle uniqueness validation
@@ -150,68 +150,68 @@ func (s *TradingService) UpdateTrading(ctx context.Context, userID, tradingID uu
 		trading.Status = *req.Status
 	}
 
-	// Save updated trading platform
+	// Save updated trading
 	if err := s.repos.Trading.Update(ctx, trading); err != nil {
 		// Check for specific constraint violations and provide user-friendly messages
 		if constraintMsg := getSpecificConstraintViolation(err); constraintMsg != "" {
 			return nil, fmt.Errorf(constraintMsg)
 		}
-		return nil, fmt.Errorf("failed to update trading platform: %w", err)
+		return nil, fmt.Errorf("failed to update trading: %w", err)
 	}
 
 	return s.convertToTradingResponse(trading), nil
 }
 
-// DeleteTrading deletes a trading platform (soft delete)
+// DeleteTrading deletes a trading (soft delete)
 func (s *TradingService) DeleteTrading(ctx context.Context, userID, tradingID uuid.UUID) error {
-	// Get existing trading platform to verify ownership
+	// Get existing trading to verify ownership
 	trading, err := s.repos.Trading.GetByID(ctx, tradingID)
 	if err != nil {
-		return fmt.Errorf("failed to get trading platform: %w", err)
+		return fmt.Errorf("failed to get trading: %w", err)
 	}
 	if trading == nil {
-		return fmt.Errorf("trading platform not found")
+		return fmt.Errorf("trading not found")
 	}
 
-	// Check if trading platform belongs to the user
+	// Check if trading belongs to the user
 	if trading.UserID != userID {
-		return fmt.Errorf("trading platform not found")
+		return fmt.Errorf("trading not found")
 	}
 
-	// Check if trading platform has sub-accounts
+	// Check if trading has sub-accounts
 	subAccounts, err := s.repos.SubAccount.GetByTradingID(ctx, tradingID)
 	if err != nil {
 		return fmt.Errorf("failed to check sub-accounts: %w", err)
 	}
 
 	if len(subAccounts) > 0 {
-		return fmt.Errorf("cannot delete trading platform with existing sub-accounts")
+		return fmt.Errorf("cannot delete trading with existing sub-accounts")
 	}
 
-	// Soft delete the trading platform
+	// Soft delete the trading
 	if err := s.repos.Trading.Delete(ctx, tradingID); err != nil {
-		return fmt.Errorf("failed to delete trading platform: %w", err)
+		return fmt.Errorf("failed to delete trading: %w", err)
 	}
 
 	return nil
 }
 
-// ListTradings lists all trading platforms with pagination (admin only)
-// For now, returns all trading platforms without pagination since we don't have List method
+// ListTradings lists all tradings with pagination (admin only)
+// For now, returns all tradings without pagination since we don't have List method
 func (s *TradingService) ListTradings(ctx context.Context, limit, offset int) ([]*TradingResponse, int64, error) {
 	// This would need a List method in the repository
 	// For now, we'll return an error indicating this is not implemented
-	return nil, 0, fmt.Errorf("list trading platforms not implemented yet")
+	return nil, 0, fmt.Errorf("list tradings not implemented yet")
 }
 
-// GetTradingByID retrieves trading platform by ID (admin only)
+// GetTradingByID retrieves trading by ID (admin only)
 func (s *TradingService) GetTradingByID(ctx context.Context, tradingID uuid.UUID) (*TradingResponse, error) {
 	trading, err := s.repos.Trading.GetByID(ctx, tradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get trading platform: %w", err)
+		return nil, fmt.Errorf("failed to get trading: %w", err)
 	}
 	if trading == nil {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
 	return s.convertToTradingResponse(trading), nil

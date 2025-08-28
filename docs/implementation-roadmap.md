@@ -74,13 +74,13 @@ This document outlines the complete implementation roadmap for the Tiris Backend
   - `PUT /users/{id}/disable` - Disable user account (admin)
   - **Acceptance:** All user endpoints working with proper validation
 
-- [ ] **Task 10:** Create trading platform management API endpoints
-  - `GET /tradings` - List user trading platforms
-  - `POST /tradings` - Create trading platform binding
-  - `GET /tradings/{id}` - Get trading platform details
-  - `PUT /tradings/{id}` - Update trading platform
-  - `DELETE /tradings/{id}` - Remove trading platform
-  - **Acceptance:** Trading platform CRUD operations with encrypted API keys
+- [ ] **Task 10:** Create trading management API endpoints
+  - `GET /tradings` - List user tradings
+  - `POST /tradings` - Create trading binding
+  - `GET /tradings/{id}` - Get trading details
+  - `PUT /tradings/{id}` - Update trading
+  - `DELETE /tradings/{id}` - Remove trading
+  - **Acceptance:** Trading CRUD operations with encrypted API keys
 
 - [ ] **Task 11:** Create sub-account management API endpoints
   - `GET /sub-accounts` - List sub-accounts

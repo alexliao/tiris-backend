@@ -48,7 +48,7 @@ type TradingLogResponse struct {
 // @Description - For types 'deposit', 'withdraw': Must use DepositWithdrawInfo structure  
 // @Description - For other types: Can use any object structure
 type CreateTradingLogRequest struct {
-	TradingID     uuid.UUID              `json:"trading_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c" description:"ID of the trading platform where the trading activity occurred"`
+	TradingID     uuid.UUID              `json:"trading_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c" description:"ID of the trading where the trading activity occurred"`
 	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty" example:"b4e006d0-1069-4ef4-b33f-7690af4929f4" description:"Optional sub-account ID (used for some trading log types)"`
 	TransactionID *uuid.UUID             `json:"transaction_id,omitempty" example:"1a098613-e738-447d-b921-74c3594df3a5" description:"Optional transaction ID for linking to specific transactions"`
 	Type          string                 `json:"type" binding:"required,min=1,max=50" example:"long" enums:"long,short,stop_loss,deposit,withdraw,trade_execution,api_call,system_event,error,custom" description:"Type of trading log entry. Business logic types (long, short, stop_loss, deposit, withdraw) require specific 'info' field structures and trigger automatic financial calculations"`
@@ -222,15 +222,15 @@ func (s *TradingLogService) GetSubAccountTradingLogs(ctx context.Context, userID
 	}, nil
 }
 
-// GetTradingLogs retrieves trading logs for a specific trading platform
+// GetTradingLogs retrieves trading logs for a specific trading
 func (s *TradingLogService) GetTradingLogs(ctx context.Context, userID, tradingID uuid.UUID, req *TradingLogQueryRequest) (*TradingLogQueryResponse, error) {
-	// Verify user owns the trading platform
+	// Verify user owns the trading
 	trading, err := s.repos.Trading.GetByID(ctx, tradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
+		return nil, fmt.Errorf("failed to verify trading: %w", err)
 	}
 	if trading == nil || trading.UserID != userID {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
 	// Set default pagination

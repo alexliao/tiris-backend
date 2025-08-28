@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// TradingHandler handles trading platform management endpoints
+// TradingHandler handles trading management endpoints
 type TradingHandler struct {
 	tradingService TradingServiceInterface
 }
@@ -23,14 +23,14 @@ func NewTradingHandler(tradingService TradingServiceInterface) *TradingHandler {
 	}
 }
 
-// CreateTrading creates a new trading platform configuration
-// @Summary Create new trading platform
-// @Description Creates a new trading platform configuration for the authenticated user
+// CreateTrading creates a new trading configuration
+// @Summary Create new trading
+// @Description Creates a new trading configuration for the authenticated user
 // @Tags Tradings
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body services.CreateTradingRequest true "Create trading platform request"
+// @Param request body services.CreateTradingRequest true "Create trading request"
 // @Success 201 {object} services.TradingResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -62,10 +62,10 @@ func (h *TradingHandler) CreateTrading(c *gin.Context) {
 
 	trading, err := h.tradingService.CreateTrading(c.Request.Context(), userID, &req)
 	if err != nil {
-		if err.Error() == "trading platform name already exists" {
+		if err.Error() == "trading name already exists" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
 				"TRADING_NAME_EXISTS",
-				"Trading platform name already exists",
+				"Trading name already exists",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -92,7 +92,7 @@ func (h *TradingHandler) CreateTrading(c *gin.Context) {
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRADING_CREATE_FAILED",
-			"Failed to create trading platform",
+			"Failed to create trading",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -102,9 +102,9 @@ func (h *TradingHandler) CreateTrading(c *gin.Context) {
 	c.JSON(http.StatusCreated, CreateSuccessResponse(trading, getTraceID(c)))
 }
 
-// GetUserTradings retrieves all trading platforms for the current user
-// @Summary Get user trading platforms
-// @Description Retrieves all trading platform configurations for the authenticated user
+// GetUserTradings retrieves all tradings for the current user
+// @Summary Get user tradings
+// @Description Retrieves all trading configurations for the authenticated user
 // @Tags Tradings
 // @Produce json
 // @Security BearerAuth
@@ -128,7 +128,7 @@ func (h *TradingHandler) GetUserTradings(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRADINGS_GET_FAILED",
-			"Failed to get trading platforms",
+			"Failed to get tradings",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -142,13 +142,13 @@ func (h *TradingHandler) GetUserTradings(c *gin.Context) {
 	c.JSON(http.StatusOK, CreateSuccessResponse(response, getTraceID(c)))
 }
 
-// GetTrading retrieves a specific trading platform by ID
-// @Summary Get trading platform by ID
-// @Description Retrieves a specific trading platform configuration by ID (must belong to authenticated user)
+// GetTrading retrieves a specific trading by ID
+// @Summary Get trading by ID
+// @Description Retrieves a specific trading configuration by ID (must belong to authenticated user)
 // @Tags Tradings
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Trading Platform ID"
+// @Param id path string true "Trading ID"
 // @Success 200 {object} services.TradingResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -172,7 +172,7 @@ func (h *TradingHandler) GetTrading(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
 			"INVALID_TRADING_ID",
-			"Invalid trading platform ID format",
+			"Invalid trading ID format",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -181,10 +181,10 @@ func (h *TradingHandler) GetTrading(c *gin.Context) {
 
 	trading, err := h.tradingService.GetTrading(c.Request.Context(), userID, tradingID)
 	if err != nil {
-		if err.Error() == "trading platform not found" {
+		if err.Error() == "trading not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"TRADING_NOT_FOUND",
-				"Trading platform not found",
+				"Trading not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -193,7 +193,7 @@ func (h *TradingHandler) GetTrading(c *gin.Context) {
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRADING_GET_FAILED",
-			"Failed to get trading platform",
+			"Failed to get trading",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -203,15 +203,15 @@ func (h *TradingHandler) GetTrading(c *gin.Context) {
 	c.JSON(http.StatusOK, CreateSuccessResponse(trading, getTraceID(c)))
 }
 
-// UpdateTrading updates an existing trading platform
-// @Summary Update trading platform
-// @Description Updates an existing trading platform configuration (must belong to authenticated user)
+// UpdateTrading updates an existing trading
+// @Summary Update trading
+// @Description Updates an existing trading configuration (must belong to authenticated user)
 // @Tags Tradings
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Trading Platform ID"
-// @Param request body services.UpdateTradingRequest true "Update trading platform request"
+// @Param id path string true "Trading ID"
+// @Param request body services.UpdateTradingRequest true "Update trading request"
 // @Success 200 {object} services.TradingResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -236,7 +236,7 @@ func (h *TradingHandler) UpdateTrading(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
 			"INVALID_TRADING_ID",
-			"Invalid trading platform ID format",
+			"Invalid trading ID format",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -256,19 +256,19 @@ func (h *TradingHandler) UpdateTrading(c *gin.Context) {
 
 	trading, err := h.tradingService.UpdateTrading(c.Request.Context(), userID, tradingID, &req)
 	if err != nil {
-		if err.Error() == "trading platform not found" {
+		if err.Error() == "trading not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"TRADING_NOT_FOUND",
-				"Trading platform not found",
+				"Trading not found",
 				err.Error(),
 				getTraceID(c),
 			))
 			return
 		}
-		if err.Error() == "trading platform name already exists" {
+		if err.Error() == "trading name already exists" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
 				"TRADING_NAME_EXISTS",
-				"Trading platform name already exists",
+				"Trading name already exists",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -295,7 +295,7 @@ func (h *TradingHandler) UpdateTrading(c *gin.Context) {
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRADING_UPDATE_FAILED",
-			"Failed to update trading platform",
+			"Failed to update trading",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -305,13 +305,13 @@ func (h *TradingHandler) UpdateTrading(c *gin.Context) {
 	c.JSON(http.StatusOK, CreateSuccessResponse(trading, getTraceID(c)))
 }
 
-// DeleteTrading deletes a trading platform
-// @Summary Delete trading platform
-// @Description Deletes a trading platform configuration (must belong to authenticated user)
+// DeleteTrading deletes a trading
+// @Summary Delete trading
+// @Description Deletes a trading configuration (must belong to authenticated user)
 // @Tags Tradings
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Trading Platform ID"
+// @Param id path string true "Trading ID"
 // @Success 200 {object} SuccessResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -336,7 +336,7 @@ func (h *TradingHandler) DeleteTrading(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
 			"INVALID_TRADING_ID",
-			"Invalid trading platform ID format",
+			"Invalid trading ID format",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -345,19 +345,19 @@ func (h *TradingHandler) DeleteTrading(c *gin.Context) {
 
 	err = h.tradingService.DeleteTrading(c.Request.Context(), userID, tradingID)
 	if err != nil {
-		if err.Error() == "trading platform not found" {
+		if err.Error() == "trading not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"TRADING_NOT_FOUND",
-				"Trading platform not found",
+				"Trading not found",
 				err.Error(),
 				getTraceID(c),
 			))
 			return
 		}
-		if err.Error() == "cannot delete trading platform with existing sub-accounts" {
+		if err.Error() == "cannot delete trading with existing sub-accounts" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
 				"TRADING_HAS_SUBACCOUNTS",
-				"Cannot delete trading platform with existing sub-accounts",
+				"Cannot delete trading with existing sub-accounts",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -366,7 +366,7 @@ func (h *TradingHandler) DeleteTrading(c *gin.Context) {
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRADING_DELETE_FAILED",
-			"Failed to delete trading platform",
+			"Failed to delete trading",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -374,20 +374,20 @@ func (h *TradingHandler) DeleteTrading(c *gin.Context) {
 	}
 
 	response := map[string]interface{}{
-		"message": "Trading platform deleted successfully",
+		"message": "Trading deleted successfully",
 	}
 
 	c.JSON(http.StatusOK, CreateSuccessResponse(response, getTraceID(c)))
 }
 
-// ListTradings lists all trading platforms (admin only)
-// @Summary List all trading platforms
-// @Description Lists all trading platform configurations with pagination (admin only)
+// ListTradings lists all tradings (admin only)
+// @Summary List all tradings
+// @Description Lists all trading configurations with pagination (admin only)
 // @Tags Tradings
 // @Produce json
 // @Security BearerAuth
-// @Param limit query int false "Number of trading platforms to return" default(100)
-// @Param offset query int false "Number of trading platforms to skip" default(0)
+// @Param limit query int false "Number of tradings to return" default(100)
+// @Param offset query int false "Number of tradings to skip" default(0)
 // @Success 200 {object} PaginatedResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 403 {object} ErrorResponse
@@ -413,7 +413,7 @@ func (h *TradingHandler) ListTradings(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRADINGS_LIST_FAILED",
-			"Failed to list trading platforms",
+			"Failed to list tradings",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -443,13 +443,13 @@ func (h *TradingHandler) ListTradings(c *gin.Context) {
 	c.JSON(http.StatusOK, CreatePaginatedResponse(response, pagination, getTraceID(c)))
 }
 
-// GetTradingByID retrieves trading platform by ID (admin only)
-// @Summary Get trading platform by ID
-// @Description Retrieves a trading platform by ID (admin only)
+// GetTradingByID retrieves trading by ID (admin only)
+// @Summary Get trading by ID
+// @Description Retrieves a trading by ID (admin only)
 // @Tags Tradings
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Trading Platform ID"
+// @Param id path string true "Trading ID"
 // @Success 200 {object} services.TradingResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -463,7 +463,7 @@ func (h *TradingHandler) GetTradingByID(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
 			"INVALID_TRADING_ID",
-			"Invalid trading platform ID format",
+			"Invalid trading ID format",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -472,10 +472,10 @@ func (h *TradingHandler) GetTradingByID(c *gin.Context) {
 
 	trading, err := h.tradingService.GetTradingByID(c.Request.Context(), tradingID)
 	if err != nil {
-		if err.Error() == "trading platform not found" {
+		if err.Error() == "trading not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"TRADING_NOT_FOUND",
-				"Trading platform not found",
+				"Trading not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -484,7 +484,7 @@ func (h *TradingHandler) GetTradingByID(c *gin.Context) {
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRADING_GET_FAILED",
-			"Failed to get trading platform",
+			"Failed to get trading",
 			err.Error(),
 			getTraceID(c),
 		))

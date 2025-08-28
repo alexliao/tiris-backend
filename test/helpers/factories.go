@@ -126,7 +126,7 @@ func NewTradingFactory() *TradingFactory {
 	}
 }
 
-// Build creates a basic trading platform with default values
+// Build creates a basic trading with default values
 func (f *TradingFactory) Build() *models.Trading {
 	id := f.factory.nextID()
 	return &models.Trading{
@@ -150,7 +150,7 @@ func (f *TradingFactory) WithUserID(userID uuid.UUID) *models.Trading {
 	return trading
 }
 
-// WithName sets the trading platform name
+// WithName sets the trading name
 func (f *TradingFactory) WithName(name string) *models.Trading {
 	trading := f.Build()
 	trading.Name = name
@@ -172,21 +172,21 @@ func (f *TradingFactory) WithCredentials(apiKey, apiSecret string) *models.Tradi
 	return trading
 }
 
-// WithStatus sets the trading platform status
+// WithStatus sets the trading status
 func (f *TradingFactory) WithStatus(status string) *models.Trading {
 	trading := f.Build()
 	trading.Status = status
 	return trading
 }
 
-// WithInfo sets trading platform info
+// WithInfo sets trading info
 func (f *TradingFactory) WithInfo(info map[string]interface{}) *models.Trading {
 	trading := f.Build()
 	trading.Info = models.JSON(info)
 	return trading
 }
 
-// BinanceTrading creates a Binance trading platform
+// BinanceTrading creates a Binance trading
 func (f *TradingFactory) BinanceTrading() *models.Trading {
 	trading := f.Build()
 	trading.Name = "binance"
@@ -524,14 +524,14 @@ func NewCompleteSetupFactory() *CompleteSetupFactory {
 	}
 }
 
-// CreateUserWithTrading creates a user with one trading platform
+// CreateUserWithTrading creates a user with one trading
 func (f *CompleteSetupFactory) CreateUserWithTrading() (*models.User, *models.Trading) {
 	user := f.UserFactory.Build()
 	trading := f.TradingFactory.WithUserID(user.ID)
 	return user, trading
 }
 
-// CreateCompleteUserSetup creates a user with trading platform, sub-account, and initial transaction
+// CreateCompleteUserSetup creates a user with trading, sub-account, and initial transaction
 func (f *CompleteSetupFactory) CreateCompleteUserSetup() (*models.User, *models.Trading, *models.SubAccount, *models.Transaction) {
 	user := f.UserFactory.Build()
 	trading := f.TradingFactory.BinanceTrading()

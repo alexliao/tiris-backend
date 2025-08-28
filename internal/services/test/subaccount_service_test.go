@@ -45,8 +45,8 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 	userID := uuid.New()
 	tradingID := uuid.New()
 	tradingFactory := helpers.NewTradingFactory()
-	testTradingPlatform := tradingFactory.WithUserID(userID)
-	testTradingPlatform.ID = tradingID
+	testTrading := tradingFactory.WithUserID(userID)
+	testTrading.ID = tradingID
 
 	// Test successful sub-account creation
 	t.Run("successful_creation", func(t *testing.T) {
@@ -58,7 +58,7 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 
 		// Setup mock expectations
 		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
-			Return(testTradingPlatform, nil).Once()
+			Return(testTrading, nil).Once()
 		mockSubAccountRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
 			Return(nil).Once()
 
@@ -79,7 +79,7 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		mockSubAccountRepo.AssertExpectations(t)
 	})
 
-	// Test trading platform not found
+	// Test trading not found
 	t.Run("trading_not_found", func(t *testing.T) {
 		request := &services.CreateSubAccountRequest{
 			TradingID: tradingID,
@@ -97,17 +97,17 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "trading platform not found")
+		assert.Contains(t, err.Error(), "trading not found")
 
 		// Verify mock expectations
 		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test trading platform belongs to different user
+	// Test trading belongs to different user
 	t.Run("trading_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserTradingPlatform := tradingFactory.WithUserID(differentUserID)
-		wrongUserTradingPlatform.ID = tradingID
+		wrongUserTrading := tradingFactory.WithUserID(differentUserID)
+		wrongUserTrading.ID = tradingID
 
 		request := &services.CreateSubAccountRequest{
 			TradingID: tradingID,
@@ -117,7 +117,7 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 
 		// Setup mock expectations
 		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
-			Return(wrongUserTradingPlatform, nil).Once()
+			Return(wrongUserTrading, nil).Once()
 
 		// Execute test
 		result, err := subAccountService.CreateSubAccount(context.Background(), userID, request)
@@ -125,7 +125,7 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "trading platform not found")
+		assert.Contains(t, err.Error(), "trading not found")
 
 		// Verify mock expectations
 		mockTradingRepo.AssertExpectations(t)
@@ -141,7 +141,7 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 
 		// Setup mock expectations
 		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
-			Return(testTradingPlatform, nil).Once()
+			Return(testTrading, nil).Once()
 		// Database returns unique constraint error with specific constraint name
 		mockSubAccountRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
 			Return(fmt.Errorf("duplicate key value violates unique constraint \"sub_accounts_trading_name_active_unique\"")).Once()
@@ -185,7 +185,7 @@ func TestSubAccountService_GetUserSubAccounts(t *testing.T) {
 	tradingID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
 
-	// Test successful retrieval without trading platform filter
+	// Test successful retrieval without trading filter
 	t.Run("successful_retrieval_all", func(t *testing.T) {
 		testSubAccounts := []*models.SubAccount{
 			subAccountFactory.WithUserAndTrading(userID, tradingID),
@@ -211,11 +211,11 @@ func TestSubAccountService_GetUserSubAccounts(t *testing.T) {
 		mockSubAccountRepo.AssertExpectations(t)
 	})
 
-	// Test successful retrieval with trading platform filter
+	// Test successful retrieval with trading filter
 	t.Run("successful_retrieval_filtered", func(t *testing.T) {
 		tradingFactory := helpers.NewTradingFactory()
-		testTradingPlatform := tradingFactory.WithUserID(userID)
-		testTradingPlatform.ID = tradingID
+		testTrading := tradingFactory.WithUserID(userID)
+		testTrading.ID = tradingID
 
 		testSubAccounts := []*models.SubAccount{
 			subAccountFactory.WithUserAndTrading(userID, tradingID),
@@ -224,7 +224,7 @@ func TestSubAccountService_GetUserSubAccounts(t *testing.T) {
 
 		// Setup mock expectations
 		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
-			Return(testTradingPlatform, nil).Once()
+			Return(testTrading, nil).Once()
 		mockSubAccountRepo.On("GetByUserID", mock.Anything, userID, &tradingID).
 			Return(testSubAccounts, nil).Once()
 

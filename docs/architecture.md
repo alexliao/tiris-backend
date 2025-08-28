@@ -3,7 +3,7 @@
 ## 1. Architecture Overview
 
 ### 1.1 System Context
-Tiris Backend serves as the central data management microservice in the Tiris quantitative trading ecosystem. It provides RESTful APIs for user management, trading platform integration, and trading data operations while maintaining data consistency and security.
+Tiris Backend serves as the central data management microservice in the Tiris quantitative trading ecosystem. It provides RESTful APIs for user management, trading integration, and trading data operations while maintaining data consistency and security.
 
 ### 1.2 Architecture Style
 - **Microservice Architecture**: Single-responsibility service focused on data management
@@ -63,7 +63,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 
 **Components:**
 - User Service
-- Trading Platform Service
+- Trading Service
 - Sub-account Service
 - Transaction Service
 - Trading Log Service
@@ -97,12 +97,12 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 ### 3.5 External Integration Layer
 **Responsibilities:**
 - OAuth provider integration
-- Trading Platform API communication
+- Trading API communication
 - Third-party service calls
 
 **Components:**
 - OAuth clients (Google, WeChat)
-- Trading Platform API clients
+- Trading API clients
 - HTTP clients with retry logic
 
 ## 4. Detailed Component Design
@@ -120,7 +120,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 ├─────────────────────────────────────────────────────────┤
 │  Route Handlers:                                        │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐      │
-│  │    User     │ │  Trading Platform   │ │Sub-account  │      │
+│  │    User     │ │    Trading      │ │Sub-account  │      │
 │  │  Handler    │ │   Handler   │ │   Handler   │      │
 │  └─────────────┘ └─────────────┘ └─────────────┘      │
 │  ┌─────────────┐ ┌─────────────┐                      │
@@ -137,7 +137,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 │                 Business Services                       │
 ├─────────────────────────────────────────────────────────┤
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐      │
-│  │    User     │ │  Trading Platform   │ │Sub-account  │      │
+│  │    User     │ │    Trading      │ │Sub-account  │      │
 │  │  Service    │ │   Service   │ │   Service   │      │
 │  └─────────────┘ └─────────────┘ └─────────────┘      │
 │  ┌─────────────┐ ┌─────────────┐                      │
@@ -185,7 +185,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 │                Repository Pattern                       │
 ├─────────────────────────────────────────────────────────┤
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐      │
-│  │    User     │ │  Trading Platform   │ │Sub-account  │      │
+│  │    User     │ │    Trading      │ │Sub-account  │      │
 │  │ Repository  │ │ Repository  │ │ Repository  │      │
 │  └─────────────┘ └─────────────┘ └─────────────┘      │
 │  ┌─────────────┐ ┌─────────────┐                      │
@@ -241,7 +241,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 
 **Benefits:**
 - Rapid feature development without schema changes
-- Trading Platform-specific data storage (API limits, permissions, etc.)
+- Trading-specific data storage (API limits, permissions, etc.)
 - User preference storage beyond standard settings
 - Trading strategy parameters and metadata storage
 - Audit trail and debugging information
@@ -289,7 +289,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 ### 6.2 Event Types and Processing
 
 **Order Events:**
-- `trading.orders.created` - Order placed on trading platform
+- `trading.orders.created` - Order placed on trading
 - `trading.orders.filled` - Order executed (full/partial)
 - `trading.orders.cancelled` - Order cancelled
 - `trading.orders.failed` - Order execution failed
@@ -338,7 +338,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
       │ 2. Auth Code     │                  │
       │◄─────────────────┤                  │
       │                  │                  │
-      │ 3. Token Trading Platform│                  │
+      │ 3. Token Trading     │                  │
       ├─────────────────────────────────────►│
       │                  │                  │
       │ 4. User Info     │                  │
@@ -391,7 +391,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 **Cache Layers:**
 - Application-level caching for user sessions
 - Database query result caching
-- Static data caching (trading platform configurations)
+- Static data caching (trading configurations)
 
 ### 7.2 Connection Pooling
 
@@ -532,7 +532,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 
 ### 12.1 Microservice Decomposition
 - Separate user management service
-- Dedicated trading platform integration service
+- Dedicated trading integration service
 - Independent analytics service
 
 ### 12.2 Event-Driven Architecture

@@ -383,7 +383,7 @@ func (suite *PerformanceTestSuite) TestAuthenticationPerformance() {
 // Test Database Read Performance
 func (suite *PerformanceTestSuite) TestDatabaseReadPerformance() {
 	// First create some test data
-	suite.createTestTradingPlatforms(50)
+	suite.createTestTradings(50)
 
 	metrics := suite.runLoadTest("Database Reads", 25, 500, func(reqNum int) *httptest.ResponseRecorder {
 		tokenIndex := reqNum % len(suite.userTokens)
@@ -404,8 +404,8 @@ func (suite *PerformanceTestSuite) TestDatabaseWritePerformance() {
 		tokenIndex := reqNum % len(suite.userTokens)
 		
 		createRequest := map[string]interface{}{
-			"name":         fmt.Sprintf("PerfTradingPlatform_%d", reqNum),
-			"display_name": fmt.Sprintf("Performance Trading Platform %d", reqNum),
+			"name":         fmt.Sprintf("PerfTrading_%d", reqNum),
+			"display_name": fmt.Sprintf("Performance Trading %d", reqNum),
 			"description":  "Performance test trading",
 		}
 
@@ -512,7 +512,7 @@ func (suite *PerformanceTestSuite) TestConcurrentUserLoad() {
 					
 					createRequest := map[string]interface{}{
 						"name":         fmt.Sprintf("MixedLoad_%d_%d", workerID, time.Now().Unix()),
-						"display_name": fmt.Sprintf("Mixed Load Trading Platform %d", workerID),
+						"display_name": fmt.Sprintf("Mixed Load Trading %d", workerID),
 						"description":  "Mixed load test trading",
 					}
 					
@@ -587,13 +587,13 @@ func (suite *PerformanceTestSuite) TestResourceManagement() {
 
 // Helper methods to create test data
 
-func (suite *PerformanceTestSuite) createTestTradingPlatforms(count int) {
+func (suite *PerformanceTestSuite) createTestTradings(count int) {
 	for i := 0; i < count; i++ {
 		userIndex := i % len(suite.userIDs)
 		
 		trading := &models.Trading{
 			UserID:    suite.userIDs[userIndex],
-			Name:      fmt.Sprintf("PerfTestTradingPlatform_%d", i),
+			Name:      fmt.Sprintf("PerfTestTrading_%d", i),
 			Type:      "spot",
 			APIKey:    "test_api_key",
 			APISecret: "test_api_secret",
@@ -610,7 +610,7 @@ func (suite *PerformanceTestSuite) createTestDataWithRelationships(tradingsPerUs
 		for j := 0; j < tradingsPerUser; j++ {
 			trading := &models.Trading{
 				UserID:    userID,
-				Name:      fmt.Sprintf("ComplexTradingPlatform_%d_%d", i, j),
+				Name:      fmt.Sprintf("ComplexTrading_%d_%d", i, j),
 				Type:      "spot",
 				APIKey:    "test_api_key",
 				APISecret: "test_api_secret",

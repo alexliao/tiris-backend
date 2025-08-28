@@ -344,8 +344,8 @@ func TestTransactionService_GetTradingTransactions(t *testing.T) {
 	userID := uuid.New()
 	tradingID := uuid.New()
 	tradingFactory := helpers.NewTradingFactory()
-	testTradingPlatform := tradingFactory.WithUserID(userID)
-	testTradingPlatform.ID = tradingID
+	testTrading := tradingFactory.WithUserID(userID)
+	testTrading.ID = tradingID
 
 	transactionFactory := helpers.NewTransactionFactory()
 
@@ -368,7 +368,7 @@ func TestTransactionService_GetTradingTransactions(t *testing.T) {
 
 		// Setup mock expectations
 		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
-			Return(testTradingPlatform, nil).Once()
+			Return(testTrading, nil).Once()
 		mockTransactionRepo.On("GetByTradingID", mock.Anything, tradingID, expectedFilters).
 			Return(testTransactions, int64(2), nil).Once()
 
@@ -387,7 +387,7 @@ func TestTransactionService_GetTradingTransactions(t *testing.T) {
 		mockTransactionRepo.AssertExpectations(t)
 	})
 
-	// Test trading platform not found
+	// Test trading not found
 	t.Run("trading_not_found", func(t *testing.T) {
 		request := &services.TransactionQueryRequest{}
 
@@ -401,23 +401,23 @@ func TestTransactionService_GetTradingTransactions(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "trading platform not found")
+		assert.Contains(t, err.Error(), "trading not found")
 
 		// Verify mock expectations
 		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test trading platform belongs to different user
+	// Test trading belongs to different user
 	t.Run("trading_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserTradingPlatform := tradingFactory.WithUserID(differentUserID)
-		wrongUserTradingPlatform.ID = tradingID
+		wrongUserTrading := tradingFactory.WithUserID(differentUserID)
+		wrongUserTrading.ID = tradingID
 
 		request := &services.TransactionQueryRequest{}
 
 		// Setup mock expectations
 		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
-			Return(wrongUserTradingPlatform, nil).Once()
+			Return(wrongUserTrading, nil).Once()
 
 		// Execute test
 		result, err := transactionService.GetTradingTransactions(context.Background(), userID, tradingID, request)
@@ -425,7 +425,7 @@ func TestTransactionService_GetTradingTransactions(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "trading platform not found")
+		assert.Contains(t, err.Error(), "trading not found")
 
 		// Verify mock expectations
 		mockTradingRepo.AssertExpectations(t)

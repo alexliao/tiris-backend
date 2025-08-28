@@ -32,7 +32,7 @@ The trading log business logic automatically processes `long`, `short`, and `sto
 ```json
 POST /v1/trading-logs
 {
-  "trading_id": "uuid-of-trading platform",
+  "trading_id": "uuid-of-trading",
   "type": "long",
   "source": "manual",
   "message": "ETH long position opened",
@@ -57,7 +57,7 @@ POST /v1/trading-logs
 ```json
 POST /v1/trading-logs
 {
-  "trading_id": "uuid-of-trading platform",
+  "trading_id": "uuid-of-trading",
   "type": "short",
   "source": "manual", 
   "message": "ETH short position opened",
@@ -82,7 +82,7 @@ POST /v1/trading-logs
 ```json
 POST /v1/trading-logs
 {
-  "trading_id": "uuid-of-trading platform",
+  "trading_id": "uuid-of-trading",
   "type": "stop_loss",
   "source": "bot",
   "message": "ETH stop-loss triggered",
@@ -112,7 +112,7 @@ When business logic is applied, the response includes additional metadata:
   "data": {
     "id": "trading-log-uuid",
     "user_id": "user-uuid",
-    "trading_id": "trading platform-uuid",
+    "trading_id": "trading-uuid",
     "type": "long",
     "source": "manual",
     "message": "ETH long position opened",
@@ -149,7 +149,7 @@ When business logic is applied, the response includes additional metadata:
 - **Sufficient Balance**: 
   - Long positions: Currency account must have enough balance for (price × volume + fee)
   - Short/Stop-loss: Stock account must have enough balance for volume
-- **Account Validation**: Referenced trading platform and sub-accounts must exist and be accessible
+- **Account Validation**: Referenced trading and sub-accounts must exist and be accessible
 
 ### Error Responses
 

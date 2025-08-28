@@ -156,8 +156,8 @@ func (em *TradingManager) ResetFailureCount(db *gorm.DB, tradingID uuid.UUID) er
 		}).Error
 }
 
-// ShouldDisableTradingPlatform checks if trading should be disabled due to failures
-func (em *TradingManager) ShouldDisableTradingPlatform(trading *SecureTrading, maxFailures int, failureWindow time.Duration) bool {
+// ShouldDisableTrading checks if trading should be disabled due to failures
+func (em *TradingManager) ShouldDisableTrading(trading *SecureTrading, maxFailures int, failureWindow time.Duration) bool {
 	if trading.FailureCount >= maxFailures {
 		if trading.LastFailureAt != nil && time.Since(*trading.LastFailureAt) < failureWindow {
 			return true

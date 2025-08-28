@@ -143,7 +143,7 @@ func NewMetrics() *Metrics {
 		TradingsTotal: promauto.NewGauge(
 			prometheus.GaugeOpts{
 				Name: "tradings_total",
-				Help: "Total number of configured trading platforms",
+				Help: "Total number of configured tradings",
 			},
 		),
 		SubAccountsTotal: promauto.NewGauge(
@@ -331,9 +331,9 @@ func (m *Metrics) RecordPanicRecovery(component string) {
 }
 
 // UpdateBusinessMetrics updates business-related gauge metrics
-func (m *Metrics) UpdateBusinessMetrics(users, tradingPlatforms, subAccounts int64) {
+func (m *Metrics) UpdateBusinessMetrics(users, tradings, subAccounts int64) {
 	m.UsersTotal.Set(float64(users))
-	m.TradingsTotal.Set(float64(tradingPlatforms))
+	m.TradingsTotal.Set(float64(tradings))
 	m.SubAccountsTotal.Set(float64(subAccounts))
 }
 

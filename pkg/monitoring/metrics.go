@@ -37,7 +37,7 @@ type MetricsCollector struct {
 
 	// Application Metrics
 	usersTotal            prometheus.Gauge
-	tradingPlatformsTotal prometheus.Gauge
+	tradingsTotal prometheus.Gauge
 	transactionsTotal     prometheus.Gauge
 	apiKeysTotal          prometheus.Gauge
 	activeSessionsTotal   prometheus.Gauge
@@ -182,10 +182,10 @@ func NewMetricsCollector() *MetricsCollector {
 				Help: "Total number of registered users",
 			},
 		),
-		tradingPlatformsTotal: promauto.NewGauge(
+		tradingsTotal: promauto.NewGauge(
 			prometheus.GaugeOpts{
-				Name: "trading_platforms_total",
-				Help: "Total number of configured trading platforms",
+				Name: "tradings_total",
+				Help: "Total number of configured tradings",
 			},
 		),
 		transactionsTotal: promauto.NewGauge(
@@ -262,7 +262,7 @@ func NewMetricsCollector() *MetricsCollector {
 		tradingHealthStatus: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "trading_health_status",
-				Help: "Health status of trading platform connections (1=healthy, 0=unhealthy)",
+				Help: "Health status of trading connections (1=healthy, 0=unhealthy)",
 			},
 			[]string{"trading", "endpoint"},
 		),
@@ -372,9 +372,9 @@ func (mc *MetricsCollector) UpdateRedisStats(connections int, keyspaceSize map[s
 }
 
 // Application metrics methods
-func (mc *MetricsCollector) UpdateApplicationStats(users, tradingPlatforms, transactions, apiKeys, sessions int) {
+func (mc *MetricsCollector) UpdateApplicationStats(users, tradings, transactions, apiKeys, sessions int) {
 	mc.usersTotal.Set(float64(users))
-	mc.tradingPlatformsTotal.Set(float64(tradingPlatforms))
+	mc.tradingsTotal.Set(float64(tradings))
 	mc.transactionsTotal.Set(float64(transactions))
 	mc.apiKeysTotal.Set(float64(apiKeys))
 	mc.activeSessionsTotal.Set(float64(sessions))
@@ -398,16 +398,16 @@ func (mc *MetricsCollector) RecordAPIKeyUsage(keyType, result string) {
 }
 
 // Business metrics methods
-func (mc *MetricsCollector) RecordTradingVolume(tradingPlatform, symbol, direction string, volume float64) {
-	mc.tradingVolumeTotal.WithLabelValues(tradingPlatform, symbol, direction).Add(volume)
+func (mc *MetricsCollector) RecordTradingVolume(trading, symbol, direction string, volume float64) {
+	mc.tradingVolumeTotal.WithLabelValues(trading, symbol, direction).Add(volume)
 }
 
-func (mc *MetricsCollector) RecordTradingFee(tradingPlatform, feeType string, fee float64) {
-	mc.tradingFeesTotal.WithLabelValues(tradingPlatform, feeType).Add(fee)
+func (mc *MetricsCollector) RecordTradingFee(trading, feeType string, fee float64) {
+	mc.tradingFeesTotal.WithLabelValues(trading, feeType).Add(fee)
 }
 
-func (mc *MetricsCollector) UpdateAccountBalance(tradingPlatform, account, symbol string, balance float64) {
-	mc.accountBalances.WithLabelValues(tradingPlatform, account, symbol).Set(balance)
+func (mc *MetricsCollector) UpdateAccountBalance(trading, account, symbol string, balance float64) {
+	mc.accountBalances.WithLabelValues(trading, account, symbol).Set(balance)
 }
 
 func (mc *MetricsCollector) UpdateTradingHealth(trading, endpoint string, healthy bool) {

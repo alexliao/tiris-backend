@@ -86,7 +86,7 @@ func NewTradingLogHandler(tradingLogService *services.TradingLogService) *Tradin
 // @Success 201 {object} services.TradingLogResponse
 // @Failure 400 {object} ErrorResponse "Bad Request - Invalid request format, missing required fields, or incorrect 'info' structure for the specified 'type'. Common validation errors: Missing required 'info' fields for business logic types, Invalid data types or values in 'info' fields, Non-existent sub-account IDs referenced in 'info' fields"
 // @Failure 401 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse "Not Found - Trading Platform ID or sub-account IDs referenced in 'info' field do not exist"
+// @Failure 404 {object} ErrorResponse "Not Found - Trading ID or sub-account IDs referenced in 'info' field do not exist"
 // @Failure 422 {object} ErrorResponse "Unprocessable Entity - Business logic validation failed (e.g., insufficient balance for withdraw operations)"
 // @Failure 500 {object} ErrorResponse
 // @Router /trading-logs [post]
@@ -115,10 +115,10 @@ func (h *TradingLogHandler) CreateTradingLog(c *gin.Context) {
 
 	tradingLog, err := h.tradingLogService.CreateTradingLog(c.Request.Context(), userID, &req)
 	if err != nil {
-		if err.Error() == "trading platform not found" {
+		if err.Error() == "trading not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"TRADING_NOT_FOUND",
-				"Trading platform not found",
+				"Trading not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -306,13 +306,13 @@ func (h *TradingLogHandler) GetSubAccountTradingLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, CreateSuccessResponse(tradingLogs, getTraceID(c)))
 }
 
-// GetTradingLogs retrieves trading logs for a specific trading platform
-// @Summary Get trading platform logs
-// @Description Retrieves trading log history for a specific trading platform (must belong to authenticated user)
+// GetTradingLogs retrieves trading logs for a specific trading
+// @Summary Get trading logs
+// @Description Retrieves trading log history for a specific trading (must belong to authenticated user)
 // @Tags TradingLogs
 // @Produce json
 // @Security BearerAuth
-// @Param trading_id path string true "Trading Platform ID"
+// @Param trading_id path string true "Trading ID"
 // @Param type query string false "Filter by log type"
 // @Param source query string false "Filter by source" Enums(manual, bot)
 // @Param start_date query string false "Start date (RFC3339 format)"
@@ -342,7 +342,7 @@ func (h *TradingLogHandler) GetTradingLogs(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
 			"INVALID_TRADING_ID",
-			"Invalid trading platform ID format",
+			"Invalid trading ID format",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -362,10 +362,10 @@ func (h *TradingLogHandler) GetTradingLogs(c *gin.Context) {
 
 	tradingLogs, err := h.tradingLogService.GetTradingLogs(c.Request.Context(), userID, tradingID, &req)
 	if err != nil {
-		if err.Error() == "trading platform not found" {
+		if err.Error() == "trading not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
 				"TRADING_NOT_FOUND",
-				"Trading platform not found",
+				"Trading not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -383,7 +383,7 @@ func (h *TradingLogHandler) GetTradingLogs(c *gin.Context) {
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRADING_LOGS_QUERY_FAILED",
-			"Failed to query trading platform trading logs",
+			"Failed to query trading logs",
 			err.Error(),
 			getTraceID(c),
 		))

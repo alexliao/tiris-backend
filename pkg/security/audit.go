@@ -39,7 +39,7 @@ const (
 	ActionUserDelete AuditAction = "user.delete"
 	ActionUserView   AuditAction = "user.view"
 
-	// Trading platform management actions
+	// Trading management actions
 	ActionTradingCreate AuditAction = "trading.create"
 	ActionTradingUpdate AuditAction = "trading.update"
 	ActionTradingDelete AuditAction = "trading.delete"

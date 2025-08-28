@@ -188,26 +188,26 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lists all trading platform configurations with pagination (admin only)",
+                "description": "Lists all trading configurations with pagination (admin only)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Tradings"
                 ],
-                "summary": "List all trading platforms",
+                "summary": "List all tradings",
                 "parameters": [
                     {
                         "type": "integer",
                         "default": 100,
-                        "description": "Number of trading platforms to return",
+                        "description": "Number of tradings to return",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 0,
-                        "description": "Number of trading platforms to skip",
+                        "description": "Number of tradings to skip",
                         "name": "offset",
                         "in": "query"
                     }
@@ -247,18 +247,18 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves a trading platform by ID (admin only)",
+                "description": "Retrieves a trading by ID (admin only)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Tradings"
                 ],
-                "summary": "Get trading platform by ID",
+                "summary": "Get trading by ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trading Platform ID",
+                        "description": "Trading ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -739,7 +739,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves all sub-account configurations for the authenticated user, optionally filtered by trading platform",
+                "description": "Retrieves all sub-account configurations for the authenticated user, optionally filtered by trading",
                 "produces": [
                     "application/json"
                 ],
@@ -750,7 +750,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by trading platform ID",
+                        "description": "Filter by trading ID",
                         "name": "trading_id",
                         "in": "query"
                     }
@@ -1300,7 +1300,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found - Trading Platform ID or sub-account IDs referenced in 'info' field do not exist",
+                        "description": "Not Found - Trading ID or sub-account IDs referenced in 'info' field do not exist",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1516,18 +1516,18 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves trading log history for a specific trading platform (must belong to authenticated user)",
+                "description": "Retrieves trading log history for a specific trading (must belong to authenticated user)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "TradingLogs"
                 ],
-                "summary": "Get trading platform logs",
+                "summary": "Get trading logs",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trading Platform ID",
+                        "description": "Trading ID",
                         "name": "trading_id",
                         "in": "path",
                         "required": true
@@ -1736,14 +1736,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves all trading platform configurations for the authenticated user",
+                "description": "Retrieves all trading configurations for the authenticated user",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Tradings"
                 ],
-                "summary": "Get user trading platforms",
+                "summary": "Get user tradings",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1774,7 +1774,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new trading platform configuration for the authenticated user",
+                "description": "Creates a new trading configuration for the authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -1784,10 +1784,10 @@ const docTemplate = `{
                 "tags": [
                     "Tradings"
                 ],
-                "summary": "Create new trading platform",
+                "summary": "Create new trading",
                 "parameters": [
                     {
-                        "description": "Create trading platform request",
+                        "description": "Create trading request",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1837,18 +1837,18 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves a specific trading platform configuration by ID (must belong to authenticated user)",
+                "description": "Retrieves a specific trading configuration by ID (must belong to authenticated user)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Tradings"
                 ],
-                "summary": "Get trading platform by ID",
+                "summary": "Get trading by ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trading Platform ID",
+                        "description": "Trading ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1893,7 +1893,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates an existing trading platform configuration (must belong to authenticated user)",
+                "description": "Updates an existing trading configuration (must belong to authenticated user)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1903,17 +1903,17 @@ const docTemplate = `{
                 "tags": [
                     "Tradings"
                 ],
-                "summary": "Update trading platform",
+                "summary": "Update trading",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trading Platform ID",
+                        "description": "Trading ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Update trading platform request",
+                        "description": "Update trading request",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1967,18 +1967,18 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Deletes a trading platform configuration (must belong to authenticated user)",
+                "description": "Deletes a trading configuration (must belong to authenticated user)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Tradings"
                 ],
-                "summary": "Delete trading platform",
+                "summary": "Delete trading",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trading Platform ID",
+                        "description": "Trading ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2343,18 +2343,18 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves transaction history for a specific trading platform (must belong to authenticated user)",
+                "description": "Retrieves transaction history for a specific trading (must belong to authenticated user)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Transactions"
                 ],
-                "summary": "Get trading platform transactions",
+                "summary": "Get trading transactions",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trading Platform ID",
+                        "description": "Trading ID",
                         "name": "trading_id",
                         "in": "path",
                         "required": true
@@ -3538,7 +3538,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/v1",
 	Schemes:          []string{},
 	Title:            "Tiris Backend API",
-	Description:      "A Go-based microservice for quantitative trading data management, providing RESTful APIs for user management, trading platform integration, and trading operations.",
+	Description:      "A Go-based microservice for quantitative trading data management, providing RESTful APIs for user management, trading integration, and trading operations.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

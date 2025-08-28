@@ -491,7 +491,7 @@ info:
     name: Tiris API Support
     url: https://tiris.ai/support
   description: A Go-based microservice for quantitative trading data management, providing
-    RESTful APIs for user management, trading platform integration, and trading operations.
+    RESTful APIs for user management, trading integration, and trading operations.
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -603,16 +603,16 @@ paths:
       - TradingLogs
   /admin/tradings:
     get:
-      description: Lists all trading platform configurations with pagination (admin
+      description: Lists all trading configurations with pagination (admin
         only)
       parameters:
       - default: 100
-        description: Number of trading platforms to return
+        description: Number of tradings to return
         in: query
         name: limit
         type: integer
       - default: 0
-        description: Number of trading platforms to skip
+        description: Number of tradings to skip
         in: query
         name: offset
         type: integer
@@ -637,14 +637,14 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: List all trading platforms
+      summary: List all tradings
       tags:
       - Tradings
   /admin/tradings/{id}:
     get:
-      description: Retrieves a trading platform by ID (admin only)
+      description: Retrieves a trading by ID (admin only)
       parameters:
-      - description: Trading Platform ID
+      - description: Trading ID
         in: path
         name: id
         required: true
@@ -678,7 +678,7 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get trading platform by ID
+      summary: Get trading by ID
       tags:
       - Tradings
   /admin/transactions:
@@ -964,9 +964,9 @@ paths:
   /sub-accounts:
     get:
       description: Retrieves all sub-account configurations for the authenticated
-        user, optionally filtered by trading platform
+        user, optionally filtered by trading
       parameters:
-      - description: Filter by trading platform ID
+      - description: Filter by trading ID
         in: query
         name: trading_id
         type: string
@@ -1387,7 +1387,7 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "404":
-          description: Not Found - Trading Platform ID or sub-account IDs referenced
+          description: Not Found - Trading ID or sub-account IDs referenced
             in 'info' field do not exist
           schema:
             $ref: '#/definitions/api.ErrorResponse'
@@ -1613,10 +1613,10 @@ paths:
       - TradingLogs
   /trading-logs/trading/{trading_id}:
     get:
-      description: Retrieves trading log history for a specific trading platform (must
+      description: Retrieves trading log history for a specific trading (must
         belong to authenticated user)
       parameters:
-      - description: Trading Platform ID
+      - description: Trading ID
         in: path
         name: trading_id
         required: true
@@ -1675,12 +1675,12 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get trading platform logs
+      summary: Get trading logs
       tags:
       - TradingLogs
   /tradings:
     get:
-      description: Retrieves all trading platform configurations for the authenticated
+      description: Retrieves all trading configurations for the authenticated
         user
       produces:
       - application/json
@@ -1701,16 +1701,16 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get user trading platforms
+      summary: Get user tradings
       tags:
       - Tradings
     post:
       consumes:
       - application/json
-      description: Creates a new trading platform configuration for the authenticated
+      description: Creates a new trading configuration for the authenticated
         user
       parameters:
-      - description: Create trading platform request
+      - description: Create trading request
         in: body
         name: request
         required: true
@@ -1741,15 +1741,15 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Create new trading platform
+      summary: Create new trading
       tags:
       - Tradings
   /tradings/{id}:
     delete:
-      description: Deletes a trading platform configuration (must belong to authenticated
+      description: Deletes a trading configuration (must belong to authenticated
         user)
       parameters:
-      - description: Trading Platform ID
+      - description: Trading ID
         in: path
         name: id
         required: true
@@ -1783,14 +1783,14 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Delete trading platform
+      summary: Delete trading
       tags:
       - Tradings
     get:
-      description: Retrieves a specific trading platform configuration by ID (must
+      description: Retrieves a specific trading configuration by ID (must
         belong to authenticated user)
       parameters:
-      - description: Trading Platform ID
+      - description: Trading ID
         in: path
         name: id
         required: true
@@ -1820,21 +1820,21 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get trading platform by ID
+      summary: Get trading by ID
       tags:
       - Tradings
     put:
       consumes:
       - application/json
-      description: Updates an existing trading platform configuration (must belong
+      description: Updates an existing trading configuration (must belong
         to authenticated user)
       parameters:
-      - description: Trading Platform ID
+      - description: Trading ID
         in: path
         name: id
         required: true
         type: string
-      - description: Update trading platform request
+      - description: Update trading request
         in: body
         name: request
         required: true
@@ -1869,7 +1869,7 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Update trading platform
+      summary: Update trading
       tags:
       - Tradings
   /transactions:
@@ -2121,10 +2121,10 @@ paths:
       - Transactions
   /transactions/trading/{trading_id}:
     get:
-      description: Retrieves transaction history for a specific trading platform (must
+      description: Retrieves transaction history for a specific trading (must
         belong to authenticated user)
       parameters:
-      - description: Trading Platform ID
+      - description: Trading ID
         in: path
         name: trading_id
         required: true
@@ -2191,7 +2191,7 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get trading platform transactions
+      summary: Get trading transactions
       tags:
       - Transactions
   /users:

@@ -131,7 +131,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	// User management routes
 	s.setupUserRoutes(protected)
 
-	// Trading platform management routes
+	// Trading management routes
 	s.setupTradingRoutes(protected)
 
 	// Sub-account management routes
@@ -194,20 +194,20 @@ func (s *Server) setupUserRoutes(protected *gin.RouterGroup) {
 	adminUsers.PUT("/:id/disable", userHandler.DisableUser)
 }
 
-// setupTradingRoutes sets up trading platform management routes
+// setupTradingRoutes sets up trading management routes
 func (s *Server) setupTradingRoutes(protected *gin.RouterGroup) {
 	tradingHandler := NewTradingHandler(s.tradingService)
 
 	tradings := protected.Group("/tradings")
 
-	// User trading platform routes
+	// User trading routes
 	tradings.POST("", tradingHandler.CreateTrading)
 	tradings.GET("", tradingHandler.GetUserTradings)
 	tradings.GET("/:id", tradingHandler.GetTrading)
 	tradings.PUT("/:id", tradingHandler.UpdateTrading)
 	tradings.DELETE("/:id", tradingHandler.DeleteTrading)
 
-	// Admin trading platform routes
+	// Admin trading routes
 	adminTradings := protected.Group("/admin/tradings")
 	adminTradings.Use(middleware.AdminMiddleware())
 

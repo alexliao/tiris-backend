@@ -167,15 +167,15 @@ func (s *TransactionService) GetSubAccountTransactions(ctx context.Context, user
 	}, nil
 }
 
-// GetTradingTransactions retrieves transactions for a specific trading platform
+// GetTradingTransactions retrieves transactions for a specific trading
 func (s *TransactionService) GetTradingTransactions(ctx context.Context, userID, tradingID uuid.UUID, req *TransactionQueryRequest) (*TransactionQueryResponse, error) {
-	// Verify user owns the trading platform
+	// Verify user owns the trading
 	trading, err := s.repos.Trading.GetByID(ctx, tradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
+		return nil, fmt.Errorf("failed to verify trading: %w", err)
 	}
 	if trading == nil || trading.UserID != userID {
-		return nil, fmt.Errorf("trading platform not found")
+		return nil, fmt.Errorf("trading not found")
 	}
 
 	// Set default pagination

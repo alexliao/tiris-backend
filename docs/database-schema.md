@@ -67,7 +67,7 @@ CREATE TRIGGER update_users_updated_at
 - `info`: Extended user information (profile data, OAuth details)
 - `status`: Account status (active, disabled, deleted)
 
-### 2.2 Trading Platforms Table
+### 2.2 Tradings Table
 
 ```sql
 CREATE TABLE tradings (
@@ -105,12 +105,12 @@ CREATE TRIGGER update_tradings_updated_at
 **Fields Description:**
 - `id`: Unique identifier (UUID)
 - `user_id`: Foreign key to users table
-- `name`: User-defined name for the trading platform
-- `type`: Trading platform type (binance, kraken, gate, virtual)
+- `name`: User-defined name for the trading
+- `type`: Trading type (binance, kraken, gate, virtual)
 - `api_key_encrypted`: Encrypted API key
 - `api_secret_encrypted`: Encrypted API secret
-- `status`: Trading platform connection status
-- `info`: Additional trading platform data (permissions, testnet flag, sync status)
+- `status`: Trading connection status
+- `info`: Additional trading data (permissions, testnet flag, sync status)
 
 ### 2.3 Sub-accounts Table
 
@@ -127,7 +127,7 @@ CREATE TABLE sub_accounts (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- Constraints
-    CONSTRAINT sub_accounts_trading platform_name_unique UNIQUE (trading_id, name)
+    CONSTRAINT sub_accounts_trading_name_unique UNIQUE (trading_id, name)
 );
 
 -- Indexes
@@ -182,7 +182,7 @@ SELECT create_hypertable('transactions', 'timestamp', chunk_time_interval => INT
 -- Indexes
 CREATE INDEX idx_transactions_user_timestamp ON transactions(user_id, timestamp DESC);
 CREATE INDEX idx_transactions_sub_account_timestamp ON transactions(sub_account_id, timestamp DESC);
-CREATE INDEX idx_transactions_trading platform_timestamp ON transactions(trading_id, timestamp DESC);
+CREATE INDEX idx_transactions_trading_timestamp ON transactions(trading_id, timestamp DESC);
 CREATE INDEX idx_transactions_reason ON transactions(reason);
 CREATE INDEX idx_transactions_direction ON transactions(direction);
 CREATE INDEX idx_transactions_info_gin ON transactions USING gin(info);
@@ -236,7 +236,7 @@ SELECT create_hypertable('trading_logs', 'timestamp', chunk_time_interval => INT
 
 -- Indexes
 CREATE INDEX idx_trading_logs_user_timestamp ON trading_logs(user_id, timestamp DESC);
-CREATE INDEX idx_trading_logs_trading platform_timestamp ON trading_logs(trading_id, timestamp DESC);
+CREATE INDEX idx_trading_logs_trading_timestamp ON trading_logs(trading_id, timestamp DESC);
 CREATE INDEX idx_trading_logs_sub_account_timestamp ON trading_logs(sub_account_id, timestamp DESC);
 CREATE INDEX idx_trading_logs_type ON trading_logs(type);
 CREATE INDEX idx_trading_logs_source ON trading_logs(source);
@@ -383,13 +383,13 @@ SELECT
     u.id as user_id,
     u.username,
     e.id as trading_id,
-    e.name as trading platform_name,
-    e.type as trading platform_type,
+    e.name as trading_name,
+    e.type as trading_type,
     COUNT(sa.id) as sub_account_count,
     COALESCE(SUM(CASE WHEN sa.symbol = 'BTC' THEN sa.balance ELSE 0 END), 0) as btc_balance,
     COALESCE(SUM(CASE WHEN sa.symbol = 'ETH' THEN sa.balance ELSE 0 END), 0) as eth_balance,
     COALESCE(SUM(CASE WHEN sa.symbol = 'USDT' THEN sa.balance ELSE 0 END), 0) as usdt_balance,
-    e.created_at as trading platform_added_at
+    e.created_at as trading_added_at
 FROM users u
 LEFT JOIN tradings e ON u.id = e.user_id AND e.status = 'active'
 LEFT JOIN sub_accounts sa ON e.id = sa.trading_id
@@ -580,7 +580,7 @@ $$ LANGUAGE plpgsql;
 
 **Composite Indexes:**
 - (user_id, timestamp) for user-specific time queries
-- (trading_id, timestamp) for trading platform-specific queries
+- (trading_id, timestamp) for trading-specific queries
 - (sub_account_id, timestamp) for account-specific queries
 
 **GIN Indexes:**
@@ -644,21 +644,21 @@ CHECK (closing_balance >= 0);
 - `users.username`: Usernames must be globally unique across all users
 
 **Per-User Uniqueness:**
-- `tradings.name`: Trading platform names must be unique within each user's account
+- `tradings.name`: Trading names must be unique within each user's account
 - `tradings.api_key`: API keys must be unique within each user's account (prevents accidental reuse)
 - `tradings.api_secret`: API secrets must be unique within each user's account (prevents accidental reuse)
 
-**Per-Trading Platform Uniqueness:**
-- `sub_accounts.name`: Sub-account names must be unique within each trading platform
+**Per-Trading Uniqueness:**
+- `sub_accounts.name`: Sub-account names must be unique within each trading
 
 ```sql
--- Trading platform uniqueness constraints (per user)
+-- Trading uniqueness constraints (per user)
 ALTER TABLE tradings ADD CONSTRAINT tradings_user_name_unique UNIQUE (user_id, name);
 ALTER TABLE tradings ADD CONSTRAINT tradings_user_api_key_unique UNIQUE (user_id, api_key);
 ALTER TABLE tradings ADD CONSTRAINT tradings_user_api_secret_unique UNIQUE (user_id, api_secret);
 
--- Sub-account uniqueness constraints (per trading platform)  
-ALTER TABLE sub_accounts ADD CONSTRAINT sub_accounts_trading platform_name_unique UNIQUE (trading_id, name);
+-- Sub-account uniqueness constraints (per trading)  
+ALTER TABLE sub_accounts ADD CONSTRAINT sub_accounts_trading_name_unique UNIQUE (trading_id, name);
 ```
 
 ### 7.3 Referential Integrity
@@ -732,7 +732,7 @@ CREATE POLICY user_own_data ON users
 FOR ALL TO tiris_app
 USING (id = current_setting('app.current_user_id')::UUID);
 
-CREATE POLICY trading platform_own_data ON tradings
+CREATE POLICY trading_own_data ON tradings
 FOR ALL TO tiris_app
 USING (user_id = current_setting('app.current_user_id')::UUID);
 

@@ -81,7 +81,7 @@ type OAuthToken struct {
 	User User `gorm:"foreignKey:UserID" json:"-"`
 }
 
-// Trading represents a trading platform connection
+// Trading represents a trading connection
 type Trading struct {
 	ID        uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`

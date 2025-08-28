@@ -22,7 +22,7 @@ var (
 type APIKeyPrefix string
 
 const (
-	// PrefixExchange for trading platform API keys (legacy name for backward compatibility)
+	// PrefixExchange for trading API keys (legacy name for backward compatibility)
 	PrefixExchange APIKeyPrefix = "txc_"
 	// PrefixUser for user API keys
 	PrefixUser APIKeyPrefix = "usr_"
