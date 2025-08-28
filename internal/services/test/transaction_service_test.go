@@ -229,10 +229,10 @@ func TestTransactionService_GetSubAccountTransactions(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
+	tradingID := uuid.New()
 	subAccountID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
-	testSubAccount := subAccountFactory.WithUserAndTrading(userID, exchangeID)
+	testSubAccount := subAccountFactory.WithUserAndTrading(userID, tradingID)
 	testSubAccount.ID = subAccountID
 
 	transactionFactory := helpers.NewTransactionFactory()
@@ -298,7 +298,7 @@ func TestTransactionService_GetSubAccountTransactions(t *testing.T) {
 	// Test sub-account belongs to different user
 	t.Run("subaccount_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserSubAccount := subAccountFactory.WithUserAndTrading(differentUserID, exchangeID)
+		wrongUserSubAccount := subAccountFactory.WithUserAndTrading(differentUserID, tradingID)
 		wrongUserSubAccount.ID = subAccountID
 
 		request := &services.TransactionQueryRequest{}
@@ -320,16 +320,16 @@ func TestTransactionService_GetSubAccountTransactions(t *testing.T) {
 	})
 }
 
-// TestTransactionService_GetExchangeTransactions tests the GetExchangeTransactions functionality
-func TestTransactionService_GetExchangeTransactions(t *testing.T) {
+// TestTransactionService_GetTradingTransactions tests the GetTradingTransactions functionality
+func TestTransactionService_GetTradingTransactions(t *testing.T) {
 	// Create mocks
 	mockTransactionRepo := &mocks.MockTransactionRepository{}
-	mockExchangeRepo := &mocks.MockTradingRepository{}
+	mockTradingRepo := &mocks.MockTradingRepository{}
 
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Trading:        mockExchangeRepo,
+		Trading:        mockTradingRepo,
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     mockTransactionRepo,
 		TradingLog:      &mocks.MockTradingLogRepository{},
@@ -342,10 +342,10 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
-	testExchange := exchangeFactory.WithUserID(userID)
-	testExchange.ID = exchangeID
+	tradingID := uuid.New()
+	tradingFactory := helpers.NewTradingFactory()
+	testTradingPlatform := tradingFactory.WithUserID(userID)
+	testTradingPlatform.ID = tradingID
 
 	transactionFactory := helpers.NewTransactionFactory()
 
@@ -356,8 +356,8 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 		}
 
 		testTransactions := []*models.Transaction{
-			transactionFactory.WithTradingID(exchangeID),
-			transactionFactory.WithTradingID(exchangeID),
+			transactionFactory.WithTradingID(tradingID),
+			transactionFactory.WithTradingID(tradingID),
 		}
 		testTransactions[0].UserID = userID
 		testTransactions[1].UserID = userID
@@ -367,13 +367,13 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 		}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
-		mockTransactionRepo.On("GetByTradingID", mock.Anything, exchangeID, expectedFilters).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
+		mockTransactionRepo.On("GetByTradingID", mock.Anything, tradingID, expectedFilters).
 			Return(testTransactions, int64(2), nil).Once()
 
 		// Execute test
-		result, err := transactionService.GetExchangeTransactions(context.Background(), userID, exchangeID, request)
+		result, err := transactionService.GetTradingTransactions(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.NoError(t, err)
@@ -383,20 +383,20 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 		assert.Equal(t, 25, result.Limit)
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 		mockTransactionRepo.AssertExpectations(t)
 	})
 
-	// Test exchange not found
-	t.Run("exchange_not_found", func(t *testing.T) {
+	// Test trading platform not found
+	t.Run("trading_not_found", func(t *testing.T) {
 		request := &services.TransactionQueryRequest{}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
 			Return(nil, nil).Once()
 
 		// Execute test
-		result, err := transactionService.GetExchangeTransactions(context.Background(), userID, exchangeID, request)
+		result, err := transactionService.GetTradingTransactions(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.Error(t, err)
@@ -404,23 +404,23 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 		assert.Contains(t, err.Error(), "trading platform not found")
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test exchange belongs to different user
-	t.Run("exchange_wrong_user", func(t *testing.T) {
+	// Test trading platform belongs to different user
+	t.Run("trading_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserExchange := exchangeFactory.WithUserID(differentUserID)
-		wrongUserExchange.ID = exchangeID
+		wrongUserTradingPlatform := tradingFactory.WithUserID(differentUserID)
+		wrongUserTradingPlatform.ID = tradingID
 
 		request := &services.TransactionQueryRequest{}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(wrongUserExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(wrongUserTradingPlatform, nil).Once()
 
 		// Execute test
-		result, err := transactionService.GetExchangeTransactions(context.Background(), userID, exchangeID, request)
+		result, err := transactionService.GetTradingTransactions(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.Error(t, err)
@@ -428,7 +428,7 @@ func TestTransactionService_GetExchangeTransactions(t *testing.T) {
 		assert.Contains(t, err.Error(), "trading platform not found")
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 	})
 }
 

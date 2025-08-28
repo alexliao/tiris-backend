@@ -61,12 +61,12 @@ func (u *MetricsUpdater) updateMetrics() {
 		u.metrics.UsersTotal.Set(float64(userCount))
 	}
 
-	// Update exchange count
-	exchangeCount, err := u.getExchangeCount(ctx)
+	// Update trading platform count
+	tradingPlatformCount, err := u.getTradingPlatformCount(ctx)
 	if err != nil {
-		log.Printf("Failed to get exchange count for metrics: %v", err)
+		log.Printf("Failed to get trading platform count for metrics: %v", err)
 	} else {
-		u.metrics.ExchangesTotal.Set(float64(exchangeCount))
+		u.metrics.TradingsTotal.Set(float64(tradingPlatformCount))
 	}
 
 	// Update sub-account count
@@ -92,16 +92,16 @@ func (u *MetricsUpdater) getUserCount(ctx context.Context) (int64, error) {
 	return total, nil
 }
 
-// getExchangeCount gets the total number of exchanges
-func (u *MetricsUpdater) getExchangeCount(ctx context.Context) (int64, error) {
+// getTradingPlatformCount gets the total number of trading platforms
+func (u *MetricsUpdater) getTradingPlatformCount(ctx context.Context) (int64, error) {
 	// For now, we'll return 0 and implement this when the repository has the needed methods
-	// TODO: Add List method to ExchangeRepository for proper counting
+	// TODO: Add List method to TradingRepository for proper counting
 	return 0, nil
 }
 
 // getSubAccountCount gets the total number of sub-accounts
 func (u *MetricsUpdater) getSubAccountCount(ctx context.Context) (int64, error) {
-	// Similar to exchanges, we'll need proper counting methods
+	// Similar to trading platforms, we'll need proper counting methods
 	// For now, return 0
 	// TODO: Add counting methods to SubAccountRepository
 	return 0, nil

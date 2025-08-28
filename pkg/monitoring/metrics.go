@@ -37,7 +37,7 @@ type MetricsCollector struct {
 
 	// Application Metrics
 	usersTotal            prometheus.Gauge
-	exchangesTotal        prometheus.Gauge
+	tradingPlatformsTotal prometheus.Gauge
 	transactionsTotal     prometheus.Gauge
 	apiKeysTotal          prometheus.Gauge
 	activeSessionsTotal   prometheus.Gauge
@@ -52,7 +52,7 @@ type MetricsCollector struct {
 	tradingVolumeTotal    *prometheus.CounterVec
 	tradingFeesTotal      *prometheus.CounterVec
 	accountBalances       *prometheus.GaugeVec
-	exchangeHealthStatus  *prometheus.GaugeVec
+	tradingHealthStatus   *prometheus.GaugeVec
 
 	// System Metrics
 	goroutinesActive      prometheus.Gauge
@@ -182,10 +182,10 @@ func NewMetricsCollector() *MetricsCollector {
 				Help: "Total number of registered users",
 			},
 		),
-		exchangesTotal: promauto.NewGauge(
+		tradingPlatformsTotal: promauto.NewGauge(
 			prometheus.GaugeOpts{
-				Name: "exchanges_total",
-				Help: "Total number of configured exchanges",
+				Name: "trading_platforms_total",
+				Help: "Total number of configured trading platforms",
 			},
 		),
 		transactionsTotal: promauto.NewGauge(
@@ -243,28 +243,28 @@ func NewMetricsCollector() *MetricsCollector {
 				Name: "trading_volume_total",
 				Help: "Total trading volume processed",
 			},
-			[]string{"exchange", "symbol", "direction"},
+			[]string{"trading", "symbol", "direction"},
 		),
 		tradingFeesTotal: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "trading_fees_total",
 				Help: "Total trading fees collected",
 			},
-			[]string{"exchange", "fee_type"},
+			[]string{"trading", "fee_type"},
 		),
 		accountBalances: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "account_balances",
 				Help: "Current account balances by symbol",
 			},
-			[]string{"exchange", "account", "symbol"},
+			[]string{"trading", "account", "symbol"},
 		),
-		exchangeHealthStatus: promauto.NewGaugeVec(
+		tradingHealthStatus: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Name: "exchange_health_status",
-				Help: "Health status of exchange connections (1=healthy, 0=unhealthy)",
+				Name: "trading_health_status",
+				Help: "Health status of trading platform connections (1=healthy, 0=unhealthy)",
 			},
-			[]string{"exchange", "endpoint"},
+			[]string{"trading", "endpoint"},
 		),
 
 		// System Metrics
@@ -372,9 +372,9 @@ func (mc *MetricsCollector) UpdateRedisStats(connections int, keyspaceSize map[s
 }
 
 // Application metrics methods
-func (mc *MetricsCollector) UpdateApplicationStats(users, exchanges, transactions, apiKeys, sessions int) {
+func (mc *MetricsCollector) UpdateApplicationStats(users, tradingPlatforms, transactions, apiKeys, sessions int) {
 	mc.usersTotal.Set(float64(users))
-	mc.exchangesTotal.Set(float64(exchanges))
+	mc.tradingPlatformsTotal.Set(float64(tradingPlatforms))
 	mc.transactionsTotal.Set(float64(transactions))
 	mc.apiKeysTotal.Set(float64(apiKeys))
 	mc.activeSessionsTotal.Set(float64(sessions))
@@ -398,24 +398,24 @@ func (mc *MetricsCollector) RecordAPIKeyUsage(keyType, result string) {
 }
 
 // Business metrics methods
-func (mc *MetricsCollector) RecordTradingVolume(exchange, symbol, direction string, volume float64) {
-	mc.tradingVolumeTotal.WithLabelValues(exchange, symbol, direction).Add(volume)
+func (mc *MetricsCollector) RecordTradingVolume(tradingPlatform, symbol, direction string, volume float64) {
+	mc.tradingVolumeTotal.WithLabelValues(tradingPlatform, symbol, direction).Add(volume)
 }
 
-func (mc *MetricsCollector) RecordTradingFee(exchange, feeType string, fee float64) {
-	mc.tradingFeesTotal.WithLabelValues(exchange, feeType).Add(fee)
+func (mc *MetricsCollector) RecordTradingFee(tradingPlatform, feeType string, fee float64) {
+	mc.tradingFeesTotal.WithLabelValues(tradingPlatform, feeType).Add(fee)
 }
 
-func (mc *MetricsCollector) UpdateAccountBalance(exchange, account, symbol string, balance float64) {
-	mc.accountBalances.WithLabelValues(exchange, account, symbol).Set(balance)
+func (mc *MetricsCollector) UpdateAccountBalance(tradingPlatform, account, symbol string, balance float64) {
+	mc.accountBalances.WithLabelValues(tradingPlatform, account, symbol).Set(balance)
 }
 
-func (mc *MetricsCollector) UpdateExchangeHealth(exchange, endpoint string, healthy bool) {
+func (mc *MetricsCollector) UpdateTradingHealth(trading, endpoint string, healthy bool) {
 	status := 0.0
 	if healthy {
 		status = 1.0
 	}
-	mc.exchangeHealthStatus.WithLabelValues(exchange, endpoint).Set(status)
+	mc.tradingHealthStatus.WithLabelValues(trading, endpoint).Set(status)
 }
 
 // System metrics methods

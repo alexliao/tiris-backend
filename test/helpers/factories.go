@@ -126,7 +126,7 @@ func NewTradingFactory() *TradingFactory {
 	}
 }
 
-// Build creates a basic exchange with default values
+// Build creates a basic trading platform with default values
 func (f *TradingFactory) Build() *models.Trading {
 	id := f.factory.nextID()
 	return &models.Trading{
@@ -150,7 +150,7 @@ func (f *TradingFactory) WithUserID(userID uuid.UUID) *models.Trading {
 	return trading
 }
 
-// WithName sets the exchange name
+// WithName sets the trading platform name
 func (f *TradingFactory) WithName(name string) *models.Trading {
 	trading := f.Build()
 	trading.Name = name
@@ -172,14 +172,14 @@ func (f *TradingFactory) WithCredentials(apiKey, apiSecret string) *models.Tradi
 	return trading
 }
 
-// WithStatus sets the exchange status
+// WithStatus sets the trading platform status
 func (f *TradingFactory) WithStatus(status string) *models.Trading {
 	trading := f.Build()
 	trading.Status = status
 	return trading
 }
 
-// WithInfo sets exchange info
+// WithInfo sets trading platform info
 func (f *TradingFactory) WithInfo(info map[string]interface{}) *models.Trading {
 	trading := f.Build()
 	trading.Info = models.JSON(info)

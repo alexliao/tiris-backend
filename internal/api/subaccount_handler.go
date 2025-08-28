@@ -284,10 +284,10 @@ func (h *SubAccountHandler) UpdateSubAccount(c *gin.Context) {
 			))
 			return
 		}
-		if err.Error() == "sub-account name already exists for this exchange" {
+		if err.Error() == "sub-account name already exists for this trading platform" {
 			c.JSON(http.StatusConflict, CreateErrorResponse(
 				"SUBACCOUNT_NAME_EXISTS",
-				"Sub-account name already exists for this exchange",
+				"Sub-account name already exists for this trading platform",
 				err.Error(),
 				getTraceID(c),
 			))

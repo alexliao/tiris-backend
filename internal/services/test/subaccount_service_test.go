@@ -43,22 +43,22 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
-	testExchange := exchangeFactory.WithUserID(userID)
-	testExchange.ID = exchangeID
+	tradingID := uuid.New()
+	tradingFactory := helpers.NewTradingFactory()
+	testTradingPlatform := tradingFactory.WithUserID(userID)
+	testTradingPlatform.ID = tradingID
 
 	// Test successful sub-account creation
 	t.Run("successful_creation", func(t *testing.T) {
 		request := &services.CreateSubAccountRequest{
-			TradingID: exchangeID,
+			TradingID: tradingID,
 			Name:       "main-spot",
 			Symbol:     "USDT",
 		}
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		mockSubAccountRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
 			Return(nil).Once()
 
@@ -69,7 +69,7 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, userID, result.UserID)
-		assert.Equal(t, exchangeID, result.TradingID)
+		assert.Equal(t, tradingID, result.TradingID)
 		assert.Equal(t, request.Name, result.Name)
 		assert.Equal(t, request.Symbol, result.Symbol)
 		assert.Equal(t, 0.0, result.Balance) // New accounts start with zero balance
@@ -79,16 +79,16 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		mockSubAccountRepo.AssertExpectations(t)
 	})
 
-	// Test exchange not found
-	t.Run("exchange_not_found", func(t *testing.T) {
+	// Test trading platform not found
+	t.Run("trading_not_found", func(t *testing.T) {
 		request := &services.CreateSubAccountRequest{
-			TradingID: exchangeID,
+			TradingID: tradingID,
 			Name:       "test-account",
 			Symbol:     "USDT",
 		}
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
 			Return(nil, nil).Once()
 
 		// Execute test
@@ -103,21 +103,21 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test exchange belongs to different user
-	t.Run("exchange_wrong_user", func(t *testing.T) {
+	// Test trading platform belongs to different user
+	t.Run("trading_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserExchange := exchangeFactory.WithUserID(differentUserID)
-		wrongUserExchange.ID = exchangeID
+		wrongUserTradingPlatform := tradingFactory.WithUserID(differentUserID)
+		wrongUserTradingPlatform.ID = tradingID
 
 		request := &services.CreateSubAccountRequest{
-			TradingID: exchangeID,
+			TradingID: tradingID,
 			Name:       "test-account",
 			Symbol:     "USDT",
 		}
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(wrongUserExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(wrongUserTradingPlatform, nil).Once()
 
 		// Execute test
 		result, err := subAccountService.CreateSubAccount(context.Background(), userID, request)
@@ -134,17 +134,17 @@ func TestSubAccountService_CreateSubAccount(t *testing.T) {
 	// Test duplicate sub-account name - now handled by database constraint
 	t.Run("duplicate_name", func(t *testing.T) {
 		request := &services.CreateSubAccountRequest{
-			TradingID: exchangeID,
+			TradingID: tradingID,
 			Name:       "duplicate-name",
 			Symbol:     "USDT",
 		}
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		// Database returns unique constraint error with specific constraint name
 		mockSubAccountRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint \"sub_accounts_exchange_name_active_unique\"")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"sub_accounts_trading_name_active_unique\"")).Once()
 
 		// Execute test
 		result, err := subAccountService.CreateSubAccount(context.Background(), userID, request)
@@ -182,14 +182,14 @@ func TestSubAccountService_GetUserSubAccounts(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
+	tradingID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
 
-	// Test successful retrieval without exchange filter
+	// Test successful retrieval without trading platform filter
 	t.Run("successful_retrieval_all", func(t *testing.T) {
 		testSubAccounts := []*models.SubAccount{
-			subAccountFactory.WithUserAndTrading(userID, exchangeID),
-			subAccountFactory.WithUserAndTrading(userID, exchangeID),
+			subAccountFactory.WithUserAndTrading(userID, tradingID),
+			subAccountFactory.WithUserAndTrading(userID, tradingID),
 		}
 		testSubAccounts[0].Name = "spot-account"
 		testSubAccounts[1].Name = "futures-account"
@@ -211,31 +211,31 @@ func TestSubAccountService_GetUserSubAccounts(t *testing.T) {
 		mockSubAccountRepo.AssertExpectations(t)
 	})
 
-	// Test successful retrieval with exchange filter
+	// Test successful retrieval with trading platform filter
 	t.Run("successful_retrieval_filtered", func(t *testing.T) {
-		exchangeFactory := helpers.NewTradingFactory()
-		testExchange := exchangeFactory.WithUserID(userID)
-		testExchange.ID = exchangeID
+		tradingFactory := helpers.NewTradingFactory()
+		testTradingPlatform := tradingFactory.WithUserID(userID)
+		testTradingPlatform.ID = tradingID
 
 		testSubAccounts := []*models.SubAccount{
-			subAccountFactory.WithUserAndTrading(userID, exchangeID),
+			subAccountFactory.WithUserAndTrading(userID, tradingID),
 		}
 		testSubAccounts[0].Name = "binance-spot"
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
-		mockSubAccountRepo.On("GetByUserID", mock.Anything, userID, &exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
+		mockSubAccountRepo.On("GetByUserID", mock.Anything, userID, &tradingID).
 			Return(testSubAccounts, nil).Once()
 
 		// Execute test
-		result, err := subAccountService.GetUserSubAccounts(context.Background(), userID, &exchangeID)
+		result, err := subAccountService.GetUserSubAccounts(context.Background(), userID, &tradingID)
 
 		// Verify results
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		assert.Equal(t, "binance-spot", result[0].Name)
-		assert.Equal(t, exchangeID, result[0].TradingID)
+		assert.Equal(t, tradingID, result[0].TradingID)
 
 		// Verify mock expectations
 		mockTradingRepo.AssertExpectations(t)
@@ -281,10 +281,10 @@ func TestSubAccountService_GetSubAccount(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
+	tradingID := uuid.New()
 	subAccountID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
-	testSubAccount := subAccountFactory.WithUserAndTrading(userID, exchangeID)
+	testSubAccount := subAccountFactory.WithUserAndTrading(userID, tradingID)
 	testSubAccount.ID = subAccountID
 
 	// Test successful retrieval
@@ -301,7 +301,7 @@ func TestSubAccountService_GetSubAccount(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, subAccountID, result.ID)
 		assert.Equal(t, userID, result.UserID)
-		assert.Equal(t, exchangeID, result.TradingID)
+		assert.Equal(t, tradingID, result.TradingID)
 
 		// Verify mock expectations
 		mockSubAccountRepo.AssertExpectations(t)
@@ -328,7 +328,7 @@ func TestSubAccountService_GetSubAccount(t *testing.T) {
 	// Test sub-account belongs to different user
 	t.Run("subaccount_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserSubAccount := subAccountFactory.WithUserAndTrading(differentUserID, exchangeID)
+		wrongUserSubAccount := subAccountFactory.WithUserAndTrading(differentUserID, tradingID)
 		wrongUserSubAccount.ID = subAccountID
 
 		// Setup mock expectations
@@ -369,10 +369,10 @@ func TestSubAccountService_UpdateSubAccount(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
+	tradingID := uuid.New()
 	subAccountID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
-	testSubAccount := subAccountFactory.WithUserAndTrading(userID, exchangeID)
+	testSubAccount := subAccountFactory.WithUserAndTrading(userID, tradingID)
 	testSubAccount.ID = subAccountID
 	testSubAccount.Name = "original-name"
 	testSubAccount.Symbol = "USDT"
@@ -415,7 +415,7 @@ func TestSubAccountService_UpdateSubAccount(t *testing.T) {
 			Return(testSubAccount, nil).Once()
 		// Database returns unique constraint error with specific constraint name
 		mockSubAccountRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.SubAccount")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint \"sub_accounts_exchange_name_active_unique\"")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"sub_accounts_trading_name_active_unique\"")).Once()
 
 		// Execute test
 		result, err := subAccountService.UpdateSubAccount(context.Background(), userID, subAccountID, request)
@@ -479,10 +479,10 @@ func TestSubAccountService_UpdateBalance(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
+	tradingID := uuid.New()
 	subAccountID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
-	testSubAccount := subAccountFactory.WithUserAndTrading(userID, exchangeID)
+	testSubAccount := subAccountFactory.WithUserAndTrading(userID, tradingID)
 	testSubAccount.ID = subAccountID
 	testSubAccount.Balance = 1000.0
 
@@ -614,10 +614,10 @@ func TestSubAccountService_DeleteSubAccount(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
+	tradingID := uuid.New()
 	subAccountID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
-	testSubAccount := subAccountFactory.WithUserAndTrading(userID, exchangeID)
+	testSubAccount := subAccountFactory.WithUserAndTrading(userID, tradingID)
 	testSubAccount.ID = subAccountID
 	testSubAccount.Balance = 0.0 // Zero balance for successful deletion
 
@@ -641,7 +641,7 @@ func TestSubAccountService_DeleteSubAccount(t *testing.T) {
 
 	// Test deletion with positive balance
 	t.Run("deletion_with_balance", func(t *testing.T) {
-		subAccountWithBalance := subAccountFactory.WithUserAndTrading(userID, exchangeID)
+		subAccountWithBalance := subAccountFactory.WithUserAndTrading(userID, tradingID)
 		subAccountWithBalance.ID = subAccountID
 		subAccountWithBalance.Balance = 100.0 // Positive balance
 
@@ -680,7 +680,7 @@ func TestSubAccountService_DeleteSubAccount(t *testing.T) {
 	// Test sub-account belongs to different user
 	t.Run("subaccount_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserSubAccount := subAccountFactory.WithUserAndTrading(differentUserID, exchangeID)
+		wrongUserSubAccount := subAccountFactory.WithUserAndTrading(differentUserID, tradingID)
 		wrongUserSubAccount.ID = subAccountID
 		wrongUserSubAccount.Balance = 0.0
 
@@ -721,15 +721,15 @@ func TestSubAccountService_GetSubAccountsBySymbol(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
+	tradingID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
 
 	// Test successful retrieval by symbol
 	t.Run("successful_retrieval", func(t *testing.T) {
 		symbol := "USDT"
 		testSubAccounts := []*models.SubAccount{
-			subAccountFactory.WithUserAndTrading(userID, exchangeID),
-			subAccountFactory.WithUserAndTrading(userID, exchangeID),
+			subAccountFactory.WithUserAndTrading(userID, tradingID),
+			subAccountFactory.WithUserAndTrading(userID, tradingID),
 		}
 		testSubAccounts[0].Symbol = symbol
 		testSubAccounts[1].Symbol = symbol

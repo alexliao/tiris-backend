@@ -35,7 +35,7 @@ type BaseEvent struct {
 	EventType  EventType `json:"event_type"`
 	Timestamp  time.Time `json:"timestamp"`
 	UserID     uuid.UUID `json:"user_id"`
-	ExchangeID uuid.UUID `json:"exchange_id"`
+	TradingID  uuid.UUID `json:"trading_id"`
 	Source     string    `json:"source"` // "tiris-bot", "manual", etc.
 	Version    string    `json:"version"`
 }
@@ -103,52 +103,52 @@ type HeartbeatEvent struct {
 }
 
 // NewBaseEvent creates a new base event with common fields
-func NewBaseEvent(eventType EventType, userID, exchangeID uuid.UUID, source string) BaseEvent {
+func NewBaseEvent(eventType EventType, userID, tradingID uuid.UUID, source string) BaseEvent {
 	return BaseEvent{
 		EventID:    uuid.New().String(),
 		EventType:  eventType,
 		Timestamp:  time.Now().UTC(),
 		UserID:     userID,
-		ExchangeID: exchangeID,
+		TradingID: tradingID,
 		Source:     source,
 		Version:    "1.0",
 	}
 }
 
 // NewOrderEvent creates a new order event
-func NewOrderEvent(eventType EventType, userID, exchangeID, subAccountID uuid.UUID, source string) *OrderEvent {
+func NewOrderEvent(eventType EventType, userID, tradingID, subAccountID uuid.UUID, source string) *OrderEvent {
 	return &OrderEvent{
-		BaseEvent:    NewBaseEvent(eventType, userID, exchangeID, source),
+		BaseEvent:    NewBaseEvent(eventType, userID, tradingID, source),
 		SubAccountID: subAccountID,
 	}
 }
 
 // NewBalanceEvent creates a new balance event
-func NewBalanceEvent(userID, exchangeID, subAccountID uuid.UUID, source string) *BalanceEvent {
+func NewBalanceEvent(userID, tradingID, subAccountID uuid.UUID, source string) *BalanceEvent {
 	return &BalanceEvent{
-		BaseEvent:    NewBaseEvent(EventBalanceUpdated, userID, exchangeID, source),
+		BaseEvent:    NewBaseEvent(EventBalanceUpdated, userID, tradingID, source),
 		SubAccountID: subAccountID,
 	}
 }
 
 // NewErrorEvent creates a new error event
-func NewErrorEvent(userID, exchangeID uuid.UUID, source string) *ErrorEvent {
+func NewErrorEvent(userID, tradingID uuid.UUID, source string) *ErrorEvent {
 	return &ErrorEvent{
-		BaseEvent: NewBaseEvent(EventSystemError, userID, exchangeID, source),
+		BaseEvent: NewBaseEvent(EventSystemError, userID, tradingID, source),
 	}
 }
 
 // NewSignalEvent creates a new signal event
-func NewSignalEvent(userID, exchangeID uuid.UUID, source string) *SignalEvent {
+func NewSignalEvent(userID, tradingID uuid.UUID, source string) *SignalEvent {
 	return &SignalEvent{
-		BaseEvent: NewBaseEvent(EventSignalGenerated, userID, exchangeID, source),
+		BaseEvent: NewBaseEvent(EventSignalGenerated, userID, tradingID, source),
 	}
 }
 
 // NewHeartbeatEvent creates a new heartbeat event
-func NewHeartbeatEvent(userID, exchangeID uuid.UUID, source, component string) *HeartbeatEvent {
+func NewHeartbeatEvent(userID, tradingID uuid.UUID, source, component string) *HeartbeatEvent {
 	return &HeartbeatEvent{
-		BaseEvent: NewBaseEvent(EventBotHeartbeat, userID, exchangeID, source),
+		BaseEvent: NewBaseEvent(EventBotHeartbeat, userID, tradingID, source),
 		Component: component,
 	}
 }
@@ -202,23 +202,23 @@ func GetSubject(eventType EventType) string {
 func ValidateEvent(event interface{}) error {
 	switch e := event.(type) {
 	case *OrderEvent:
-		if e.EventID == "" || e.UserID == uuid.Nil || e.ExchangeID == uuid.Nil || e.SubAccountID == uuid.Nil {
+		if e.EventID == "" || e.UserID == uuid.Nil || e.TradingID == uuid.Nil || e.SubAccountID == uuid.Nil {
 			return fmt.Errorf("missing required fields in OrderEvent")
 		}
 	case *BalanceEvent:
-		if e.EventID == "" || e.UserID == uuid.Nil || e.ExchangeID == uuid.Nil || e.SubAccountID == uuid.Nil {
+		if e.EventID == "" || e.UserID == uuid.Nil || e.TradingID == uuid.Nil || e.SubAccountID == uuid.Nil {
 			return fmt.Errorf("missing required fields in BalanceEvent")
 		}
 	case *ErrorEvent:
-		if e.EventID == "" || e.UserID == uuid.Nil || e.ExchangeID == uuid.Nil {
+		if e.EventID == "" || e.UserID == uuid.Nil || e.TradingID == uuid.Nil {
 			return fmt.Errorf("missing required fields in ErrorEvent")
 		}
 	case *SignalEvent:
-		if e.EventID == "" || e.UserID == uuid.Nil || e.ExchangeID == uuid.Nil {
+		if e.EventID == "" || e.UserID == uuid.Nil || e.TradingID == uuid.Nil {
 			return fmt.Errorf("missing required fields in SignalEvent")
 		}
 	case *HeartbeatEvent:
-		if e.EventID == "" || e.UserID == uuid.Nil || e.ExchangeID == uuid.Nil {
+		if e.EventID == "" || e.UserID == uuid.Nil || e.TradingID == uuid.Nil {
 			return fmt.Errorf("missing required fields in HeartbeatEvent")
 		}
 	default:

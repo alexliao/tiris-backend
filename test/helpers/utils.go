@@ -358,11 +358,11 @@ func (s *TestDataSeeder) SeedCompleteSetups(count int) []*models.User {
 	users := make([]*models.User, count)
 	
 	for i := 0; i < count; i++ {
-		user, exchange, subAccount, transaction := factory.CreateCompleteUserSetup()
+		user, trading, subAccount, transaction := factory.CreateCompleteUserSetup()
 		
 		// Save all entities
 		s.helper.GetTransactionDB().Create(user)
-		s.helper.GetTransactionDB().Create(exchange)
+		s.helper.GetTransactionDB().Create(trading)
 		s.helper.GetTransactionDB().Create(subAccount)
 		s.helper.GetTransactionDB().Create(transaction)
 		

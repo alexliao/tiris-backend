@@ -353,14 +353,14 @@ func (sm *SecurityMiddleware) getAuditAction(c *gin.Context) security.AuditActio
 		return security.ActionUserDelete
 	case strings.Contains(path, "/users") && method == "GET":
 		return security.ActionUserView
-	case strings.Contains(path, "/exchanges") && method == "POST":
-		return security.ActionExchangeCreate
-	case strings.Contains(path, "/exchanges") && method == "PUT":
-		return security.ActionExchangeUpdate
-	case strings.Contains(path, "/exchanges") && method == "DELETE":
-		return security.ActionExchangeDelete
-	case strings.Contains(path, "/exchanges") && method == "GET":
-		return security.ActionExchangeView
+	case strings.Contains(path, "/tradings") && method == "POST":
+		return security.ActionTradingCreate
+	case strings.Contains(path, "/tradings") && method == "PUT":
+		return security.ActionTradingUpdate
+	case strings.Contains(path, "/tradings") && method == "DELETE":
+		return security.ActionTradingDelete
+	case strings.Contains(path, "/tradings") && method == "GET":
+		return security.ActionTradingView
 	case strings.Contains(path, "/transactions") && method == "GET":
 		return security.ActionTransactionView
 	default:

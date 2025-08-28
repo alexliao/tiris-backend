@@ -1258,7 +1258,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new trading log entry for the authenticated user.\n\n**Important**: The 'info' field structure must match the 'type' field:\n\n**Business Logic Types** (trigger automatic financial calculations):\n\n**For long/short/stop_loss types** - Required fields in 'info':\n- stock_account_id (string): Sub-account UUID for the asset (e.g., ETH account)\n- currency_account_id (string): Sub-account UUID for the currency (e.g., USDT account)\n- price (number): Price per unit (must be positive, up to 8 decimal places)\n- volume (number): Quantity traded (must be positive, up to 8 decimal places)\n- stock (string): Asset symbol, 1-20 characters (e.g., \"ETH\")\n- currency (string): Currency symbol, 1-20 characters (e.g., \"USDT\")\n- fee (number): Trading fee (must be non-negative, up to 8 decimal places)\n\n**For deposit/withdraw types** - Required fields in 'info':\n- account_id (string): Target sub-account UUID for the operation\n- amount (number): Amount to deposit/withdraw (must be positive, up to 8 decimal places)\n- currency (string): Currency symbol, 1-20 characters (e.g., \"USDT\")\n\n**Request Examples**:\n\n**Long Position Example:**\n\u003cpre\u003e\u003ccode\u003e{\n⠀⠀\"exchange_id\": \"453f0347-3959-49de-8e3f-1cf7c8e0827c\",\n⠀⠀\"type\": \"long\",\n⠀⠀\"source\": \"bot\",\n⠀⠀\"message\": \"ETH long position opened\",\n⠀⠀\"info\": {\n⠀⠀⠀⠀\"stock_account_id\": \"eth-account-uuid\",\n⠀⠀⠀⠀\"currency_account_id\": \"usdt-account-uuid\",\n⠀⠀⠀⠀\"price\": 3000.00,\n⠀⠀⠀⠀\"volume\": 2.0,\n⠀⠀⠀⠀\"stock\": \"ETH\",\n⠀⠀⠀⠀\"currency\": \"USDT\",\n⠀⠀⠀⠀\"fee\": 12.00\n⠀⠀}\n}\u003c/code\u003e\u003c/pre\u003e\n\n**Deposit Example:**\n\u003cpre\u003e\u003ccode\u003e{\n⠀⠀\"exchange_id\": \"453f0347-3959-49de-8e3f-1cf7c8e0827c\",\n⠀⠀\"type\": \"deposit\",\n⠀⠀\"source\": \"api\",\n⠀⠀\"message\": \"USDT deposit to account\",\n⠀⠀\"info\": {\n⠀⠀⠀⠀\"account_id\": \"usdt-account-uuid\",\n⠀⠀⠀⠀\"amount\": 1000.00,\n⠀⠀⠀⠀\"currency\": \"USDT\"\n⠀⠀}\n}\u003c/code\u003e\u003c/pre\u003e\n\n**Other Types**: Can use any object structure in the 'info' field",
+                "description": "Creates a new trading log entry for the authenticated user.\n\n**Important**: The 'info' field structure must match the 'type' field:\n\n**Business Logic Types** (trigger automatic financial calculations):\n\n**For long/short/stop_loss types** - Required fields in 'info':\n- stock_account_id (string): Sub-account UUID for the asset (e.g., ETH account)\n- currency_account_id (string): Sub-account UUID for the currency (e.g., USDT account)\n- price (number): Price per unit (must be positive, up to 8 decimal places)\n- volume (number): Quantity traded (must be positive, up to 8 decimal places)\n- stock (string): Asset symbol, 1-20 characters (e.g., \"ETH\")\n- currency (string): Currency symbol, 1-20 characters (e.g., \"USDT\")\n- fee (number): Trading fee (must be non-negative, up to 8 decimal places)\n\n**For deposit/withdraw types** - Required fields in 'info':\n- account_id (string): Target sub-account UUID for the operation\n- amount (number): Amount to deposit/withdraw (must be positive, up to 8 decimal places)\n- currency (string): Currency symbol, 1-20 characters (e.g., \"USDT\")\n\n**Request Examples**:\n\n**Long Position Example:**\n\u003cpre\u003e\u003ccode\u003e{\n⠀⠀\"trading_id\": \"453f0347-3959-49de-8e3f-1cf7c8e0827c\",\n⠀⠀\"type\": \"long\",\n⠀⠀\"source\": \"bot\",\n⠀⠀\"message\": \"ETH long position opened\",\n⠀⠀\"info\": {\n⠀⠀⠀⠀\"stock_account_id\": \"eth-account-uuid\",\n⠀⠀⠀⠀\"currency_account_id\": \"usdt-account-uuid\",\n⠀⠀⠀⠀\"price\": 3000.00,\n⠀⠀⠀⠀\"volume\": 2.0,\n⠀⠀⠀⠀\"stock\": \"ETH\",\n⠀⠀⠀⠀\"currency\": \"USDT\",\n⠀⠀⠀⠀\"fee\": 12.00\n⠀⠀}\n}\u003c/code\u003e\u003c/pre\u003e\n\n**Deposit Example:**\n\u003cpre\u003e\u003ccode\u003e{\n⠀⠀\"trading_id\": \"453f0347-3959-49de-8e3f-1cf7c8e0827c\",\n⠀⠀\"type\": \"deposit\",\n⠀⠀\"source\": \"api\",\n⠀⠀\"message\": \"USDT deposit to account\",\n⠀⠀\"info\": {\n⠀⠀⠀⠀\"account_id\": \"usdt-account-uuid\",\n⠀⠀⠀⠀\"amount\": 1000.00,\n⠀⠀⠀⠀\"currency\": \"USDT\"\n⠀⠀}\n}\u003c/code\u003e\u003c/pre\u003e\n\n**Other Types**: Can use any object structure in the 'info' field",
                 "consumes": [
                     "application/json"
                 ],
@@ -1300,113 +1300,13 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found - Exchange ID or sub-account IDs referenced in 'info' field do not exist",
+                        "description": "Not Found - Trading Platform ID or sub-account IDs referenced in 'info' field do not exist",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity - Business logic validation failed (e.g., insufficient balance for withdraw operations)",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/trading-logs/exchange/{exchange_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves trading log history for a specific exchange (must belong to authenticated user)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "TradingLogs"
-                ],
-                "summary": "Get exchange trading logs",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Exchange ID",
-                        "name": "exchange_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by log type",
-                        "name": "type",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "manual",
-                            "bot"
-                        ],
-                        "type": "string",
-                        "description": "Filter by source",
-                        "name": "source",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Start date (RFC3339 format)",
-                        "name": "start_date",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "End date (RFC3339 format)",
-                        "name": "end_date",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 100,
-                        "description": "Number of logs to return",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Number of logs to skip",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/services.TradingLogQueryResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1596,6 +1496,106 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/trading-logs/trading/{trading_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves trading log history for a specific trading platform (must belong to authenticated user)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "TradingLogs"
+                ],
+                "summary": "Get trading platform logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trading Platform ID",
+                        "name": "trading_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by log type",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "manual",
+                            "bot"
+                        ],
+                        "type": "string",
+                        "description": "Filter by source",
+                        "name": "source",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339 format)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339 format)",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Number of logs to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of logs to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/services.TradingLogQueryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -2123,118 +2123,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/transactions/exchange/{exchange_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves transaction history for a specific exchange (must belong to authenticated user)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Transactions"
-                ],
-                "summary": "Get exchange transactions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Exchange ID",
-                        "name": "exchange_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "enum": [
-                            "debit",
-                            "credit"
-                        ],
-                        "type": "string",
-                        "description": "Filter by direction",
-                        "name": "direction",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by reason",
-                        "name": "reason",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Start date (RFC3339 format)",
-                        "name": "start_date",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "End date (RFC3339 format)",
-                        "name": "end_date",
-                        "in": "query"
-                    },
-                    {
-                        "type": "number",
-                        "description": "Minimum amount filter",
-                        "name": "min_amount",
-                        "in": "query"
-                    },
-                    {
-                        "type": "number",
-                        "description": "Maximum amount filter",
-                        "name": "max_amount",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 100,
-                        "description": "Number of transactions to return",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Number of transactions to skip",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/services.TransactionQueryResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/transactions/sub-account/{sub_account_id}": {
             "get": {
                 "security": [
@@ -2435,6 +2323,118 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/transactions/trading/{trading_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves transaction history for a specific trading platform (must belong to authenticated user)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Get trading platform transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trading Platform ID",
+                        "name": "trading_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "debit",
+                            "credit"
+                        ],
+                        "type": "string",
+                        "description": "Filter by direction",
+                        "name": "direction",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by reason",
+                        "name": "reason",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339 format)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339 format)",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum amount filter",
+                        "name": "min_amount",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum amount filter",
+                        "name": "max_amount",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Number of transactions to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of transactions to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/services.TransactionQueryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -3538,7 +3538,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/v1",
 	Schemes:          []string{},
 	Title:            "Tiris Backend API",
-	Description:      "A Go-based microservice for quantitative trading data management, providing RESTful APIs for user management, exchange integration, and trading operations.",
+	Description:      "A Go-based microservice for quantitative trading data management, providing RESTful APIs for user management, trading platform integration, and trading operations.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

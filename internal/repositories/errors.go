@@ -10,9 +10,9 @@ var (
 	ErrInvalidUser       = errors.New("invalid user data")
 
 	// Trading errors
-	ErrExchangeNotFound      = errors.New("trading platform not found")
-	ErrExchangeAlreadyExists = errors.New("trading platform already exists")
-	ErrInvalidExchange       = errors.New("invalid trading platform data")
+	ErrTradingNotFound       = errors.New("trading platform not found")
+	ErrTradingAlreadyExists  = errors.New("trading platform already exists")
+	ErrInvalidTrading        = errors.New("invalid trading platform data")
 
 	// Sub-account errors
 	ErrSubAccountNotFound      = errors.New("sub-account not found")

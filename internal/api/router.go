@@ -243,7 +243,7 @@ func (s *Server) setupTransactionRoutes(protected *gin.RouterGroup) {
 	transactions.GET("", transactionHandler.GetUserTransactions)
 	transactions.GET("/:id", transactionHandler.GetTransaction)
 	transactions.GET("/sub-account/:sub_account_id", transactionHandler.GetSubAccountTransactions)
-	transactions.GET("/exchange/:exchange_id", transactionHandler.GetExchangeTransactions)
+	transactions.GET("/trading/:trading_id", transactionHandler.GetTradingTransactions)
 	transactions.GET("/time-range", transactionHandler.GetTransactionsByTimeRange)
 
 	// Admin transaction routes
@@ -268,7 +268,7 @@ func (s *Server) setupTradingLogRoutes(protected *gin.RouterGroup) {
 	tradingLogs.GET("/:id", tradingLogHandler.GetTradingLog)
 	tradingLogs.DELETE("/:id", tradingLogHandler.DeleteTradingLog)
 	tradingLogs.GET("/sub-account/:sub_account_id", tradingLogHandler.GetSubAccountTradingLogs)
-	tradingLogs.GET("/exchange/:exchange_id", tradingLogHandler.GetExchangeTradingLogs)
+	tradingLogs.GET("/trading/:trading_id", tradingLogHandler.GetTradingLogs)
 	tradingLogs.GET("/time-range", tradingLogHandler.GetTradingLogsByTimeRange)
 
 	// Admin trading log routes

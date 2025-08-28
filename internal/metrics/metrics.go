@@ -30,7 +30,7 @@ type Metrics struct {
 
 	// Business metrics
 	UsersTotal          prometheus.Gauge
-	ExchangesTotal      prometheus.Gauge
+	TradingsTotal       prometheus.Gauge
 	SubAccountsTotal    prometheus.Gauge
 	TransactionsTotal   *prometheus.CounterVec
 	TradingLogsTotal    *prometheus.CounterVec
@@ -140,10 +140,10 @@ func NewMetrics() *Metrics {
 				Help: "Total number of registered users",
 			},
 		),
-		ExchangesTotal: promauto.NewGauge(
+		TradingsTotal: promauto.NewGauge(
 			prometheus.GaugeOpts{
-				Name: "exchanges_total",
-				Help: "Total number of configured exchanges",
+				Name: "tradings_total",
+				Help: "Total number of configured trading platforms",
 			},
 		),
 		SubAccountsTotal: promauto.NewGauge(
@@ -331,9 +331,9 @@ func (m *Metrics) RecordPanicRecovery(component string) {
 }
 
 // UpdateBusinessMetrics updates business-related gauge metrics
-func (m *Metrics) UpdateBusinessMetrics(users, exchanges, subAccounts int64) {
+func (m *Metrics) UpdateBusinessMetrics(users, tradingPlatforms, subAccounts int64) {
 	m.UsersTotal.Set(float64(users))
-	m.ExchangesTotal.Set(float64(exchanges))
+	m.TradingsTotal.Set(float64(tradingPlatforms))
 	m.SubAccountsTotal.Set(float64(subAccounts))
 }
 

@@ -491,7 +491,7 @@ info:
     name: Tiris API Support
     url: https://tiris.ai/support
   description: A Go-based microservice for quantitative trading data management, providing
-    RESTful APIs for user management, exchange integration, and trading operations.
+    RESTful APIs for user management, trading platform integration, and trading operations.
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -1331,7 +1331,7 @@ paths:
 
         **Long Position Example:**
         <pre><code>{
-        ⠀⠀"exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+        ⠀⠀"trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
         ⠀⠀"type": "long",
         ⠀⠀"source": "bot",
         ⠀⠀"message": "ETH long position opened",
@@ -1348,7 +1348,7 @@ paths:
 
         **Deposit Example:**
         <pre><code>{
-        ⠀⠀"exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+        ⠀⠀"trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
         ⠀⠀"type": "deposit",
         ⠀⠀"source": "api",
         ⠀⠀"message": "USDT deposit to account",
@@ -1387,8 +1387,8 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "404":
-          description: Not Found - Exchange ID or sub-account IDs referenced in 'info'
-            field do not exist
+          description: Not Found - Trading Platform ID or sub-account IDs referenced
+            in 'info' field do not exist
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "422":
@@ -1482,73 +1482,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get trading log by ID
-      tags:
-      - TradingLogs
-  /trading-logs/exchange/{exchange_id}:
-    get:
-      description: Retrieves trading log history for a specific exchange (must belong
-        to authenticated user)
-      parameters:
-      - description: Exchange ID
-        in: path
-        name: exchange_id
-        required: true
-        type: string
-      - description: Filter by log type
-        in: query
-        name: type
-        type: string
-      - description: Filter by source
-        enum:
-        - manual
-        - bot
-        in: query
-        name: source
-        type: string
-      - description: Start date (RFC3339 format)
-        in: query
-        name: start_date
-        type: string
-      - description: End date (RFC3339 format)
-        in: query
-        name: end_date
-        type: string
-      - default: 100
-        description: Number of logs to return
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Number of logs to skip
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/services.TradingLogQueryResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get exchange trading logs
       tags:
       - TradingLogs
   /trading-logs/sub-account/{sub_account_id}:
@@ -1676,6 +1609,73 @@ paths:
       security:
       - BearerAuth: []
       summary: Get trading logs by time range
+      tags:
+      - TradingLogs
+  /trading-logs/trading/{trading_id}:
+    get:
+      description: Retrieves trading log history for a specific trading platform (must
+        belong to authenticated user)
+      parameters:
+      - description: Trading Platform ID
+        in: path
+        name: trading_id
+        required: true
+        type: string
+      - description: Filter by log type
+        in: query
+        name: type
+        type: string
+      - description: Filter by source
+        enum:
+        - manual
+        - bot
+        in: query
+        name: source
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - default: 100
+        description: Number of logs to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of logs to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TradingLogQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get trading platform logs
       tags:
       - TradingLogs
   /tradings:
@@ -1976,81 +1976,6 @@ paths:
       summary: Get transaction by ID
       tags:
       - Transactions
-  /transactions/exchange/{exchange_id}:
-    get:
-      description: Retrieves transaction history for a specific exchange (must belong
-        to authenticated user)
-      parameters:
-      - description: Exchange ID
-        in: path
-        name: exchange_id
-        required: true
-        type: string
-      - description: Filter by direction
-        enum:
-        - debit
-        - credit
-        in: query
-        name: direction
-        type: string
-      - description: Filter by reason
-        in: query
-        name: reason
-        type: string
-      - description: Start date (RFC3339 format)
-        in: query
-        name: start_date
-        type: string
-      - description: End date (RFC3339 format)
-        in: query
-        name: end_date
-        type: string
-      - description: Minimum amount filter
-        in: query
-        name: min_amount
-        type: number
-      - description: Maximum amount filter
-        in: query
-        name: max_amount
-        type: number
-      - default: 100
-        description: Number of transactions to return
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Number of transactions to skip
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/services.TransactionQueryResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get exchange transactions
-      tags:
-      - Transactions
   /transactions/sub-account/{sub_account_id}:
     get:
       description: Retrieves transaction history for a specific sub-account (must
@@ -2192,6 +2117,81 @@ paths:
       security:
       - BearerAuth: []
       summary: Get transactions by time range
+      tags:
+      - Transactions
+  /transactions/trading/{trading_id}:
+    get:
+      description: Retrieves transaction history for a specific trading platform (must
+        belong to authenticated user)
+      parameters:
+      - description: Trading Platform ID
+        in: path
+        name: trading_id
+        required: true
+        type: string
+      - description: Filter by direction
+        enum:
+        - debit
+        - credit
+        in: query
+        name: direction
+        type: string
+      - description: Filter by reason
+        in: query
+        name: reason
+        type: string
+      - description: Start date (RFC3339 format)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (RFC3339 format)
+        in: query
+        name: end_date
+        type: string
+      - description: Minimum amount filter
+        in: query
+        name: min_amount
+        type: number
+      - description: Maximum amount filter
+        in: query
+        name: max_amount
+        type: number
+      - default: 100
+        description: Number of transactions to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of transactions to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.TransactionQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get trading platform transactions
       tags:
       - Transactions
   /users:

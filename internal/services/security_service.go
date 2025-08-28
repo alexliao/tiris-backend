@@ -20,7 +20,7 @@ type SecurityService struct {
 	rateLimiter       *security.RateLimiter
 	auditLogger       *security.AuditLogger
 	apiKeyManager     *security.APIKeyManager
-	exchangeManager   *models.ExchangeManager
+	tradingManager    *models.TradingManager
 	encryptionManager *security.EncryptionManager
 }
 
@@ -34,9 +34,9 @@ func NewSecurityService(db *gorm.DB, redisClient *redis.Client, masterKey, signi
 		return nil, fmt.Errorf("failed to create API key manager: %v", err)
 	}
 
-	exchangeManager, err := models.NewExchangeManager(masterKey, signingKey)
+	tradingManager, err := models.NewTradingManager(masterKey, signingKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create exchange manager: %v", err)
+		return nil, fmt.Errorf("failed to create trading manager: %v", err)
 	}
 
 	encryptionManager, err := security.NewEncryptionManager(masterKey)
@@ -50,7 +50,7 @@ func NewSecurityService(db *gorm.DB, redisClient *redis.Client, masterKey, signi
 		rateLimiter:       rateLimiter,
 		auditLogger:       auditLogger,
 		apiKeyManager:     apiKeyManager,
-		exchangeManager:   exchangeManager,
+		tradingManager:    tradingManager,
 		encryptionManager: encryptionManager,
 	}, nil
 }
@@ -252,53 +252,53 @@ func (ss *SecurityService) DecryptSensitiveData(encryptedData string) (string, e
 	return ss.encryptionManager.Decrypt(encryptedData)
 }
 
-// CreateSecureExchange creates a new exchange with encrypted API credentials
-func (ss *SecurityService) CreateSecureExchange(ctx context.Context, userID uuid.UUID, name, exchangeType, apiKey, apiSecret string) (*models.SecureExchange, error) {
-	exchange := &models.SecureExchange{
+// CreateSecureTrading creates a new trading platform with encrypted API credentials
+func (ss *SecurityService) CreateSecureTrading(ctx context.Context, userID uuid.UUID, name, tradingType, apiKey, apiSecret string) (*models.SecureTrading, error) {
+	trading := &models.SecureTrading{
 		ID:     uuid.New(),
 		UserID: userID,
 		Name:   name,
-		Type:   exchangeType,
+		Type:   tradingType,
 		Status: "active",
 	}
 
 	// Set encrypted API credentials
-	if err := ss.exchangeManager.SetAPICredentials(exchange, apiKey, apiSecret); err != nil {
+	if err := ss.tradingManager.SetAPICredentials(trading, apiKey, apiSecret); err != nil {
 		return nil, fmt.Errorf("failed to encrypt API credentials: %v", err)
 	}
 
 	// Save to database
-	if err := ss.db.WithContext(ctx).Create(exchange).Error; err != nil {
-		return nil, fmt.Errorf("failed to create exchange: %v", err)
+	if err := ss.db.WithContext(ctx).Create(trading).Error; err != nil {
+		return nil, fmt.Errorf("failed to create trading platform: %v", err)
 	}
 
-	// Log exchange creation
+	// Log trading platform creation
 	ss.auditLogger.LogSecurityEvent(
 		ctx,
-		security.ActionExchangeCreate,
+		security.ActionTradingCreate,
 		&userID,
 		"",
 		map[string]interface{}{
-			"exchange_id":   exchange.ID,
-			"exchange_name": name,
-			"exchange_type": exchangeType,
+			"trading_id":   trading.ID,
+			"trading_name": name,
+			"trading_type": tradingType,
 		},
 		nil,
 	)
 
-	return exchange, nil
+	return trading, nil
 }
 
-// GetExchangeCredentials retrieves and decrypts exchange API credentials
-func (ss *SecurityService) GetExchangeCredentials(ctx context.Context, userID, exchangeID uuid.UUID) (apiKey, apiSecret string, err error) {
-	var exchange models.SecureExchange
+// GetTradingCredentials retrieves and decrypts trading platform API credentials
+func (ss *SecurityService) GetTradingCredentials(ctx context.Context, userID, tradingID uuid.UUID) (apiKey, apiSecret string, err error) {
+	var trading models.SecureTrading
 	if err := ss.db.WithContext(ctx).
-		Where("id = ? AND user_id = ?", exchangeID, userID).
-		First(&exchange).Error; err != nil {
+		Where("id = ? AND user_id = ?", tradingID, userID).
+		First(&trading).Error; err != nil {
 		return "", "", fmt.Errorf("trading platform not found: %v", err)
 	}
 
-	return ss.exchangeManager.GetAPICredentials(&exchange)
+	return ss.tradingManager.GetAPICredentials(&trading)
 }
 
 // AuditDataAccess logs data access for compliance

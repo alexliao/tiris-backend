@@ -198,7 +198,7 @@ func (suite *IntegrationTestSuite) runSQLMigrations() {
 	// Migration 000004: Create partial unique indexes for soft deletion
 	migration004 := `
 		-- Create partial unique indexes that exclude soft-deleted records
-		-- Exchange name uniqueness per user (only for active records)
+		-- Trading platform name uniqueness per user (only for active records)
 		CREATE UNIQUE INDEX IF NOT EXISTS tradings_user_name_active_unique 
 		ON tradings (user_id, name) 
 		WHERE deleted_at IS NULL;
@@ -478,12 +478,12 @@ func (suite *IntegrationTestSuite) TestUserManagement() {
 	})
 }
 
-// Test Exchange Management
-// TODO: Fix Exchange Management tests - validation and API contract issues
-func (suite *IntegrationTestSuite) TestExchangeManagement() {
-	var exchangeID string
+// Test Trading Platform Management
+// TODO: Fix Trading Platform Management tests - validation and API contract issues
+func (suite *IntegrationTestSuite) TestTradingPlatformManagement() {
+	var tradingID string
 
-	suite.T().Run("create_exchange", func(t *testing.T) {
+	suite.T().Run("create_trading_platform", func(t *testing.T) {
 		createRequest := map[string]interface{}{
 			"name":       "binance-main",
 			"type":       "binance",
@@ -498,10 +498,10 @@ func (suite *IntegrationTestSuite) TestExchangeManagement() {
 		suite.parseResponse(w, &response)
 		assert.True(t, response.Success)
 
-		exchangeData := response.Data.(map[string]interface{})
-		exchangeID = exchangeData["id"].(string)
-		assert.Equal(t, "binance-main", exchangeData["name"])
-		assert.Equal(t, "binance", exchangeData["type"])
+		tradingData := response.Data.(map[string]interface{})
+		tradingID = tradingData["id"].(string)
+		assert.Equal(t, "binance-main", tradingData["name"])
+		assert.Equal(t, "binance", tradingData["type"])
 	})
 
 	suite.T().Run("get_user_tradings", func(t *testing.T) {
@@ -517,37 +517,37 @@ func (suite *IntegrationTestSuite) TestExchangeManagement() {
 		assert.Len(t, tradings, 1)
 	})
 
-	suite.T().Run("get_exchange_by_id", func(t *testing.T) {
-		w := suite.makeRequest("GET", "/v1/tradings/"+exchangeID, nil, suite.userToken)
+	suite.T().Run("get_trading_platform_by_id", func(t *testing.T) {
+		w := suite.makeRequest("GET", "/v1/tradings/"+tradingID, nil, suite.userToken)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response api.SuccessResponse
 		suite.parseResponse(w, &response)
 		assert.True(t, response.Success)
 
-		exchangeData := response.Data.(map[string]interface{})
-		assert.Equal(t, exchangeID, exchangeData["id"])
-		assert.Equal(t, "binance-main", exchangeData["name"])
+		tradingData := response.Data.(map[string]interface{})
+		assert.Equal(t, tradingID, tradingData["id"])
+		assert.Equal(t, "binance-main", tradingData["name"])
 	})
 
-	suite.T().Run("update_exchange", func(t *testing.T) {
+	suite.T().Run("update_trading_platform", func(t *testing.T) {
 		updateRequest := map[string]interface{}{
 			"name": "updated-binance-main",
 		}
 
-		w := suite.makeRequest("PUT", "/v1/tradings/"+exchangeID, updateRequest, suite.userToken)
+		w := suite.makeRequest("PUT", "/v1/tradings/"+tradingID, updateRequest, suite.userToken)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response api.SuccessResponse
 		suite.parseResponse(w, &response)
 		assert.True(t, response.Success)
 
-		exchangeData := response.Data.(map[string]interface{})
-		assert.Equal(t, "updated-binance-main", exchangeData["name"])
+		tradingData := response.Data.(map[string]interface{})
+		assert.Equal(t, "updated-binance-main", tradingData["name"])
 	})
 
-	suite.T().Run("delete_exchange", func(t *testing.T) {
-		w := suite.makeRequest("DELETE", "/v1/tradings/"+exchangeID, nil, suite.userToken)
+	suite.T().Run("delete_trading_platform", func(t *testing.T) {
+		w := suite.makeRequest("DELETE", "/v1/tradings/"+tradingID, nil, suite.userToken)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response api.SuccessResponse
@@ -558,24 +558,24 @@ func (suite *IntegrationTestSuite) TestExchangeManagement() {
 
 // Test SubAccount Management
 func (suite *IntegrationTestSuite) TestSubAccountManagement() {
-	// First create an exchange
-	createExchangeReq := map[string]interface{}{
-		"name":       "test-exchange",
+	// First create a trading platform
+	createRequest := map[string]interface{}{
+		"name":       "test-trading-platform",
 		"type":       "binance",
 		"api_key":    "test_api_key_sub",
 		"api_secret": "test_api_secret_sub",
 	}
 
-	exchangeResp := suite.makeRequest("POST", "/v1/tradings", createExchangeReq, suite.userToken)
-	var exchangeData api.SuccessResponse
-	suite.parseResponse(exchangeResp, &exchangeData)
-	exchangeID := exchangeData.Data.(map[string]interface{})["id"].(string)
+	tradingResp := suite.makeRequest("POST", "/v1/tradings", createRequest, suite.userToken)
+	var tradingData api.SuccessResponse
+	suite.parseResponse(tradingResp, &tradingData)
+	tradingID := tradingData.Data.(map[string]interface{})["id"].(string)
 
 	var subAccountID string
 
 	suite.T().Run("create_sub_account", func(t *testing.T) {
 		createRequest := map[string]interface{}{
-			"exchange_id": exchangeID,
+			"trading_id": tradingID,
 			"name":        "Main Trading Account",
 			"symbol":      "BTC",
 			"balance":     1000.50,
@@ -656,21 +656,21 @@ func (suite *IntegrationTestSuite) TestSubAccountManagement() {
 
 // Test Trading Log Management
 func (suite *IntegrationTestSuite) TestTradingLogManagement() {
-	// Setup: Create exchange and sub-account
-	createExchangeReq := map[string]interface{}{
-		"name":       "trading-exchange",
+	// Setup: Create trading platform and sub-account
+	createRequest := map[string]interface{}{
+		"name":       "trading-platform",
 		"type":       "binance",
 		"api_key":    "test_api_key_trading",
 		"api_secret": "test_api_secret_trading",
 	}
 
-	exchangeResp := suite.makeRequest("POST", "/v1/tradings", createExchangeReq, suite.userToken)
-	var exchangeData api.SuccessResponse
-	suite.parseResponse(exchangeResp, &exchangeData)
-	exchangeID := exchangeData.Data.(map[string]interface{})["id"].(string)
+	tradingResp := suite.makeRequest("POST", "/v1/tradings", createRequest, suite.userToken)
+	var tradingData api.SuccessResponse
+	suite.parseResponse(tradingResp, &tradingData)
+	tradingID := tradingData.Data.(map[string]interface{})["id"].(string)
 
 	createSubAccountReq := map[string]interface{}{
-		"exchange_id": exchangeID,
+		"trading_id": tradingID,
 		"name":        "Trading Account",
 		"symbol":      "ETH",
 		"balance":     500.0,
@@ -685,7 +685,7 @@ func (suite *IntegrationTestSuite) TestTradingLogManagement() {
 
 	suite.T().Run("create_trading_log", func(t *testing.T) {
 		createRequest := map[string]interface{}{
-			"exchange_id":    exchangeID,
+			"trading_id":    tradingID,
 			"sub_account_id": subAccountID,
 			"type":           "trade",
 			"source":         "manual",
@@ -757,14 +757,14 @@ func (suite *IntegrationTestSuite) TestTradingLogManagement() {
 
 // Test Error Handling and Edge Cases
 func (suite *IntegrationTestSuite) TestErrorHandling() {
-	// Create a baseline exchange first to test uniqueness constraints against
-	baselineExchangeRequest := map[string]interface{}{
+	// Create a baseline trading platform first to test uniqueness constraints against
+	baselineRequest := map[string]interface{}{
 		"name":       "binance-main",
 		"type":       "binance",
 		"api_key":    "test_api_key_12345",
 		"api_secret": "test_api_secret_67890",
 	}
-	suite.makeRequest("POST", "/v1/tradings", baselineExchangeRequest, suite.userToken)
+	suite.makeRequest("POST", "/v1/tradings", baselineRequest, suite.userToken)
 
 	suite.T().Run("unauthorized_access", func(t *testing.T) {
 		w := suite.makeRequest("GET", "/v1/users/me", nil, "") // No token
@@ -812,9 +812,9 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 	})
 
 	// Test uniqueness constraints
-	suite.T().Run("duplicate_exchange_name", func(t *testing.T) {
+	suite.T().Run("duplicate_trading_platform_name", func(t *testing.T) {
 		duplicateNameRequest := map[string]interface{}{
-			"name":       "binance-main", // Same name as first exchange
+			"name":       "binance-main", // Same name as first trading platform
 			"type":       "kraken",
 			"api_key":    "different_api_key",
 			"api_secret": "different_api_secret",
@@ -826,14 +826,14 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 		var response api.ErrorResponse
 		suite.parseResponse(w, &response)
 		assert.False(t, response.Success)
-		assert.Equal(t, "EXCHANGE_NAME_EXISTS", response.Error.Code)
+		assert.Equal(t, "TRADING_NAME_EXISTS", response.Error.Code)
 	})
 
 	suite.T().Run("duplicate_api_key", func(t *testing.T) {
 		duplicateAPIKeyRequest := map[string]interface{}{
-			"name":       "different-exchange-name",
+			"name":       "different-trading-platform-name",
 			"type":       "kraken",
-			"api_key":    "test_api_key_12345", // Same API key as first exchange
+			"api_key":    "test_api_key_12345", // Same API key as first trading platform
 			"api_secret": "different_api_secret",
 		}
 
@@ -848,10 +848,10 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 
 	suite.T().Run("duplicate_api_secret", func(t *testing.T) {
 		duplicateAPISecretRequest := map[string]interface{}{
-			"name":       "another-exchange-name",
+			"name":       "another-trading-platform-name",
 			"type":       "gate",
 			"api_key":    "another_different_api_key",
-			"api_secret": "test_api_secret_67890", // Same API secret as first exchange
+			"api_secret": "test_api_secret_67890", // Same API secret as first trading platform
 		}
 
 		w := suite.makeRequest("POST", "/v1/tradings", duplicateAPISecretRequest, suite.userToken)
@@ -864,17 +864,17 @@ func (suite *IntegrationTestSuite) TestErrorHandling() {
 	})
 }
 
-// Helper method to get exchange ID for tests
-func (suite *IntegrationTestSuite) getExchangeID() string {
-	// Create a test exchange if needed
-	createExchangeReq := map[string]interface{}{
-		"name":         "Test Exchange for Rate Limiting",
+// Helper method to get trading platform ID for tests
+func (suite *IntegrationTestSuite) getTradingPlatformID() string {
+	// Create a test trading platform if needed
+	createRequest := map[string]interface{}{
+		"name":         "Test Trading Platform for Rate Limiting",
 		"api_key":      "test-api-key-rate-limit-" + uuid.New().String()[:8],
 		"api_secret":   "test-secret-rate-limit-" + uuid.New().String()[:8],
-		"exchange_url": "https://api.testexchange.com",
+		"trading_url": "https://api.testtradingplatform.com",
 	}
 
-	w := suite.makeRequest("POST", "/v1/tradings", createExchangeReq, suite.userToken)
+	w := suite.makeRequest("POST", "/v1/tradings", createRequest, suite.userToken)
 	if w.Code == http.StatusCreated {
 		var response api.SuccessResponse
 		suite.parseResponse(w, &response)
@@ -882,7 +882,7 @@ func (suite *IntegrationTestSuite) getExchangeID() string {
 		return data["id"].(string)
 	}
 	
-	// If creation failed, try to get existing exchange
+	// If creation failed, try to get existing trading platform
 	w = suite.makeRequest("GET", "/v1/tradings", nil, suite.userToken)
 	if w.Code == http.StatusOK {
 		var response api.SuccessResponse
@@ -890,8 +890,8 @@ func (suite *IntegrationTestSuite) getExchangeID() string {
 		data := response.Data.(map[string]interface{})
 		if tradingsData, ok := data["tradings"]; ok && tradingsData != nil {
 			if tradings, ok := tradingsData.([]interface{}); ok && len(tradings) > 0 {
-				exchange := tradings[0].(map[string]interface{})
-				return exchange["id"].(string)
+				trading := tradings[0].(map[string]interface{})
+				return trading["id"].(string)
 			}
 		}
 	}

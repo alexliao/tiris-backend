@@ -36,24 +36,24 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("complete_long_position_workflow", func(t *testing.T) {
-		// Setup: Create exchange
-		exchangeFactory := helpers.NewTradingFactory()
-		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testExchange)
+		// Setup: Create trading platform
+		tradingFactory := helpers.NewTradingFactory()
+		testTradingPlatform := tradingFactory.WithUserID(testUser.ID)
+		err := repos.Trading.Create(context.Background(), testTradingPlatform)
 		require.NoError(t, err)
 
 		// Setup: Create sub-accounts
 		subAccountFactory := helpers.NewSubAccountFactory()
 
 		// ETH account (stock)
-		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		ethAccount.Symbol = "ETH"
 		ethAccount.Balance = 0.0 // Starting with 0 ETH
 		err = repos.SubAccount.Create(context.Background(), ethAccount)
 		require.NoError(t, err)
 
 		// USDT account (currency)
-		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		usdtAccount.Symbol = "USDT"
 		usdtAccount.Balance = 10000.0 // Starting with 10,000 USDT
 		err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -61,7 +61,7 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 
 		// Execute: Long position trade
 		request := &services.CreateTradingLogRequest{
-			TradingID: testExchange.ID,
+			TradingID: testTradingPlatform.ID,
 			Type:       "long",
 			Source:     "manual",
 			Message:    "Integration test: ETH long position",
@@ -83,7 +83,7 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 		// Verify: Trading log was created
 		assert.Equal(t, "long", result.Type)
 		assert.Equal(t, testUser.ID, result.UserID)
-		assert.Equal(t, testExchange.ID, result.TradingID)
+		assert.Equal(t, testTradingPlatform.ID, result.TradingID)
 		assert.Equal(t, "manual", result.Source)
 
 		// Verify: Account balances were updated correctly
@@ -114,24 +114,24 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("complete_short_position_workflow", func(t *testing.T) {
-		// Setup: Create fresh exchange for isolation
-		exchangeFactory := helpers.NewTradingFactory()
-		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testExchange)
+		// Setup: Create fresh trading platform for isolation
+		tradingFactory := helpers.NewTradingFactory()
+		testTradingPlatform := tradingFactory.WithUserID(testUser.ID)
+		err := repos.Trading.Create(context.Background(), testTradingPlatform)
 		require.NoError(t, err)
 
 		// Setup: Create sub-accounts with starting balances
 		subAccountFactory := helpers.NewSubAccountFactory()
 
 		// ETH account (stock) - has ETH to sell
-		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		ethAccount.Symbol = "ETH"
 		ethAccount.Balance = 5.0 // Starting with 5 ETH
 		err = repos.SubAccount.Create(context.Background(), ethAccount)
 		require.NoError(t, err)
 
 		// USDT account (currency)
-		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		usdtAccount.Symbol = "USDT"
 		usdtAccount.Balance = 1000.0 // Starting with 1,000 USDT
 		err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -139,7 +139,7 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 
 		// Execute: Short position trade
 		request := &services.CreateTradingLogRequest{
-			TradingID: testExchange.ID,
+			TradingID: testTradingPlatform.ID,
 			Type:       "short",
 			Source:     "manual",
 			Message:    "Integration test: ETH short position",
@@ -161,7 +161,7 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 		// Verify: Trading log was created
 		assert.Equal(t, "short", result.Type)
 		assert.Equal(t, testUser.ID, result.UserID)
-		assert.Equal(t, testExchange.ID, result.TradingID)
+		assert.Equal(t, testTradingPlatform.ID, result.TradingID)
 
 		// Verify: Account balances were updated correctly
 		// ETH account should have lost 1.5 ETH
@@ -191,24 +191,24 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("complete_stop_loss_workflow", func(t *testing.T) {
-		// Setup: Create fresh exchange for isolation
-		exchangeFactory := helpers.NewTradingFactory()
-		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testExchange)
+		// Setup: Create fresh trading platform for isolation
+		tradingFactory := helpers.NewTradingFactory()
+		testTradingPlatform := tradingFactory.WithUserID(testUser.ID)
+		err := repos.Trading.Create(context.Background(), testTradingPlatform)
 		require.NoError(t, err)
 
 		// Setup: Create sub-accounts
 		subAccountFactory := helpers.NewSubAccountFactory()
 
 		// ETH account (stock) - has ETH to sell via stop-loss
-		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		ethAccount.Symbol = "ETH"
 		ethAccount.Balance = 3.0 // Starting with 3 ETH
 		err = repos.SubAccount.Create(context.Background(), ethAccount)
 		require.NoError(t, err)
 
 		// USDT account (currency)
-		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		usdtAccount.Symbol = "USDT"
 		usdtAccount.Balance = 500.0 // Starting with 500 USDT
 		err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -216,7 +216,7 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 
 		// Execute: Stop-loss triggered
 		request := &services.CreateTradingLogRequest{
-			TradingID: testExchange.ID,
+			TradingID: testTradingPlatform.ID,
 			Type:       "stop_loss",
 			Source:     "bot",
 			Message:    "Integration test: ETH stop-loss triggered",
@@ -285,23 +285,23 @@ func TestTradingLogService_Integration_ErrorHandling(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("insufficient_balance_real_database", func(t *testing.T) {
-		// Setup: Create exchange and accounts
-		exchangeFactory := helpers.NewTradingFactory()
-		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testExchange)
+		// Setup: Create trading platform and accounts
+		tradingFactory := helpers.NewTradingFactory()
+		testTradingPlatform := tradingFactory.WithUserID(testUser.ID)
+		err := repos.Trading.Create(context.Background(), testTradingPlatform)
 		require.NoError(t, err)
 
 		subAccountFactory := helpers.NewSubAccountFactory()
 
 		// ETH account
-		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		ethAccount.Symbol = "ETH"
 		ethAccount.Balance = 0.0
 		err = repos.SubAccount.Create(context.Background(), ethAccount)
 		require.NoError(t, err)
 
 		// USDT account with insufficient balance
-		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		usdtAccount.Symbol = "USDT"
 		usdtAccount.Balance = 100.0 // Insufficient for trade
 		err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -309,7 +309,7 @@ func TestTradingLogService_Integration_ErrorHandling(t *testing.T) {
 
 		// Attempt: Long position with insufficient funds
 		request := &services.CreateTradingLogRequest{
-			TradingID: testExchange.ID,
+			TradingID: testTradingPlatform.ID,
 			Type:       "long",
 			Source:     "manual",
 			Message:    "Integration test: Insufficient balance",
@@ -356,22 +356,22 @@ func TestTradingLogService_Integration_ErrorHandling(t *testing.T) {
 		err := repos.User.Create(context.Background(), otherUser)
 		require.NoError(t, err)
 
-		// Setup: Create exchange for first user
-		exchangeFactory := helpers.NewTradingFactory()
-		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err = repos.Trading.Create(context.Background(), testExchange)
+		// Setup: Create trading platform for first user
+		tradingFactory := helpers.NewTradingFactory()
+		testTradingPlatform := tradingFactory.WithUserID(testUser.ID)
+		err = repos.Trading.Create(context.Background(), testTradingPlatform)
 		require.NoError(t, err)
 
 		// Setup: Create account for OTHER user
 		subAccountFactory := helpers.NewSubAccountFactory()
-		otherUserAccount := subAccountFactory.WithUserAndTrading(otherUser.ID, testExchange.ID)
+		otherUserAccount := subAccountFactory.WithUserAndTrading(otherUser.ID, testTradingPlatform.ID)
 		otherUserAccount.Symbol = "ETH"
 		otherUserAccount.Balance = 10.0
 		err = repos.SubAccount.Create(context.Background(), otherUserAccount)
 		require.NoError(t, err)
 
 		// Create account for test user
-		testUserAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		testUserAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		testUserAccount.Symbol = "USDT"
 		testUserAccount.Balance = 10000.0
 		err = repos.SubAccount.Create(context.Background(), testUserAccount)
@@ -379,7 +379,7 @@ func TestTradingLogService_Integration_ErrorHandling(t *testing.T) {
 
 		// Attempt: Use other user's account in trading
 		request := &services.CreateTradingLogRequest{
-			TradingID: testExchange.ID,
+			TradingID: testTradingPlatform.ID,
 			Type:       "long",
 			Source:     "manual",
 			Message:    "Integration test: Wrong account ownership",
@@ -427,23 +427,23 @@ func TestTradingLogService_Integration_ConcurrentTransactions(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("concurrent_balance_updates", func(t *testing.T) {
-		// Setup: Create exchange and accounts
-		exchangeFactory := helpers.NewTradingFactory()
-		testExchange := exchangeFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testExchange)
+		// Setup: Create trading platform and accounts
+		tradingFactory := helpers.NewTradingFactory()
+		testTradingPlatform := tradingFactory.WithUserID(testUser.ID)
+		err := repos.Trading.Create(context.Background(), testTradingPlatform)
 		require.NoError(t, err)
 
 		subAccountFactory := helpers.NewSubAccountFactory()
 
 		// ETH account
-		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		ethAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		ethAccount.Symbol = "ETH"
 		ethAccount.Balance = 10.0 // Has ETH to sell
 		err = repos.SubAccount.Create(context.Background(), ethAccount)
 		require.NoError(t, err)
 
 		// USDT account
-		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testExchange.ID)
+		usdtAccount := subAccountFactory.WithUserAndTrading(testUser.ID, testTradingPlatform.ID)
 		usdtAccount.Symbol = "USDT"
 		usdtAccount.Balance = 1000.0
 		err = repos.SubAccount.Create(context.Background(), usdtAccount)
@@ -464,7 +464,7 @@ func TestTradingLogService_Integration_ConcurrentTransactions(t *testing.T) {
 		for i := 0; i < 2; i++ {
 			go func(tradeNum int) {
 				request := &services.CreateTradingLogRequest{
-					TradingID: testExchange.ID,
+					TradingID: testTradingPlatform.ID,
 					Type:       "short",
 					Source:     "manual",
 					Message:    fmt.Sprintf("Concurrent test trade %d", tradeNum),

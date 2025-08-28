@@ -49,7 +49,7 @@ func NewTradingLogHandler(tradingLogService *services.TradingLogService) *Tradin
 // @Description 
 // @Description **Long Position Example:**
 // @Description <pre><code>{
-// @Description ⠀⠀"exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+// @Description ⠀⠀"trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
 // @Description ⠀⠀"type": "long", 
 // @Description ⠀⠀"source": "bot",
 // @Description ⠀⠀"message": "ETH long position opened",
@@ -66,7 +66,7 @@ func NewTradingLogHandler(tradingLogService *services.TradingLogService) *Tradin
 // @Description 
 // @Description **Deposit Example:**
 // @Description <pre><code>{
-// @Description ⠀⠀"exchange_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+// @Description ⠀⠀"trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
 // @Description ⠀⠀"type": "deposit",
 // @Description ⠀⠀"source": "api", 
 // @Description ⠀⠀"message": "USDT deposit to account",
@@ -86,7 +86,7 @@ func NewTradingLogHandler(tradingLogService *services.TradingLogService) *Tradin
 // @Success 201 {object} services.TradingLogResponse
 // @Failure 400 {object} ErrorResponse "Bad Request - Invalid request format, missing required fields, or incorrect 'info' structure for the specified 'type'. Common validation errors: Missing required 'info' fields for business logic types, Invalid data types or values in 'info' fields, Non-existent sub-account IDs referenced in 'info' fields"
 // @Failure 401 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse "Not Found - Exchange ID or sub-account IDs referenced in 'info' field do not exist"
+// @Failure 404 {object} ErrorResponse "Not Found - Trading Platform ID or sub-account IDs referenced in 'info' field do not exist"
 // @Failure 422 {object} ErrorResponse "Unprocessable Entity - Business logic validation failed (e.g., insufficient balance for withdraw operations)"
 // @Failure 500 {object} ErrorResponse
 // @Router /trading-logs [post]
@@ -117,8 +117,8 @@ func (h *TradingLogHandler) CreateTradingLog(c *gin.Context) {
 	if err != nil {
 		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
-				"EXCHANGE_NOT_FOUND",
-				"Exchange not found",
+				"TRADING_NOT_FOUND",
+				"Trading platform not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -306,13 +306,13 @@ func (h *TradingLogHandler) GetSubAccountTradingLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, CreateSuccessResponse(tradingLogs, getTraceID(c)))
 }
 
-// GetExchangeTradingLogs retrieves trading logs for a specific exchange
-// @Summary Get exchange trading logs
-// @Description Retrieves trading log history for a specific exchange (must belong to authenticated user)
+// GetTradingLogs retrieves trading logs for a specific trading platform
+// @Summary Get trading platform logs
+// @Description Retrieves trading log history for a specific trading platform (must belong to authenticated user)
 // @Tags TradingLogs
 // @Produce json
 // @Security BearerAuth
-// @Param exchange_id path string true "Exchange ID"
+// @Param trading_id path string true "Trading Platform ID"
 // @Param type query string false "Filter by log type"
 // @Param source query string false "Filter by source" Enums(manual, bot)
 // @Param start_date query string false "Start date (RFC3339 format)"
@@ -324,8 +324,8 @@ func (h *TradingLogHandler) GetSubAccountTradingLogs(c *gin.Context) {
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /trading-logs/exchange/{exchange_id} [get]
-func (h *TradingLogHandler) GetExchangeTradingLogs(c *gin.Context) {
+// @Router /trading-logs/trading/{trading_id} [get]
+func (h *TradingLogHandler) GetTradingLogs(c *gin.Context) {
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, CreateErrorResponse(
@@ -337,12 +337,12 @@ func (h *TradingLogHandler) GetExchangeTradingLogs(c *gin.Context) {
 		return
 	}
 
-	exchangeIDStr := c.Param("exchange_id")
-	exchangeID, err := uuid.Parse(exchangeIDStr)
+	tradingIDStr := c.Param("trading_id")
+	tradingID, err := uuid.Parse(tradingIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
-			"INVALID_EXCHANGE_ID",
-			"Invalid exchange ID format",
+			"INVALID_TRADING_ID",
+			"Invalid trading platform ID format",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -360,12 +360,12 @@ func (h *TradingLogHandler) GetExchangeTradingLogs(c *gin.Context) {
 		return
 	}
 
-	tradingLogs, err := h.tradingLogService.GetExchangeTradingLogs(c.Request.Context(), userID, exchangeID, &req)
+	tradingLogs, err := h.tradingLogService.GetTradingLogs(c.Request.Context(), userID, tradingID, &req)
 	if err != nil {
 		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
-				"EXCHANGE_NOT_FOUND",
-				"Exchange not found",
+				"TRADING_NOT_FOUND",
+				"Trading platform not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -383,7 +383,7 @@ func (h *TradingLogHandler) GetExchangeTradingLogs(c *gin.Context) {
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRADING_LOGS_QUERY_FAILED",
-			"Failed to query exchange trading logs",
+			"Failed to query trading platform trading logs",
 			err.Error(),
 			getTraceID(c),
 		))

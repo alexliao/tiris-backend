@@ -147,7 +147,7 @@ func (suite *PerformanceTestSuite) cleanDatabase() {
 	db := suite.db.DB
 	
 	tables := []string{
-		"trading_logs", "transactions", "sub_accounts", "exchanges", 
+		"trading_logs", "transactions", "sub_accounts", "tradings", 
 		"oauth_tokens", "users",
 	}
 	
@@ -383,11 +383,11 @@ func (suite *PerformanceTestSuite) TestAuthenticationPerformance() {
 // Test Database Read Performance
 func (suite *PerformanceTestSuite) TestDatabaseReadPerformance() {
 	// First create some test data
-	suite.createTestExchanges(50)
+	suite.createTestTradingPlatforms(50)
 
 	metrics := suite.runLoadTest("Database Reads", 25, 500, func(reqNum int) *httptest.ResponseRecorder {
 		tokenIndex := reqNum % len(suite.userTokens)
-		return suite.makeRequest("GET", "/v1/exchanges", nil, suite.userTokens[tokenIndex])
+		return suite.makeRequest("GET", "/v1/tradings", nil, suite.userTokens[tokenIndex])
 	})
 
 	suite.T().Run("db_read_performance_assertions", func(t *testing.T) {
@@ -404,12 +404,12 @@ func (suite *PerformanceTestSuite) TestDatabaseWritePerformance() {
 		tokenIndex := reqNum % len(suite.userTokens)
 		
 		createRequest := map[string]interface{}{
-			"name":         fmt.Sprintf("PerfExchange_%d", reqNum),
-			"display_name": fmt.Sprintf("Performance Exchange %d", reqNum),
-			"description":  "Performance test exchange",
+			"name":         fmt.Sprintf("PerfTradingPlatform_%d", reqNum),
+			"display_name": fmt.Sprintf("Performance Trading Platform %d", reqNum),
+			"description":  "Performance test trading",
 		}
 
-		return suite.makeRequest("POST", "/v1/exchanges", createRequest, suite.userTokens[tokenIndex])
+		return suite.makeRequest("POST", "/v1/tradings", createRequest, suite.userTokens[tokenIndex])
 	})
 
 	suite.T().Run("db_write_performance_assertions", func(t *testing.T) {
@@ -482,7 +482,7 @@ func (suite *PerformanceTestSuite) TestConcurrentUserLoad() {
 					// Mix of read operations
 					operations := []string{
 						"/v1/users/me",
-						"/v1/exchanges",
+						"/v1/tradings",
 						"/v1/sub-accounts",
 						"/v1/users/me/stats",
 					}
@@ -512,11 +512,11 @@ func (suite *PerformanceTestSuite) TestConcurrentUserLoad() {
 					
 					createRequest := map[string]interface{}{
 						"name":         fmt.Sprintf("MixedLoad_%d_%d", workerID, time.Now().Unix()),
-						"display_name": fmt.Sprintf("Mixed Load Exchange %d", workerID),
-						"description":  "Mixed load test exchange",
+						"display_name": fmt.Sprintf("Mixed Load Trading Platform %d", workerID),
+						"description":  "Mixed load test trading",
 					}
 					
-					resp := suite.makeRequest("POST", "/v1/exchanges", createRequest, suite.userTokens[tokenIndex])
+					resp := suite.makeRequest("POST", "/v1/tradings", createRequest, suite.userTokens[tokenIndex])
 					
 					totalRequests++
 					if resp.Code >= 200 && resp.Code < 300 {
@@ -587,46 +587,46 @@ func (suite *PerformanceTestSuite) TestResourceManagement() {
 
 // Helper methods to create test data
 
-func (suite *PerformanceTestSuite) createTestExchanges(count int) {
+func (suite *PerformanceTestSuite) createTestTradingPlatforms(count int) {
 	for i := 0; i < count; i++ {
 		userIndex := i % len(suite.userIDs)
 		
-		exchange := &models.Trading{
+		trading := &models.Trading{
 			UserID:    suite.userIDs[userIndex],
-			Name:      fmt.Sprintf("PerfTestExchange_%d", i),
+			Name:      fmt.Sprintf("PerfTestTradingPlatform_%d", i),
 			Type:      "spot",
 			APIKey:    "test_api_key",
 			APISecret: "test_api_secret",
 			Status:    "active",
 		}
 		
-		suite.repos.Trading.Create(context.Background(), exchange)
+		suite.repos.Trading.Create(context.Background(), trading)
 	}
 }
 
-func (suite *PerformanceTestSuite) createTestDataWithRelationships(exchangesPerUser int) {
+func (suite *PerformanceTestSuite) createTestDataWithRelationships(tradingsPerUser int) {
 	for i, userID := range suite.userIDs[:10] { // Use first 10 users
-		// Create exchanges
-		for j := 0; j < exchangesPerUser; j++ {
-			exchange := &models.Trading{
+		// Create tradings
+		for j := 0; j < tradingsPerUser; j++ {
+			trading := &models.Trading{
 				UserID:    userID,
-				Name:      fmt.Sprintf("ComplexExchange_%d_%d", i, j),
+				Name:      fmt.Sprintf("ComplexTradingPlatform_%d_%d", i, j),
 				Type:      "spot",
 				APIKey:    "test_api_key",
 				APISecret: "test_api_secret",
 				Status:    "active",
 			}
 			
-			err := suite.repos.Trading.Create(context.Background(), exchange)
+			err := suite.repos.Trading.Create(context.Background(), trading)
 			if err != nil {
 				continue
 			}
 			
-			// Create sub-accounts for each exchange
+			// Create sub-accounts for each trading
 			for k := 0; k < 3; k++ {
 				subAccount := &models.SubAccount{
 					UserID:     userID,
-					TradingID: exchange.ID,
+					TradingID: trading.ID,
 					Name:       fmt.Sprintf("SubAccount_%d_%d_%d", i, j, k),
 					Symbol:     fmt.Sprintf("SYM%d%d%d", i, j, k),
 					Balance:    float64(rand.Intn(10000)),

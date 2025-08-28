@@ -59,12 +59,12 @@ type UpdateBalanceRequest struct {
 
 // CreateSubAccount creates a new sub-account
 func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UUID, req *CreateSubAccountRequest) (*SubAccountResponse, error) {
-	// Verify user owns the exchange
-	exchange, err := s.repos.Trading.GetByID(ctx, req.TradingID)
+	// Verify user owns the trading platform
+	trading, err := s.repos.Trading.GetByID(ctx, req.TradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify exchange: %w", err)
+		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
 	}
-	if exchange == nil || exchange.UserID != userID {
+	if trading == nil || trading.UserID != userID {
 		return nil, fmt.Errorf("trading platform not found")
 	}
 
@@ -72,7 +72,7 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 	infoMap := map[string]interface{}{
 		"created_by":    "api",
 		"api_version":   "v1",
-		"exchange_type": exchange.Type,
+		"trading_type": trading.Type,
 	}
 
 	// Create sub-account model
@@ -99,19 +99,19 @@ func (s *SubAccountService) CreateSubAccount(ctx context.Context, userID uuid.UU
 }
 
 // GetUserSubAccounts retrieves all sub-accounts for a user
-func (s *SubAccountService) GetUserSubAccounts(ctx context.Context, userID uuid.UUID, exchangeID *uuid.UUID) ([]*SubAccountResponse, error) {
-	// If exchangeID is provided, verify user owns it
-	if exchangeID != nil {
-		exchange, err := s.repos.Trading.GetByID(ctx, *exchangeID)
+func (s *SubAccountService) GetUserSubAccounts(ctx context.Context, userID uuid.UUID, tradingID *uuid.UUID) ([]*SubAccountResponse, error) {
+	// If tradingID is provided, verify user owns it
+	if tradingID != nil {
+		trading, err := s.repos.Trading.GetByID(ctx, *tradingID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to verify exchange: %w", err)
+			return nil, fmt.Errorf("failed to verify trading platform: %w", err)
 		}
-		if exchange == nil || exchange.UserID != userID {
+		if trading == nil || trading.UserID != userID {
 			return nil, fmt.Errorf("trading platform not found")
 		}
 	}
 
-	subAccounts, err := s.repos.SubAccount.GetByUserID(ctx, userID, exchangeID)
+	subAccounts, err := s.repos.SubAccount.GetByUserID(ctx, userID, tradingID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user sub-accounts: %w", err)
 	}

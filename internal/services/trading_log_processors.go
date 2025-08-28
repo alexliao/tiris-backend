@@ -69,12 +69,12 @@ func (p *TradingLogProcessor) ProcessTradingLog(ctx context.Context, db *gorm.DB
 
 // processBusinessLogicType handles long, short, and stop_loss trading log types
 func (p *TradingLogProcessor) processBusinessLogicType(ctx context.Context, tx *gorm.DB, userID uuid.UUID, req *CreateTradingLogRequest, tradingInfo *TradingLogInfo) (*ProcessingResult, error) {
-	// Verify exchange ownership
-	exchange, err := p.repos.Trading.GetByID(ctx, req.TradingID)
+	// Verify trading ownership
+	trading, err := p.repos.Trading.GetByID(ctx, req.TradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify exchange: %w", err)
+		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
 	}
-	if exchange == nil || exchange.UserID != userID {
+	if trading == nil || trading.UserID != userID {
 		return nil, fmt.Errorf("trading platform not found")
 	}
 
@@ -413,12 +413,12 @@ func (p *TradingLogProcessor) ProcessWithdraw(ctx context.Context, tradingInfo *
 
 // createSimpleTradingLog creates a trading log without business logic processing
 func (p *TradingLogProcessor) createSimpleTradingLog(ctx context.Context, db *gorm.DB, userID uuid.UUID, req *CreateTradingLogRequest) (*ProcessingResult, error) {
-	// Verify exchange ownership
-	exchange, err := p.repos.Trading.GetByID(ctx, req.TradingID)
+	// Verify trading ownership
+	trading, err := p.repos.Trading.GetByID(ctx, req.TradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify exchange: %w", err)
+		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
 	}
-	if exchange == nil || exchange.UserID != userID {
+	if trading == nil || trading.UserID != userID {
 		return nil, fmt.Errorf("trading platform not found")
 	}
 
@@ -452,7 +452,7 @@ func (p *TradingLogProcessor) createSimpleTradingLog(ctx context.Context, db *go
 	// Add metadata
 	infoMap["created_by"] = "api"
 	infoMap["api_version"] = "v1"
-	infoMap["exchange_type"] = exchange.Type
+	infoMap["trading_type"] = trading.Type
 
 	// Create trading log model
 	tradingLog := &models.TradingLog{

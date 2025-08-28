@@ -180,13 +180,13 @@ func (h *TransactionHandler) GetSubAccountTransactions(c *gin.Context) {
 	c.JSON(http.StatusOK, CreateSuccessResponse(transactions, getTraceID(c)))
 }
 
-// GetExchangeTransactions retrieves transactions for a specific exchange
-// @Summary Get exchange transactions
-// @Description Retrieves transaction history for a specific exchange (must belong to authenticated user)
+// GetTradingTransactions retrieves transactions for a specific trading platform
+// @Summary Get trading platform transactions
+// @Description Retrieves transaction history for a specific trading platform (must belong to authenticated user)
 // @Tags Transactions
 // @Produce json
 // @Security BearerAuth
-// @Param exchange_id path string true "Exchange ID"
+// @Param trading_id path string true "Trading Platform ID"
 // @Param direction query string false "Filter by direction" Enums(debit, credit)
 // @Param reason query string false "Filter by reason"
 // @Param start_date query string false "Start date (RFC3339 format)"
@@ -200,8 +200,8 @@ func (h *TransactionHandler) GetSubAccountTransactions(c *gin.Context) {
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /transactions/exchange/{exchange_id} [get]
-func (h *TransactionHandler) GetExchangeTransactions(c *gin.Context) {
+// @Router /transactions/trading/{trading_id} [get]
+func (h *TransactionHandler) GetTradingTransactions(c *gin.Context) {
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, CreateErrorResponse(
@@ -213,12 +213,12 @@ func (h *TransactionHandler) GetExchangeTransactions(c *gin.Context) {
 		return
 	}
 
-	exchangeIDStr := c.Param("exchange_id")
-	exchangeID, err := uuid.Parse(exchangeIDStr)
+	tradingIDStr := c.Param("trading_id")
+	tradingID, err := uuid.Parse(tradingIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, CreateErrorResponse(
-			"INVALID_EXCHANGE_ID",
-			"Invalid exchange ID format",
+			"INVALID_TRADING_ID",
+			"Invalid trading platform ID format",
 			err.Error(),
 			getTraceID(c),
 		))
@@ -236,12 +236,12 @@ func (h *TransactionHandler) GetExchangeTransactions(c *gin.Context) {
 		return
 	}
 
-	transactions, err := h.transactionService.GetExchangeTransactions(c.Request.Context(), userID, exchangeID, &req)
+	transactions, err := h.transactionService.GetTradingTransactions(c.Request.Context(), userID, tradingID, &req)
 	if err != nil {
 		if err.Error() == "trading platform not found" {
 			c.JSON(http.StatusNotFound, CreateErrorResponse(
-				"EXCHANGE_NOT_FOUND",
-				"Exchange not found",
+				"TRADING_NOT_FOUND",
+				"Trading platform not found",
 				err.Error(),
 				getTraceID(c),
 			))
@@ -260,7 +260,7 @@ func (h *TransactionHandler) GetExchangeTransactions(c *gin.Context) {
 
 		c.JSON(http.StatusInternalServerError, CreateErrorResponse(
 			"TRANSACTIONS_QUERY_FAILED",
-			"Failed to query exchange transactions",
+			"Failed to query trading platform transactions",
 			err.Error(),
 			getTraceID(c),
 		))

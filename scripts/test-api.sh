@@ -4,8 +4,8 @@
 # 
 # This script performs basic API testing for manual use:
 # 1. Show user profile
-# 2. Add a Binance exchange for the user (or get existing one if it already exists)
-# 3. Add a sub-account to the exchange (or get existing one if it already exists)
+# 2. Add a Binance trading platform for the user (or get existing one if it already exists)
+# 3. Add a sub-account to the trading platform (or get existing one if it already exists)
 # 4. Initialize sub-account balance using deposit trading log (demonstrates business logic)
 # 5. Retrieve transaction records to show automatic audit trail from deposit
 # 6. Add a trading log entry (long position with business logic processing)
@@ -475,7 +475,7 @@ AUTH_HEADER="Authorization: Bearer $JWT_TOKEN"
 
 # Test status tracking
 USER_PROFILE_SUCCESS=false
-EXCHANGE_SUCCESS=false
+TRADING_PLATFORM_SUCCESS=false
 SUBACCOUNT_SUCCESS=false
 ETH_SUBACCOUNT_SUCCESS=false
 DEPOSIT_SUCCESS=false
@@ -496,7 +496,7 @@ cleanup_database() {
     echo "- Trading logs"
     echo "- Transactions (automatically deleted with sub-accounts)" 
     echo "- Sub-accounts"
-    echo "- Exchanges"
+    echo "- Trading Platforms"
     echo ""
     echo "Note: User accounts themselves are NOT deleted"
     echo ""
@@ -527,7 +527,7 @@ cleanup_database() {
     echo "Note: The cleanup process uses modern trading log business logic:"
     echo "- Bot-generated trading logs cannot be deleted (API restriction)"
     echo "- Sub-accounts are zeroed using withdraw trading logs (business logic)"
-    echo "- Exchanges can only be deleted after all sub-accounts are removed"
+    echo "- Trading platforms can only be deleted after all sub-accounts are removed"
     echo ""
     
     # Check server connectivity before cleanup
@@ -606,14 +606,14 @@ cleanup_database() {
             account_id=$(echo "$account" | jq -r '.id')
             account_name=$(echo "$account" | jq -r '.name')
             account_symbol=$(echo "$account" | jq -r '.symbol')
-            account_exchange_id=$(echo "$account" | jq -r '.exchange_id')
+            account_trading_id=$(echo "$account" | jq -r '.trading_id')
             balance=$(echo "$account" | jq -r '.balance')
             
             # Check if balance is greater than 0 using awk
             if [ -n "$account_id" ] && [ "$account_id" != "null" ] && [ "$(echo "$balance" | awk '{print ($1 > 0)}')" = "1" ]; then
                 echo "  Withdrawing all funds from account: $account_name (Balance: $balance $account_symbol)"
                 
-                WITHDRAW_PAYLOAD="{\"exchange_id\": \"$account_exchange_id\", \"type\": \"withdraw\", \"source\": \"api\", \"message\": \"Withdraw all funds for account cleanup: $account_name\", \"info\": {\"account_id\": \"$account_id\", \"amount\": $balance, \"currency\": \"$account_symbol\"}}"
+                WITHDRAW_PAYLOAD="{\"trading_id\": \"$account_trading_id\", \"type\": \"withdraw\", \"source\": \"api\", \"message\": \"Withdraw all funds for account cleanup: $account_name\", \"info\": {\"account_id\": \"$account_id\", \"amount\": $balance, \"currency\": \"$account_symbol\"}}"
                 ZERO_RESPONSE=$(curl -s -X POST \
                     -H "$AUTH_HEADER" \
                     -H "$CONTENT_HEADER" \
@@ -648,29 +648,29 @@ cleanup_database() {
         echo "No sub-accounts found or failed to fetch"
     fi
     
-    # Step 4: Delete all exchanges for this user
-    print_header "🔄 Cleaning Exchanges"
-    echo "Fetching exchanges to delete..."
+    # Step 4: Delete all trading platforms for this user
+    print_header "🔄 Cleaning Trading Platforms"
+    echo "Fetching trading platforms to delete..."
     
-    EXCHANGES_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/exchanges")
-    if echo "$EXCHANGES_RESPONSE" | jq -e '.success == true and .data.exchanges' > /dev/null 2>&1; then
-        EXCHANGE_COUNT=$(echo "$EXCHANGES_RESPONSE" | jq -r '.data.exchanges | length')
-        echo "Found $EXCHANGE_COUNT exchange(s) to delete"
+    TRADING_PLATFORMS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/v1/tradings")
+    if echo "$TRADING_PLATFORMS_RESPONSE" | jq -e '.success == true and .data.tradings' > /dev/null 2>&1; then
+        TRADING_PLATFORM_COUNT=$(echo "$TRADING_PLATFORMS_RESPONSE" | jq -r '.data.tradings | length')
+        echo "Found $TRADING_PLATFORM_COUNT trading platform(s) to delete"
         
-        # Delete each exchange
-        echo "$EXCHANGES_RESPONSE" | jq -r '.data.exchanges[].id' | while read -r exchange_id; do
-            if [ -n "$exchange_id" ] && [ "$exchange_id" != "null" ]; then
-                DELETE_RESPONSE=$(curl -s -X DELETE -H "$AUTH_HEADER" "$BASE_URL/exchanges/$exchange_id")
+        # Delete each trading platform
+        echo "$TRADING_PLATFORMS_RESPONSE" | jq -r '.data.tradings[].id' | while read -r trading_id; do
+            if [ -n "$trading_id" ] && [ "$trading_id" != "null" ]; then
+                DELETE_RESPONSE=$(curl -s -X DELETE -H "$AUTH_HEADER" "$BASE_URL/v1/tradings/$trading_id")
                 if echo "$DELETE_RESPONSE" | jq -e '.success == true' > /dev/null 2>&1; then
-                    echo "  ✅ Deleted exchange: $exchange_id"
+                    echo "  ✅ Deleted trading platform: $trading_id"
                 else
-                    echo "  ❌ Failed to delete exchange: $exchange_id"
+                    echo "  ❌ Failed to delete trading platform: $trading_id"
                     echo "     Response: $(echo "$DELETE_RESPONSE" | jq -c '.')"
                 fi
             fi
         done
     else
-        echo "No exchanges found or failed to fetch"
+        echo "No trading platforms found or failed to fetch"
     fi
     
     echo ""
@@ -761,12 +761,12 @@ else
     echo -e "${RED}❌ User profile test failed - this may affect subsequent tests${NC}"
 fi
 
-# Test 2: Add Binance Exchange or Get Binance Exchange
-print_header "🏦 Adding Binance Exchange"
-echo "Endpoint: POST /v1/exchanges"
+# Test 2: Add Binance Trading Platform or Get Binance Trading Platform
+print_header "🏦 Adding Binance Trading Platform"
+echo "Endpoint: POST /v1/tradings"
 echo ""
 
-# Generate unique API credentials to avoid conflicts (but use fixed exchange name)
+# Generate unique API credentials to avoid conflicts (but use fixed trading platform name)
 TIMESTAMP=$(date +%s)
 KRAKEN_PAYLOAD='{
   "name": "My Binance",
@@ -784,54 +784,54 @@ KRAKEN_RESPONSE=$(curl -s -X POST \
   -H "$AUTH_HEADER" \
   -H "$CONTENT_HEADER" \
   -d "$KRAKEN_PAYLOAD" \
-  "$BASE_URL/exchanges")
+  "$BASE_URL/v1/tradings")
 
 echo "$KRAKEN_RESPONSE" | jq . 2>/dev/null || echo "$KRAKEN_RESPONSE"
 
 if echo "$KRAKEN_RESPONSE" | jq -e '.success == true and .data.id' > /dev/null 2>&1; then
-    EXCHANGE_ID=$(echo "$KRAKEN_RESPONSE" | jq -r '.data.id')
-    echo -e "${GREEN}✅ Binance exchange created successfully${NC}"
-    echo "Exchange ID: $EXCHANGE_ID"
-    EXCHANGE_SUCCESS=true
+    TRADING_PLATFORM_ID=$(echo "$KRAKEN_RESPONSE" | jq -r '.data.id')
+    echo -e "${GREEN}✅ Binance trading platform created successfully${NC}"
+    echo "Trading Platform ID: $TRADING_PLATFORM_ID"
+    TRADING_PLATFORM_SUCCESS=true
 else
-    echo "❌ Binance exchange creation failed, trying to get existing exchange"
+    echo "❌ Binance trading platform creation failed, trying to get existing trading platform"
     
-    print_header "🔍 Getting Existing Binance Exchange"
-    echo "Endpoint: GET /v1/exchanges"
+    print_header "🔍 Getting Existing Binance Trading Platform"
+    echo "Endpoint: GET /v1/tradings"
     echo ""
     
-    EXCHANGES_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/exchanges")
-    echo "All exchanges response:"
-    echo "$EXCHANGES_RESPONSE" | jq . 2>/dev/null || echo "$EXCHANGES_RESPONSE"
+    TRADING_PLATFORMS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/v1/tradings")
+    echo "All trading platforms response:"
+    echo "$TRADING_PLATFORMS_RESPONSE" | jq . 2>/dev/null || echo "$TRADING_PLATFORMS_RESPONSE"
     echo ""
     
-    # Extract the first Binance exchange ID
-    EXCHANGE_ID=$(echo "$EXCHANGES_RESPONSE" | jq -r '.data.exchanges[] | select(.type == "binance") | .id' | head -1)
+    # Extract the first Binance trading platform ID
+    TRADING_PLATFORM_ID=$(echo "$TRADING_PLATFORMS_RESPONSE" | jq -r '.data.tradings[] | select(.type == "binance") | .id' | head -1)
     
-    if [ -n "$EXCHANGE_ID" ] && [ "$EXCHANGE_ID" != "null" ]; then
-        echo -e "${GREEN}✅ Found existing Binance exchange${NC}"
-        echo "Exchange ID: $EXCHANGE_ID"
-        EXCHANGE_SUCCESS=true
+    if [ -n "$TRADING_PLATFORM_ID" ] && [ "$TRADING_PLATFORM_ID" != "null" ]; then
+        echo -e "${GREEN}✅ Found existing Binance trading platform${NC}"
+        echo "Trading Platform ID: $TRADING_PLATFORM_ID"
+        TRADING_PLATFORM_SUCCESS=true
         
-        # Get specific exchange details
+        # Get specific trading platform details
         echo ""
-        echo "Getting exchange details:"
-        KRAKEN_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/exchanges/$EXCHANGE_ID")
+        echo "Getting trading platform details:"
+        KRAKEN_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/v1/tradings/$TRADING_PLATFORM_ID")
         echo "$KRAKEN_DETAILS" | jq . 2>/dev/null || echo "$KRAKEN_DETAILS"
     else
-        echo "❌ No existing Binance exchange found"
-        EXCHANGE_SUCCESS=false
-        echo "⚠️ Continuing without exchange - remaining tests will likely fail"
+        echo "❌ No existing Binance trading platform found"
+        TRADING_PLATFORM_SUCCESS=false
+        echo "⚠️ Continuing without trading platform - remaining tests will likely fail"
     fi
 fi
 
-# Test 3: Add a sub-account to the Binance exchange or get the first existing sub-account
-print_header "👤 Adding Sub-Account to Binance Exchange"
+# Test 3: Add a sub-account to the Binance trading platform or get the first existing sub-account
+print_header "👤 Adding Sub-Account to Binance Trading Platform"
 echo "Endpoint: POST /v1/sub-accounts"
 echo ""
 
 SUB_ACCOUNT_PAYLOAD='{
-  "exchange_id": "'$EXCHANGE_ID'",
+  "trading_id": "'$TRADING_PLATFORM_ID'",
   "name": "Trade 1",
   "symbol": "USDT"
 }'
@@ -866,11 +866,11 @@ else
     echo "$SUB_ACCOUNTS_RESPONSE" | jq . 2>/dev/null || echo "$SUB_ACCOUNTS_RESPONSE"
     echo ""
     
-    # Extract the USDT sub-account ID for the current exchange
-    SUB_ACCOUNT_ID=$(echo "$SUB_ACCOUNTS_RESPONSE" | jq -r --arg exchange_id "$EXCHANGE_ID" '.data.sub_accounts[] | select(.exchange_id == $exchange_id and .symbol == "USDT") | .id' | head -1)
+    # Extract the USDT sub-account ID for the current trading platform
+    SUB_ACCOUNT_ID=$(echo "$SUB_ACCOUNTS_RESPONSE" | jq -r --arg trading_id "$TRADING_PLATFORM_ID" '.data.sub_accounts[] | select(.trading_id == $trading_id and .symbol == "USDT") | .id' | head -1)
     
     if [ -n "$SUB_ACCOUNT_ID" ] && [ "$SUB_ACCOUNT_ID" != "null" ]; then
-        echo -e "${GREEN}✅ Found existing sub-account for this exchange${NC}"
+        echo -e "${GREEN}✅ Found existing sub-account for this trading platform${NC}"
         echo "Sub-Account ID: $SUB_ACCOUNT_ID"
         SUBACCOUNT_SUCCESS=true
         
@@ -880,7 +880,7 @@ else
         SUB_ACCOUNT_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/sub-accounts/$SUB_ACCOUNT_ID")
         echo "$SUB_ACCOUNT_DETAILS" | jq . 2>/dev/null || echo "$SUB_ACCOUNT_DETAILS"
     else
-        echo "❌ No existing sub-accounts found for this exchange"
+        echo "❌ No existing sub-accounts found for this trading platform"
         SUBACCOUNT_SUCCESS=false
         echo "⚠️ Continuing without sub-account - remaining tests will likely fail"
     fi
@@ -892,7 +892,7 @@ echo "Endpoint: POST /v1/sub-accounts"
 echo ""
 
 ETH_SUB_ACCOUNT_PAYLOAD='{
-  "exchange_id": "'$EXCHANGE_ID'",
+  "trading_id": "'$TRADING_PLATFORM_ID'",
   "name": "ETH Trading Account",
   "symbol": "ETH"
 }'
@@ -920,7 +920,7 @@ else
     
     # Try to find existing ETH sub-account
     SUB_ACCOUNTS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/sub-accounts")
-    ETH_SUB_ACCOUNT_ID=$(echo "$SUB_ACCOUNTS_RESPONSE" | jq -r --arg exchange_id "$EXCHANGE_ID" '.data.sub_accounts[] | select(.exchange_id == $exchange_id and .symbol == "ETH") | .id' | head -1)
+    ETH_SUB_ACCOUNT_ID=$(echo "$SUB_ACCOUNTS_RESPONSE" | jq -r --arg trading_id "$TRADING_PLATFORM_ID" '.data.sub_accounts[] | select(.trading_id == $trading_id and .symbol == "ETH") | .id' | head -1)
     
     if [ -n "$ETH_SUB_ACCOUNT_ID" ] && [ "$ETH_SUB_ACCOUNT_ID" != "null" ]; then
         echo -e "${GREEN}✅ Found existing ETH sub-account${NC}"
@@ -940,7 +940,7 @@ echo "This replaces the obsolete balance API with proper business logic"
 echo ""
 
 DEPOSIT_PAYLOAD='{
-  "exchange_id": "'$EXCHANGE_ID'",
+  "trading_id": "'$TRADING_PLATFORM_ID'",
   "type": "deposit",
   "source": "manual",
   "message": "Initial USDT deposit for testing - sufficient for trading",
@@ -1029,7 +1029,7 @@ echo ""
 
 if [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ -n "$ETH_SUB_ACCOUNT_ID" ] && [ -n "$SUB_ACCOUNT_ID" ]; then
     TRADING_LOG_PAYLOAD='{ 
-      "exchange_id": "'$EXCHANGE_ID'",
+      "trading_id": "'$TRADING_PLATFORM_ID'",
       "type": "long",
       "source": "bot", 
       "message": "ETH long position: 2.0 ETH @ $3000 (fee: $12)",
@@ -1046,7 +1046,7 @@ if [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ -n "$ETH_SUB_ACCOUNT_ID" ] && [ -n 
 else
     echo "⚠️ ETH sub-account not available, using fallback trading log without business logic"
     TRADING_LOG_PAYLOAD='{ 
-      "exchange_id": "'$EXCHANGE_ID'",
+      "trading_id": "'$TRADING_PLATFORM_ID'",
       "sub_account_id": "'$SUB_ACCOUNT_ID'",
       "type": "trade",
       "source": "bot", 
@@ -1193,10 +1193,10 @@ else
     echo "❌ User profile test failed"
 fi
 
-if [ "$EXCHANGE_SUCCESS" = true ]; then
-    echo "✅ Binance exchange test completed successfully"
+if [ "$TRADING_PLATFORM_SUCCESS" = true ]; then
+    echo "✅ Binance trading platform test completed successfully"
 else
-    echo "❌ Binance exchange test failed"
+    echo "❌ Binance trading platform test failed"
 fi
 
 if [ "$SUBACCOUNT_SUCCESS" = true ]; then
@@ -1234,7 +1234,7 @@ fi
 echo ""
 
 # Overall test result summary
-if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$EXCHANGE_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$DEPOSIT_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
+if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$TRADING_PLATFORM_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$DEPOSIT_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
     echo -e "${GREEN}🎉 All tests completed successfully!${NC}"
 else
     echo -e "${RED}⚠️ Some tests failed. Check the output above for details.${NC}"
@@ -1260,7 +1260,7 @@ echo "- Use --domain option to test different environments (localhost:8080, back
 
 # Final status summary for human review
 echo ""
-if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$EXCHANGE_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$DEPOSIT_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
+if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$TRADING_PLATFORM_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$DEPOSIT_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
     echo -e "${GREEN}🎯 All tests completed successfully!${NC}"
     echo -e "${GREEN}✅ The API and business logic are working correctly.${NC}"
 else
@@ -1269,8 +1269,8 @@ else
     if [ "$USER_PROFILE_SUCCESS" != true ]; then
         echo "  • User profile: ❌ Failed"
     fi
-    if [ "$EXCHANGE_SUCCESS" != true ]; then
-        echo "  • Exchange management: ❌ Failed" 
+    if [ "$TRADING_PLATFORM_SUCCESS" != true ]; then
+        echo "  • Trading platform management: ❌ Failed" 
     fi
     if [ "$SUBACCOUNT_SUCCESS" != true ]; then
         echo "  • USDT sub-account: ❌ Failed"

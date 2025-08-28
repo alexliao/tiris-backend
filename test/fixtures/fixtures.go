@@ -93,7 +93,7 @@ var TradingFixtures = struct {
 	TestTrading: &models.Trading{
 		ID:        uuid.MustParse("223e4567-e89b-12d3-a456-426614174002"),
 		UserID:    UserFixtures.AdminUser.ID,
-		Name:      "test_exchange",
+		Name:      "test_trading",
 		Type:      "futures",
 		APIKey:    "test_api_key",
 		APISecret: "test_secret_key",

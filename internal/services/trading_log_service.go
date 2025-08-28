@@ -222,14 +222,14 @@ func (s *TradingLogService) GetSubAccountTradingLogs(ctx context.Context, userID
 	}, nil
 }
 
-// GetExchangeTradingLogs retrieves trading logs for a specific exchange
-func (s *TradingLogService) GetExchangeTradingLogs(ctx context.Context, userID, exchangeID uuid.UUID, req *TradingLogQueryRequest) (*TradingLogQueryResponse, error) {
-	// Verify user owns the exchange
-	exchange, err := s.repos.Trading.GetByID(ctx, exchangeID)
+// GetTradingLogs retrieves trading logs for a specific trading platform
+func (s *TradingLogService) GetTradingLogs(ctx context.Context, userID, tradingID uuid.UUID, req *TradingLogQueryRequest) (*TradingLogQueryResponse, error) {
+	// Verify user owns the trading platform
+	trading, err := s.repos.Trading.GetByID(ctx, tradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify exchange: %w", err)
+		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
 	}
-	if exchange == nil || exchange.UserID != userID {
+	if trading == nil || trading.UserID != userID {
 		return nil, fmt.Errorf("trading platform not found")
 	}
 
@@ -254,9 +254,9 @@ func (s *TradingLogService) GetExchangeTradingLogs(ctx context.Context, userID, 
 	}
 
 	// Query trading logs
-	tradingLogs, total, err := s.repos.TradingLog.GetByTradingID(ctx, exchangeID, filters)
+	tradingLogs, total, err := s.repos.TradingLog.GetByTradingID(ctx, tradingID, filters)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get exchange trading logs: %w", err)
+		return nil, fmt.Errorf("failed to get trading logs: %w", err)
 	}
 
 	// Convert to response format

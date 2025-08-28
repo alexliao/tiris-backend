@@ -39,11 +39,11 @@ const (
 	ActionUserDelete AuditAction = "user.delete"
 	ActionUserView   AuditAction = "user.view"
 
-	// Exchange management actions
-	ActionExchangeCreate AuditAction = "exchange.create"
-	ActionExchangeUpdate AuditAction = "exchange.update"
-	ActionExchangeDelete AuditAction = "exchange.delete"
-	ActionExchangeView   AuditAction = "exchange.view"
+	// Trading platform management actions
+	ActionTradingCreate AuditAction = "trading.create"
+	ActionTradingUpdate AuditAction = "trading.update"
+	ActionTradingDelete AuditAction = "trading.delete"
+	ActionTradingView   AuditAction = "trading.view"
 
 	// API key actions
 	ActionAPIKeyCreate AuditAction = "apikey.create"

@@ -143,7 +143,7 @@ func (h *DatabaseTestHelper) TruncateAllTables() error {
 		"trading_logs",
 		"transactions", 
 		"sub_accounts",
-		"exchanges",
+		"tradings",
 		"oauth_tokens",
 		"users",
 	}

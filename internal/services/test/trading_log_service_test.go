@@ -26,14 +26,14 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 
 	// Create mocks
 	mockTradingLogRepo := &mocks.MockTradingLogRepository{}
-	mockExchangeRepo := &mocks.MockTradingRepository{}
+	mockTradingRepo := &mocks.MockTradingRepository{}
 	mockSubAccountRepo := &mocks.MockSubAccountRepository{}
 	mockTransactionRepo := &mocks.MockTransactionRepository{}
 
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Trading:        mockExchangeRepo,
+		Trading:        mockTradingRepo,
 		SubAccount:      mockSubAccountRepo,
 		Transaction:     mockTransactionRepo,
 		TradingLog:      mockTradingLogRepo,
@@ -49,15 +49,15 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
-	testExchange := exchangeFactory.WithUserID(userID)
-	testExchange.ID = exchangeID
+	tradingID := uuid.New()
+	tradingFactory := helpers.NewTradingFactory()
+	testTradingPlatform := tradingFactory.WithUserID(userID)
+	testTradingPlatform.ID = tradingID
 
 	// Test successful trading log creation (basic)
 	t.Run("successful_creation_basic", func(t *testing.T) {
 		request := &services.CreateTradingLogRequest{
-			TradingID: exchangeID,
+			TradingID: tradingID,
 			Type:       "trade",
 			Source:     "manual",
 			Message:    "Manual trade executed successfully",
@@ -65,8 +65,8 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		mockTradingLogRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.TradingLog")).
 			Return(nil).Once()
 
@@ -77,7 +77,7 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, userID, result.UserID)
-		assert.Equal(t, exchangeID, result.TradingID)
+		assert.Equal(t, tradingID, result.TradingID)
 		assert.Equal(t, request.Type, result.Type)
 		assert.Equal(t, request.Source, result.Source)
 		assert.Equal(t, request.Message, result.Message)
@@ -86,7 +86,7 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		assert.NotEmpty(t, result.Info)
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 		mockTradingLogRepo.AssertExpectations(t)
 	})
 
@@ -96,7 +96,7 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		transactionID := uuid.New()
 
 		subAccountFactory := helpers.NewSubAccountFactory()
-		testSubAccount := subAccountFactory.WithUserAndTrading(userID, exchangeID)
+		testSubAccount := subAccountFactory.WithUserAndTrading(userID, tradingID)
 		testSubAccount.ID = subAccountID
 
 		transactionFactory := helpers.NewTransactionFactory()
@@ -104,7 +104,7 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		testTransaction.ID = transactionID
 
 		request := &services.CreateTradingLogRequest{
-			TradingID:    exchangeID,
+			TradingID:    tradingID,
 			SubAccountID:  &subAccountID,
 			TransactionID: &transactionID,
 			Type:          "strategy",
@@ -114,8 +114,8 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		mockSubAccountRepo.On("GetByID", mock.Anything, subAccountID).
 			Return(testSubAccount, nil).Once()
 		mockTransactionRepo.On("GetByID", mock.Anything, transactionID).
@@ -130,7 +130,7 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, userID, result.UserID)
-		assert.Equal(t, exchangeID, result.TradingID)
+		assert.Equal(t, tradingID, result.TradingID)
 		assert.Equal(t, subAccountID, *result.SubAccountID)
 		assert.Equal(t, transactionID, *result.TransactionID)
 		assert.Equal(t, request.Type, result.Type)
@@ -138,23 +138,23 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		assert.Equal(t, request.Message, result.Message)
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 		mockSubAccountRepo.AssertExpectations(t)
 		mockTransactionRepo.AssertExpectations(t)
 		mockTradingLogRepo.AssertExpectations(t)
 	})
 
-	// Test exchange not found
-	t.Run("exchange_not_found", func(t *testing.T) {
+	// Test trading platform not found
+	t.Run("trading_not_found", func(t *testing.T) {
 		request := &services.CreateTradingLogRequest{
-			TradingID: exchangeID,
+			TradingID: tradingID,
 			Type:       "trade",
 			Source:     "manual",
 			Message:    "Test message",
 		}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
 			Return(nil, nil).Once()
 
 		// Execute test
@@ -166,25 +166,25 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		assert.Contains(t, err.Error(), "trading platform not found")
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test exchange belongs to different user
-	t.Run("exchange_wrong_user", func(t *testing.T) {
+	// Test trading platform belongs to different user
+	t.Run("trading_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserExchange := exchangeFactory.WithUserID(differentUserID)
-		wrongUserExchange.ID = exchangeID
+		wrongUserTradingPlatform := tradingFactory.WithUserID(differentUserID)
+		wrongUserTradingPlatform.ID = tradingID
 
 		request := &services.CreateTradingLogRequest{
-			TradingID: exchangeID,
+			TradingID: tradingID,
 			Type:       "trade",
 			Source:     "manual",
 			Message:    "Test message",
 		}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(wrongUserExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(wrongUserTradingPlatform, nil).Once()
 
 		// Execute test
 		result, err := tradingLogService.CreateTradingLog(context.Background(), userID, request)
@@ -195,7 +195,7 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		assert.Contains(t, err.Error(), "trading platform not found")
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 	})
 
 	// Test sub-account belongs to different user
@@ -204,11 +204,11 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		differentUserID := uuid.New()
 
 		subAccountFactory := helpers.NewSubAccountFactory()
-		wrongUserSubAccount := subAccountFactory.WithUserAndTrading(differentUserID, exchangeID)
+		wrongUserSubAccount := subAccountFactory.WithUserAndTrading(differentUserID, tradingID)
 		wrongUserSubAccount.ID = subAccountID
 
 		request := &services.CreateTradingLogRequest{
-			TradingID:   exchangeID,
+			TradingID:   tradingID,
 			SubAccountID: &subAccountID,
 			Type:         "trade",
 			Source:       "manual",
@@ -216,8 +216,8 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		mockSubAccountRepo.On("GetByID", mock.Anything, subAccountID).
 			Return(wrongUserSubAccount, nil).Once()
 
@@ -230,7 +230,7 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		assert.Contains(t, err.Error(), "sub-account not found")
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 		mockSubAccountRepo.AssertExpectations(t)
 	})
 
@@ -244,7 +244,7 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		wrongUserTransaction.ID = transactionID
 
 		request := &services.CreateTradingLogRequest{
-			TradingID:    exchangeID,
+			TradingID:    tradingID,
 			TransactionID: &transactionID,
 			Type:          "trade",
 			Source:        "manual",
@@ -252,8 +252,8 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		mockTransactionRepo.On("GetByID", mock.Anything, transactionID).
 			Return(wrongUserTransaction, nil).Once()
 
@@ -266,7 +266,7 @@ func TestTradingLogService_CreateTradingLog(t *testing.T) {
 		assert.Contains(t, err.Error(), "transaction not found")
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 		mockTransactionRepo.AssertExpectations(t)
 	})
 }
@@ -460,10 +460,10 @@ func TestTradingLogService_GetSubAccountTradingLogs(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
+	tradingID := uuid.New()
 	subAccountID := uuid.New()
 	subAccountFactory := helpers.NewSubAccountFactory()
-	testSubAccount := subAccountFactory.WithUserAndTrading(userID, exchangeID)
+	testSubAccount := subAccountFactory.WithUserAndTrading(userID, tradingID)
 	testSubAccount.ID = subAccountID
 
 	tradingLogFactory := helpers.NewTradingLogFactory()
@@ -527,16 +527,16 @@ func TestTradingLogService_GetSubAccountTradingLogs(t *testing.T) {
 	})
 }
 
-// TestTradingLogService_GetExchangeTradingLogs tests the GetExchangeTradingLogs functionality
-func TestTradingLogService_GetExchangeTradingLogs(t *testing.T) {
+// TestTradingLogService_GetTradingLogs tests the GetTradingLogs functionality
+func TestTradingLogService_GetTradingLogs(t *testing.T) {
 	// Create mocks
 	mockTradingLogRepo := &mocks.MockTradingLogRepository{}
-	mockExchangeRepo := &mocks.MockTradingRepository{}
+	mockTradingRepo := &mocks.MockTradingRepository{}
 
 	// Create repositories with mocks
 	repos := &repositories.Repositories{
 		User:            &mocks.MockUserRepository{},
-		Trading:        mockExchangeRepo,
+		Trading:        mockTradingRepo,
 		SubAccount:      &mocks.MockSubAccountRepository{},
 		Transaction:     &mocks.MockTransactionRepository{},
 		TradingLog:      mockTradingLogRepo,
@@ -552,10 +552,10 @@ func TestTradingLogService_GetExchangeTradingLogs(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
-	testExchange := exchangeFactory.WithUserID(userID)
-	testExchange.ID = exchangeID
+	tradingID := uuid.New()
+	tradingFactory := helpers.NewTradingFactory()
+	testTradingPlatform := tradingFactory.WithUserID(userID)
+	testTradingPlatform.ID = tradingID
 
 	tradingLogFactory := helpers.NewTradingLogFactory()
 
@@ -566,8 +566,8 @@ func TestTradingLogService_GetExchangeTradingLogs(t *testing.T) {
 		}
 
 		testTradingLogs := []*models.TradingLog{
-			tradingLogFactory.WithTradingID(exchangeID),
-			tradingLogFactory.WithTradingID(exchangeID),
+			tradingLogFactory.WithTradingID(tradingID),
+			tradingLogFactory.WithTradingID(tradingID),
 		}
 		testTradingLogs[0].UserID = userID
 		testTradingLogs[1].UserID = userID
@@ -577,13 +577,13 @@ func TestTradingLogService_GetExchangeTradingLogs(t *testing.T) {
 		}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
-		mockTradingLogRepo.On("GetByTradingID", mock.Anything, exchangeID, expectedFilters).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
+		mockTradingLogRepo.On("GetByTradingID", mock.Anything, tradingID, expectedFilters).
 			Return(testTradingLogs, int64(2), nil).Once()
 
 		// Execute test
-		result, err := tradingLogService.GetExchangeTradingLogs(context.Background(), userID, exchangeID, request)
+		result, err := tradingLogService.GetTradingLogs(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.NoError(t, err)
@@ -593,20 +593,20 @@ func TestTradingLogService_GetExchangeTradingLogs(t *testing.T) {
 		assert.Equal(t, 25, result.Limit)
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 		mockTradingLogRepo.AssertExpectations(t)
 	})
 
-	// Test exchange not found
-	t.Run("exchange_not_found", func(t *testing.T) {
+	// Test trading platform not found
+	t.Run("trading_not_found", func(t *testing.T) {
 		request := &services.TradingLogQueryRequest{}
 
 		// Setup mock expectations
-		mockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
 			Return(nil, nil).Once()
 
 		// Execute test
-		result, err := tradingLogService.GetExchangeTradingLogs(context.Background(), userID, exchangeID, request)
+		result, err := tradingLogService.GetTradingLogs(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.Error(t, err)
@@ -614,7 +614,7 @@ func TestTradingLogService_GetExchangeTradingLogs(t *testing.T) {
 		assert.Contains(t, err.Error(), "trading platform not found")
 
 		// Verify mock expectations
-		mockExchangeRepo.AssertExpectations(t)
+		mockTradingRepo.AssertExpectations(t)
 	})
 }
 

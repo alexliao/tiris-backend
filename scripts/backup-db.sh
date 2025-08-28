@@ -155,7 +155,7 @@ backup_schema_only() {
 # Function to backup specific tables (critical data)
 backup_critical_tables() {
     local backup_file="$BACKUP_DIR/critical_tables_${DB_NAME}_${TIMESTAMP}.sql"
-    local critical_tables=("users" "exchanges" "sub_accounts" "transactions" "trading_logs")
+    local critical_tables=("users" "tradings" "sub_accounts" "transactions" "trading_logs")
     
     log "🔐 Creating critical tables backup..."
     

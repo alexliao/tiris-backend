@@ -205,28 +205,28 @@ groups:
       # High trading volume
       - alert: TirisHighTradingVolume
         expr: |
-          sum(rate(trading_volume_total{job="tiris-backend"}[15m])) by (exchange) > 1000000
+          sum(rate(trading_volume_total{job="tiris-backend"}[15m])) by (trading_platform) > 1000000
         for: 5m
         labels:
           severity: info
           service: tiris-backend
           component: business
         annotations:
-          summary: "Tiris High trading volume on {{ $labels.exchange }}"
-          description: "Trading volume is {{ $value }} on {{ $labels.exchange }}"
+          summary: "Tiris High trading volume on {{ $labels.trading_platform }}"
+          description: "Trading volume is {{ $value }} on {{ $labels.trading_platform }}"
 
-      # Exchange connectivity issues
-      - alert: TirisExchangeHealthDegraded
+      # Trading platform connectivity issues
+      - alert: TirisTradingPlatformHealthDegraded
         expr: |
-          exchange_health_status{job="tiris-backend"} < 1
+          trading_platform_health_status{job="tiris-backend"} < 1
         for: 2m
         labels:
           severity: warning
           service: tiris-backend
           component: business
         annotations:
-          summary: "Tiris Exchange {{ $labels.exchange }} health degraded"
-          description: "Exchange {{ $labels.exchange }} endpoint {{ $labels.endpoint }} is unhealthy"
+          summary: "Tiris Trading Platform {{ $labels.trading_platform }} health degraded"
+          description: "Trading Platform {{ $labels.trading_platform }} endpoint {{ $labels.endpoint }} is unhealthy"
 
       # Low account balances (warning for business monitoring)
       - alert: TirisLowAccountBalance
@@ -239,7 +239,7 @@ groups:
           component: business
         annotations:
           summary: "Tiris Low account balance"
-          description: "Account balance for {{ $labels.symbol }} on {{ $labels.exchange }} is {{ $value }}"
+          description: "Account balance for {{ $labels.symbol }} on {{ $labels.trading_platform }} is {{ $value }}"
 
   - name: tiris-backend.system
     interval: 30s

@@ -167,14 +167,14 @@ func (s *TransactionService) GetSubAccountTransactions(ctx context.Context, user
 	}, nil
 }
 
-// GetExchangeTransactions retrieves transactions for a specific exchange
-func (s *TransactionService) GetExchangeTransactions(ctx context.Context, userID, exchangeID uuid.UUID, req *TransactionQueryRequest) (*TransactionQueryResponse, error) {
-	// Verify user owns the exchange
-	exchange, err := s.repos.Trading.GetByID(ctx, exchangeID)
+// GetTradingTransactions retrieves transactions for a specific trading platform
+func (s *TransactionService) GetTradingTransactions(ctx context.Context, userID, tradingID uuid.UUID, req *TransactionQueryRequest) (*TransactionQueryResponse, error) {
+	// Verify user owns the trading platform
+	trading, err := s.repos.Trading.GetByID(ctx, tradingID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify exchange: %w", err)
+		return nil, fmt.Errorf("failed to verify trading platform: %w", err)
 	}
-	if exchange == nil || exchange.UserID != userID {
+	if trading == nil || trading.UserID != userID {
 		return nil, fmt.Errorf("trading platform not found")
 	}
 
@@ -204,9 +204,9 @@ func (s *TransactionService) GetExchangeTransactions(ctx context.Context, userID
 	}
 
 	// Query transactions
-	transactions, total, err := s.repos.Transaction.GetByTradingID(ctx, exchangeID, filters)
+	transactions, total, err := s.repos.Transaction.GetByTradingID(ctx, tradingID, filters)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get exchange transactions: %w", err)
+		return nil, fmt.Errorf("failed to get trading transactions: %w", err)
 	}
 
 	// Convert to response format

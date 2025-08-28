@@ -11,8 +11,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// SecureExchange extends the Exchange model with encrypted API keys and enhanced security
-type SecureExchange struct {
+// SecureTrading extends the Trading model with encrypted API keys and enhanced security
+type SecureTrading struct {
 	ID               uuid.UUID      `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
 	UserID           uuid.UUID      `gorm:"type:uuid;not null;index" json:"user_id"`
 	Name             string         `gorm:"type:varchar(100);not null" json:"name"`
@@ -36,19 +36,19 @@ type SecureExchange struct {
 	SubAccounts []SubAccount `json:"-"`
 }
 
-// TableName returns the table name for SecureExchange
-func (SecureExchange) TableName() string {
-	return "exchanges"
+// TableName returns the table name for SecureTrading
+func (SecureTrading) TableName() string {
+	return "tradings"
 }
 
-// ExchangeManager handles secure operations on exchange data
-type ExchangeManager struct {
+// TradingManager handles secure operations on trading data
+type TradingManager struct {
 	encryptionManager *security.EncryptionManager
 	apiKeyManager     *security.APIKeyManager
 }
 
-// NewExchangeManager creates a new exchange manager with encryption capabilities
-func NewExchangeManager(masterKey, signingKey string) (*ExchangeManager, error) {
+// NewTradingManager creates a new trading manager with encryption capabilities
+func NewTradingManager(masterKey, signingKey string) (*TradingManager, error) {
 	encMgr, err := security.NewEncryptionManager(masterKey)
 	if err != nil {
 		return nil, err
@@ -59,14 +59,14 @@ func NewExchangeManager(masterKey, signingKey string) (*ExchangeManager, error) 
 		return nil, err
 	}
 
-	return &ExchangeManager{
+	return &TradingManager{
 		encryptionManager: encMgr,
 		apiKeyManager:     apiMgr,
 	}, nil
 }
 
 // SetAPICredentials encrypts and stores API credentials
-func (em *ExchangeManager) SetAPICredentials(exchange *SecureExchange, apiKey, apiSecret string) error {
+func (em *TradingManager) SetAPICredentials(trading *SecureTrading, apiKey, apiSecret string) error {
 	if apiKey == "" {
 		return errors.New("API key cannot be empty")
 	}
@@ -89,21 +89,21 @@ func (em *ExchangeManager) SetAPICredentials(exchange *SecureExchange, apiKey, a
 	// Create hash for indexing and comparison
 	apiKeyHash := em.apiKeyManager.HashAPIKey(apiKey)
 
-	exchange.EncryptedAPIKey = encryptedKey
-	exchange.EncryptedSecret = encryptedSecret
-	exchange.APIKeyHash = apiKeyHash
+	trading.EncryptedAPIKey = encryptedKey
+	trading.EncryptedSecret = encryptedSecret
+	trading.APIKeyHash = apiKeyHash
 
 	return nil
 }
 
 // GetAPICredentials decrypts and returns API credentials
-func (em *ExchangeManager) GetAPICredentials(exchange *SecureExchange) (apiKey, apiSecret string, err error) {
-	apiKey, err = em.encryptionManager.Decrypt(exchange.EncryptedAPIKey)
+func (em *TradingManager) GetAPICredentials(trading *SecureTrading) (apiKey, apiSecret string, err error) {
+	apiKey, err = em.encryptionManager.Decrypt(trading.EncryptedAPIKey)
 	if err != nil {
 		return "", "", err
 	}
 
-	apiSecret, err = em.encryptionManager.Decrypt(exchange.EncryptedSecret)
+	apiSecret, err = em.encryptionManager.Decrypt(trading.EncryptedSecret)
 	if err != nil {
 		return "", "", err
 	}
@@ -112,8 +112,8 @@ func (em *ExchangeManager) GetAPICredentials(exchange *SecureExchange) (apiKey, 
 }
 
 // GetMaskedAPIKey returns a masked version of the API key for display
-func (em *ExchangeManager) GetMaskedAPIKey(exchange *SecureExchange) (string, error) {
-	apiKey, err := em.encryptionManager.Decrypt(exchange.EncryptedAPIKey)
+func (em *TradingManager) GetMaskedAPIKey(trading *SecureTrading) (string, error) {
+	apiKey, err := em.encryptionManager.Decrypt(trading.EncryptedAPIKey)
 	if err != nil {
 		return "", err
 	}
@@ -122,24 +122,24 @@ func (em *ExchangeManager) GetMaskedAPIKey(exchange *SecureExchange) (string, er
 }
 
 // ValidateAPIKey checks if the stored API key hash matches the provided key
-func (em *ExchangeManager) ValidateAPIKey(exchange *SecureExchange, apiKey string) bool {
+func (em *TradingManager) ValidateAPIKey(trading *SecureTrading, apiKey string) bool {
 	expectedHash := em.apiKeyManager.HashAPIKey(apiKey)
-	return expectedHash == exchange.APIKeyHash
+	return expectedHash == trading.APIKeyHash
 }
 
 // UpdateLastUsed updates the last used timestamp
-func (em *ExchangeManager) UpdateLastUsed(db *gorm.DB, exchangeID uuid.UUID) error {
+func (em *TradingManager) UpdateLastUsed(db *gorm.DB, tradingID uuid.UUID) error {
 	now := time.Now()
-	return db.Model(&SecureExchange{}).
-		Where("id = ?", exchangeID).
+	return db.Model(&SecureTrading{}).
+		Where("id = ?", tradingID).
 		Update("last_used_at", now).Error
 }
 
 // RecordFailure records an API failure
-func (em *ExchangeManager) RecordFailure(db *gorm.DB, exchangeID uuid.UUID) error {
+func (em *TradingManager) RecordFailure(db *gorm.DB, tradingID uuid.UUID) error {
 	now := time.Now()
-	return db.Model(&SecureExchange{}).
-		Where("id = ?", exchangeID).
+	return db.Model(&SecureTrading{}).
+		Where("id = ?", tradingID).
 		Updates(map[string]interface{}{
 			"failure_count":    gorm.Expr("failure_count + 1"),
 			"last_failure_at":  now,
@@ -147,19 +147,19 @@ func (em *ExchangeManager) RecordFailure(db *gorm.DB, exchangeID uuid.UUID) erro
 }
 
 // ResetFailureCount resets the failure count after successful operation
-func (em *ExchangeManager) ResetFailureCount(db *gorm.DB, exchangeID uuid.UUID) error {
-	return db.Model(&SecureExchange{}).
-		Where("id = ?", exchangeID).
+func (em *TradingManager) ResetFailureCount(db *gorm.DB, tradingID uuid.UUID) error {
+	return db.Model(&SecureTrading{}).
+		Where("id = ?", tradingID).
 		Updates(map[string]interface{}{
 			"failure_count":   0,
 			"last_failure_at": nil,
 		}).Error
 }
 
-// ShouldDisableExchange checks if exchange should be disabled due to failures
-func (em *ExchangeManager) ShouldDisableExchange(exchange *SecureExchange, maxFailures int, failureWindow time.Duration) bool {
-	if exchange.FailureCount >= maxFailures {
-		if exchange.LastFailureAt != nil && time.Since(*exchange.LastFailureAt) < failureWindow {
+// ShouldDisableTradingPlatform checks if trading should be disabled due to failures
+func (em *TradingManager) ShouldDisableTradingPlatform(trading *SecureTrading, maxFailures int, failureWindow time.Duration) bool {
+	if trading.FailureCount >= maxFailures {
+		if trading.LastFailureAt != nil && time.Since(*trading.LastFailureAt) < failureWindow {
 			return true
 		}
 	}
@@ -167,25 +167,25 @@ func (em *ExchangeManager) ShouldDisableExchange(exchange *SecureExchange, maxFa
 }
 
 // RotateAPIKey generates a new API key for internal use
-func (em *ExchangeManager) RotateAPIKey(exchange *SecureExchange) (string, error) {
+func (em *TradingManager) RotateAPIKey(trading *SecureTrading) (string, error) {
 	newAPIKey, err := em.apiKeyManager.GenerateAPIKey(security.PrefixExchange, 64)
 	if err != nil {
 		return "", err
 	}
 
-	// Update the exchange with the new encrypted key
+	// Update the trading with the new encrypted key
 	encryptedKey, err := em.encryptionManager.Encrypt(newAPIKey)
 	if err != nil {
 		return "", err
 	}
 
-	exchange.EncryptedAPIKey = encryptedKey
-	exchange.APIKeyHash = em.apiKeyManager.HashAPIKey(newAPIKey)
+	trading.EncryptedAPIKey = encryptedKey
+	trading.APIKeyHash = em.apiKeyManager.HashAPIKey(newAPIKey)
 
 	return newAPIKey, nil
 }
 
-// SecuritySettings represents security configuration for an exchange
+// SecuritySettings represents security configuration for an trading
 type SecuritySettings struct {
 	MaxFailures         int           `json:"max_failures"`
 	FailureWindow       time.Duration `json:"failure_window"`
@@ -198,8 +198,8 @@ type SecuritySettings struct {
 	LastSecurityAuditAt *time.Time    `json:"last_security_audit_at"`
 }
 
-// GetSecuritySettings returns the security settings for an exchange
-func (em *ExchangeManager) GetSecuritySettings(exchange *SecureExchange) (*SecuritySettings, error) {
+// GetSecuritySettings returns the security settings for an trading
+func (em *TradingManager) GetSecuritySettings(trading *SecureTrading) (*SecuritySettings, error) {
 	settings := &SecuritySettings{
 		MaxFailures:        10,
 		FailureWindow:      time.Hour,
@@ -210,9 +210,9 @@ func (em *ExchangeManager) GetSecuritySettings(exchange *SecureExchange) (*Secur
 		AutoDisableOnAbuse: true,
 	}
 
-	if len(exchange.SecuritySettings) > 0 {
+	if len(trading.SecuritySettings) > 0 {
 		// Convert JSON map to bytes first, then unmarshal to settings
-		data, err := json.Marshal(exchange.SecuritySettings)
+		data, err := json.Marshal(trading.SecuritySettings)
 		if err != nil {
 			return nil, err
 		}
@@ -224,8 +224,8 @@ func (em *ExchangeManager) GetSecuritySettings(exchange *SecureExchange) (*Secur
 	return settings, nil
 }
 
-// UpdateSecuritySettings updates the security settings for an exchange
-func (em *ExchangeManager) UpdateSecuritySettings(exchange *SecureExchange, settings *SecuritySettings) error {
+// UpdateSecuritySettings updates the security settings for an trading
+func (em *TradingManager) UpdateSecuritySettings(trading *SecureTrading, settings *SecuritySettings) error {
 	data, err := json.Marshal(settings)
 	if err != nil {
 		return err
@@ -237,20 +237,20 @@ func (em *ExchangeManager) UpdateSecuritySettings(exchange *SecureExchange, sett
 		return err
 	}
 	
-	exchange.SecuritySettings = JSON(jsonMap)
+	trading.SecuritySettings = JSON(jsonMap)
 	return nil
 }
 
 // BeforeCreate hook to ensure API keys are encrypted
-func (se *SecureExchange) BeforeCreate(tx *gorm.DB) error {
+func (se *SecureTrading) BeforeCreate(tx *gorm.DB) error {
 	if se.EncryptedAPIKey == "" || se.EncryptedSecret == "" {
-		return errors.New("API credentials must be set before creating exchange")
+		return errors.New("API credentials must be set before creating trading")
 	}
 	return nil
 }
 
 // BeforeUpdate hook to validate updates
-func (se *SecureExchange) BeforeUpdate(tx *gorm.DB) error {
+func (se *SecureTrading) BeforeUpdate(tx *gorm.DB) error {
 	// Don't allow updating encrypted fields directly
 	if tx.Statement.Changed("encrypted_api_key", "encrypted_api_secret", "api_key_hash") {
 		return errors.New("encrypted fields cannot be updated directly")
@@ -258,8 +258,8 @@ func (se *SecureExchange) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
-// ExchangeResponse represents the API response format for exchanges
-type ExchangeResponse struct {
+// TradingResponse represents the API response format for tradings
+type TradingResponse struct {
 	ID               uuid.UUID      `json:"id"`
 	UserID           uuid.UUID      `json:"user_id"`
 	Name             string         `json:"name"`
@@ -273,14 +273,14 @@ type ExchangeResponse struct {
 	UpdatedAt        time.Time      `json:"updated_at"`
 }
 
-// ToResponse converts SecureExchange to ExchangeResponse with masked credentials
-func (se *SecureExchange) ToResponse(exchangeManager *ExchangeManager) (*ExchangeResponse, error) {
-	maskedKey, err := exchangeManager.GetMaskedAPIKey(se)
+// ToResponse converts SecureTrading to TradingResponse with masked credentials
+func (se *SecureTrading) ToResponse(tradingManager *TradingManager) (*TradingResponse, error) {
+	maskedKey, err := tradingManager.GetMaskedAPIKey(se)
 	if err != nil {
 		maskedKey = "***"
 	}
 
-	return &ExchangeResponse{
+	return &TradingResponse{
 		ID:               se.ID,
 		UserID:           se.UserID,
 		Name:             se.Name,

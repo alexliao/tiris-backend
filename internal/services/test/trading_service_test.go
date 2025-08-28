@@ -18,8 +18,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestExchangeService_CreateTrading tests the CreateTrading functionality
-func TestExchangeService_CreateTrading(t *testing.T) {
+// TestTradingService_CreateTrading tests the CreateTrading functionality
+func TestTradingService_CreateTrading(t *testing.T) {
 	// Setup test config
 	_ = config.GetProfileConfig(config.ProfileQuick)
 
@@ -43,7 +43,7 @@ func TestExchangeService_CreateTrading(t *testing.T) {
 	// Create test data
 	userID := uuid.New()
 
-	// Test successful exchange creation
+	// Test successful trading platform creation
 	t.Run("successful_creation", func(t *testing.T) {
 		request := &services.CreateTradingRequest{
 			Name:      "binance-main",
@@ -75,10 +75,10 @@ func TestExchangeService_CreateTrading(t *testing.T) {
 	})
 
 
-	// Test duplicate exchange name - now handled by database constraint
-	t.Run("duplicate_exchange_name", func(t *testing.T) {
+	// Test duplicate trading platform name - now handled by database constraint
+	t.Run("duplicate_trading_platform_name", func(t *testing.T) {
 		request := &services.CreateTradingRequest{
-			Name:      "existing-exchange",
+			Name:      "existing-trading-platform",
 			Type:      "binance",
 			APIKey:    "test_api_key",
 			APISecret: "test_api_secret",
@@ -86,7 +86,7 @@ func TestExchangeService_CreateTrading(t *testing.T) {
 
 		// Setup mock expectations - database returns unique constraint error
 		mockTradingRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Trading")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_name_active_unique\"")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"tradings_user_name_active_unique\"")).Once()
 
 		// Execute test
 		result, err := tradingService.CreateTrading(context.Background(), userID, request)
@@ -94,7 +94,7 @@ func TestExchangeService_CreateTrading(t *testing.T) {
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "exchange name already exists")
+		assert.Contains(t, err.Error(), "trading platform name already exists")
 
 		// Verify mock expectations
 		mockTradingRepo.AssertExpectations(t)
@@ -103,7 +103,7 @@ func TestExchangeService_CreateTrading(t *testing.T) {
 	// Test duplicate API key error - now handled by database constraint
 	t.Run("duplicate_api_key", func(t *testing.T) {
 		request := &services.CreateTradingRequest{
-			Name:      "new-exchange",
+			Name:      "new-trading-platform",
 			Type:      "binance",
 			APIKey:    "existing_api_key_123",
 			APISecret: "new_api_secret",
@@ -111,7 +111,7 @@ func TestExchangeService_CreateTrading(t *testing.T) {
 
 		// Setup mock expectations - database returns unique constraint error
 		mockTradingRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Trading")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_key_active_unique\"")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"tradings_user_api_key_active_unique\"")).Once()
 
 		// Execute test
 		result, err := tradingService.CreateTrading(context.Background(), userID, request)
@@ -128,7 +128,7 @@ func TestExchangeService_CreateTrading(t *testing.T) {
 	// Test duplicate API secret error - now handled by database constraint
 	t.Run("duplicate_api_secret", func(t *testing.T) {
 		request := &services.CreateTradingRequest{
-			Name:      "new-exchange",
+			Name:      "new-trading-platform",
 			Type:      "binance",
 			APIKey:    "new_api_key",
 			APISecret: "existing_api_secret_789",
@@ -136,7 +136,7 @@ func TestExchangeService_CreateTrading(t *testing.T) {
 
 		// Setup mock expectations - database returns unique constraint error
 		mockTradingRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Trading")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_secret_active_unique\"")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"tradings_user_api_secret_active_unique\"")).Once()
 
 		// Execute test
 		result, err := tradingService.CreateTrading(context.Background(), userID, request)
@@ -151,8 +151,8 @@ func TestExchangeService_CreateTrading(t *testing.T) {
 	})
 }
 
-// TestExchangeService_GetUserTradings tests the GetUserTradings functionality
-func TestExchangeService_GetUserTradings(t *testing.T) {
+// TestTradingService_GetUserTradings tests the GetUserTradings functionality
+func TestTradingService_GetUserTradings(t *testing.T) {
 	// Create mocks
 	mockTradingRepo := &mocks.MockTradingRepository{}
 
@@ -172,21 +172,21 @@ func TestExchangeService_GetUserTradings(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
+	tradingFactory := helpers.NewTradingFactory()
 
 	// Test successful retrieval
 	t.Run("successful_retrieval", func(t *testing.T) {
-		// Create test exchanges
-		testExchanges := []*models.Trading{
-			exchangeFactory.WithUserID(userID),
-			exchangeFactory.WithUserID(userID),
+		// Create test trading platforms
+		testTradingPlatforms := []*models.Trading{
+			tradingFactory.WithUserID(userID),
+			tradingFactory.WithUserID(userID),
 		}
-		testExchanges[0].Name = "binance-main"
-		testExchanges[1].Name = "okx-trading"
+		testTradingPlatforms[0].Name = "binance-main"
+		testTradingPlatforms[1].Name = "okx-trading"
 
 		// Setup mock expectations
 		mockTradingRepo.On("GetByUserID", mock.Anything, userID).
-			Return(testExchanges, nil).Once()
+			Return(testTradingPlatforms, nil).Once()
 
 		// Execute test
 		result, err := tradingService.GetUserTradings(context.Background(), userID)
@@ -198,8 +198,8 @@ func TestExchangeService_GetUserTradings(t *testing.T) {
 		assert.Equal(t, "okx-trading", result[1].Name)
 
 		// Verify API keys are masked
-		for _, exchange := range result {
-			assert.Contains(t, exchange.APIKey, "****")
+		for _, trading := range result {
+			assert.Contains(t, trading.APIKey, "****")
 		}
 
 		// Verify mock expectations
@@ -207,7 +207,7 @@ func TestExchangeService_GetUserTradings(t *testing.T) {
 	})
 
 	// Test empty result
-	t.Run("no_exchanges", func(t *testing.T) {
+	t.Run("no_trading_platforms", func(t *testing.T) {
 		// Setup mock expectations
 		mockTradingRepo.On("GetByUserID", mock.Anything, userID).
 			Return([]*models.Trading{}, nil).Once()
@@ -224,8 +224,8 @@ func TestExchangeService_GetUserTradings(t *testing.T) {
 	})
 }
 
-// TestExchangeService_GetTrading tests the GetTrading functionality
-func TestExchangeService_GetTrading(t *testing.T) {
+// TestTradingService_GetTrading tests the GetTrading functionality
+func TestTradingService_GetTrading(t *testing.T) {
 	// Create mocks
 	mockTradingRepo := &mocks.MockTradingRepository{}
 
@@ -245,38 +245,38 @@ func TestExchangeService_GetTrading(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
-	testExchange := exchangeFactory.WithUserID(userID)
-	testExchange.ID = exchangeID
+	tradingID := uuid.New()
+	tradingFactory := helpers.NewTradingFactory()
+	testTradingPlatform := tradingFactory.WithUserID(userID)
+	testTradingPlatform.ID = tradingID
 
 	// Test successful retrieval
 	t.Run("successful_retrieval", func(t *testing.T) {
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 
 		// Execute test
-		result, err := tradingService.GetTrading(context.Background(), userID, exchangeID)
+		result, err := tradingService.GetTrading(context.Background(), userID, tradingID)
 
 		// Verify results
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, exchangeID, result.ID)
+		assert.Equal(t, tradingID, result.ID)
 		assert.Equal(t, userID, result.UserID)
 
 		// Verify mock expectations
 		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test exchange not found
-	t.Run("exchange_not_found", func(t *testing.T) {
+	// Test trading platform not found
+	t.Run("trading_not_found", func(t *testing.T) {
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
 			Return(nil, nil).Once()
 
 		// Execute test
-		result, err := tradingService.GetTrading(context.Background(), userID, exchangeID)
+		result, err := tradingService.GetTrading(context.Background(), userID, tradingID)
 
 		// Verify results
 		require.Error(t, err)
@@ -287,18 +287,18 @@ func TestExchangeService_GetTrading(t *testing.T) {
 		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test exchange belongs to different user
-	t.Run("exchange_wrong_user", func(t *testing.T) {
+	// Test trading platform belongs to different user
+	t.Run("trading_wrong_user", func(t *testing.T) {
 		differentUserID := uuid.New()
-		wrongUserExchange := exchangeFactory.WithUserID(differentUserID)
-		wrongUserExchange.ID = exchangeID
+		wrongUserTradingPlatform := tradingFactory.WithUserID(differentUserID)
+		wrongUserTradingPlatform.ID = tradingID
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(wrongUserExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(wrongUserTradingPlatform, nil).Once()
 
 		// Execute test
-		result, err := tradingService.GetTrading(context.Background(), userID, exchangeID)
+		result, err := tradingService.GetTrading(context.Background(), userID, tradingID)
 
 		// Verify results
 		require.Error(t, err)
@@ -310,8 +310,8 @@ func TestExchangeService_GetTrading(t *testing.T) {
 	})
 }
 
-// TestExchangeService_UpdateTrading tests the UpdateTrading functionality
-func TestExchangeService_UpdateTrading(t *testing.T) {
+// TestTradingService_UpdateTrading tests the UpdateTrading functionality
+func TestTradingService_UpdateTrading(t *testing.T) {
 	// Create mocks
 	mockTradingRepo := &mocks.MockTradingRepository{}
 
@@ -331,27 +331,27 @@ func TestExchangeService_UpdateTrading(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
-	testExchange := exchangeFactory.WithUserID(userID)
-	testExchange.ID = exchangeID
-	testExchange.Name = "original-name"
+	tradingID := uuid.New()
+	tradingFactory := helpers.NewTradingFactory()
+	testTradingPlatform := tradingFactory.WithUserID(userID)
+	testTradingPlatform.ID = tradingID
+	testTradingPlatform.Name = "original-name"
 
 	// Test successful name update
 	t.Run("successful_name_update", func(t *testing.T) {
-		newName := "updated-exchange-name"
+		newName := "updated-trading-platform-name"
 		request := &services.UpdateTradingRequest{
 			Name: &newName,
 		}
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		mockTradingRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Trading")).
 			Return(nil).Once()
 
 		// Execute test
-		result, err := tradingService.UpdateTrading(context.Background(), userID, exchangeID, request)
+		result, err := tradingService.UpdateTrading(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.NoError(t, err)
@@ -362,27 +362,27 @@ func TestExchangeService_UpdateTrading(t *testing.T) {
 		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test name conflict with another exchange - now handled by database constraint
+	// Test name conflict with another trading platform - now handled by database constraint
 	t.Run("name_conflict", func(t *testing.T) {
-		conflictingName := "existing-exchange"
+		conflictingName := "existing-trading-platform"
 		request := &services.UpdateTradingRequest{
 			Name: &conflictingName,
 		}
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		// Database returns unique constraint error with specific constraint name
 		mockTradingRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Trading")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_name_active_unique\"")).Once()
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"tradings_user_name_active_unique\"")).Once()
 
 		// Execute test
-		result, err := tradingService.UpdateTrading(context.Background(), userID, exchangeID, request)
+		result, err := tradingService.UpdateTrading(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "exchange name already exists")
+		assert.Contains(t, err.Error(), "trading platform name already exists")
 
 		// Verify mock expectations
 		mockTradingRepo.AssertExpectations(t)
@@ -398,13 +398,13 @@ func TestExchangeService_UpdateTrading(t *testing.T) {
 		}
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		mockTradingRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Trading")).
 			Return(nil).Once()
 
 		// Execute test
-		result, err := tradingService.UpdateTrading(context.Background(), userID, exchangeID, request)
+		result, err := tradingService.UpdateTrading(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.NoError(t, err)
@@ -417,20 +417,20 @@ func TestExchangeService_UpdateTrading(t *testing.T) {
 		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test API key conflict with another exchange - now handled by database constraint
+	// Test API key conflict with another trading platform - now handled by database constraint
 	t.Run("api_key_conflict", func(t *testing.T) {
 		// Create fresh mocks for this test
-		freshMockExchangeRepo := &mocks.MockTradingRepository{}
+		freshMockTradingRepo := &mocks.MockTradingRepository{}
 		freshRepos := &repositories.Repositories{
 			User:            &mocks.MockUserRepository{},
-			Trading:        freshMockExchangeRepo,
+			Trading:        freshMockTradingRepo,
 			SubAccount:      &mocks.MockSubAccountRepository{},
 			Transaction:     &mocks.MockTransactionRepository{},
 			TradingLog:      &mocks.MockTradingLogRepository{},
 			OAuthToken:      &mocks.MockOAuthTokenRepository{},
 			EventProcessing: &mocks.MockEventProcessingRepository{},
 		}
-		freshExchangeService := services.NewTradingService(freshRepos)
+		freshTradingService := services.NewTradingService(freshRepos)
 
 		conflictingAPIKey := "existing_api_key_456"
 		request := &services.UpdateTradingRequest{
@@ -438,14 +438,14 @@ func TestExchangeService_UpdateTrading(t *testing.T) {
 		}
 
 		// Setup mock expectations
-		freshMockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		freshMockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		// Database returns unique constraint error with specific constraint name
-		freshMockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Trading")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_key_active_unique\"")).Once()
+		freshMockTradingRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Trading")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"tradings_user_api_key_active_unique\"")).Once()
 
 		// Execute test
-		result, err := freshExchangeService.UpdateTrading(context.Background(), userID, exchangeID, request)
+		result, err := freshTradingService.UpdateTrading(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.Error(t, err)
@@ -453,23 +453,23 @@ func TestExchangeService_UpdateTrading(t *testing.T) {
 		assert.Contains(t, err.Error(), "api key already exists")
 
 		// Verify mock expectations
-		freshMockExchangeRepo.AssertExpectations(t)
+		freshMockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test API secret conflict with another exchange - now handled by database constraint
+	// Test API secret conflict with another trading platform - now handled by database constraint
 	t.Run("api_secret_conflict", func(t *testing.T) {
 		// Create fresh mocks for this test
-		freshMockExchangeRepo := &mocks.MockTradingRepository{}
+		freshMockTradingRepo := &mocks.MockTradingRepository{}
 		freshRepos := &repositories.Repositories{
 			User:            &mocks.MockUserRepository{},
-			Trading:        freshMockExchangeRepo,
+			Trading:        freshMockTradingRepo,
 			SubAccount:      &mocks.MockSubAccountRepository{},
 			Transaction:     &mocks.MockTransactionRepository{},
 			TradingLog:      &mocks.MockTradingLogRepository{},
 			OAuthToken:      &mocks.MockOAuthTokenRepository{},
 			EventProcessing: &mocks.MockEventProcessingRepository{},
 		}
-		freshExchangeService := services.NewTradingService(freshRepos)
+		freshTradingService := services.NewTradingService(freshRepos)
 
 		conflictingAPISecret := "existing_api_secret_456"
 		request := &services.UpdateTradingRequest{
@@ -477,14 +477,14 @@ func TestExchangeService_UpdateTrading(t *testing.T) {
 		}
 
 		// Setup mock expectations
-		freshMockExchangeRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		freshMockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 		// Database returns unique constraint error with specific constraint name
-		freshMockExchangeRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Trading")).
-			Return(fmt.Errorf("duplicate key value violates unique constraint \"exchanges_user_api_secret_active_unique\"")).Once()
+		freshMockTradingRepo.On("Update", mock.Anything, mock.AnythingOfType("*models.Trading")).
+			Return(fmt.Errorf("duplicate key value violates unique constraint \"tradings_user_api_secret_active_unique\"")).Once()
 
 		// Execute test
-		result, err := freshExchangeService.UpdateTrading(context.Background(), userID, exchangeID, request)
+		result, err := freshTradingService.UpdateTrading(context.Background(), userID, tradingID, request)
 
 		// Verify results
 		require.Error(t, err)
@@ -492,12 +492,12 @@ func TestExchangeService_UpdateTrading(t *testing.T) {
 		assert.Contains(t, err.Error(), "api secret already exists")
 
 		// Verify mock expectations
-		freshMockExchangeRepo.AssertExpectations(t)
+		freshMockTradingRepo.AssertExpectations(t)
 	})
 }
 
-// TestExchangeService_DeleteTrading tests the DeleteTrading functionality
-func TestExchangeService_DeleteTrading(t *testing.T) {
+// TestTradingService_DeleteTrading tests the DeleteTrading functionality
+func TestTradingService_DeleteTrading(t *testing.T) {
 	// Create mocks
 	mockTradingRepo := &mocks.MockTradingRepository{}
 	mockSubAccountRepo := &mocks.MockSubAccountRepository{}
@@ -518,23 +518,23 @@ func TestExchangeService_DeleteTrading(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
-	testExchange := exchangeFactory.WithUserID(userID)
-	testExchange.ID = exchangeID
+	tradingID := uuid.New()
+	tradingFactory := helpers.NewTradingFactory()
+	testTradingPlatform := tradingFactory.WithUserID(userID)
+	testTradingPlatform.ID = tradingID
 
 	// Test successful deletion
 	t.Run("successful_deletion", func(t *testing.T) {
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
-		mockSubAccountRepo.On("GetByTradingID", mock.Anything, exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
+		mockSubAccountRepo.On("GetByTradingID", mock.Anything, tradingID).
 			Return([]*models.SubAccount{}, nil).Once() // No sub-accounts
-		mockTradingRepo.On("Delete", mock.Anything, exchangeID).
+		mockTradingRepo.On("Delete", mock.Anything, tradingID).
 			Return(nil).Once()
 
 		// Execute test
-		err := tradingService.DeleteTrading(context.Background(), userID, exchangeID)
+		err := tradingService.DeleteTrading(context.Background(), userID, tradingID)
 
 		// Verify results
 		require.NoError(t, err)
@@ -548,17 +548,17 @@ func TestExchangeService_DeleteTrading(t *testing.T) {
 	t.Run("deletion_with_subaccounts", func(t *testing.T) {
 		subAccountFactory := helpers.NewSubAccountFactory()
 		existingSubAccounts := []*models.SubAccount{
-			subAccountFactory.WithUserAndTrading(userID, exchangeID),
+			subAccountFactory.WithUserAndTrading(userID, tradingID),
 		}
 
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
-		mockSubAccountRepo.On("GetByTradingID", mock.Anything, exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
+		mockSubAccountRepo.On("GetByTradingID", mock.Anything, tradingID).
 			Return(existingSubAccounts, nil).Once()
 
 		// Execute test
-		err := tradingService.DeleteTrading(context.Background(), userID, exchangeID)
+		err := tradingService.DeleteTrading(context.Background(), userID, tradingID)
 
 		// Verify results
 		require.Error(t, err)
@@ -569,14 +569,14 @@ func TestExchangeService_DeleteTrading(t *testing.T) {
 		mockSubAccountRepo.AssertExpectations(t)
 	})
 
-	// Test exchange not found
-	t.Run("exchange_not_found", func(t *testing.T) {
+	// Test trading platform not found
+	t.Run("trading_not_found", func(t *testing.T) {
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
 			Return(nil, nil).Once()
 
 		// Execute test
-		err := tradingService.DeleteTrading(context.Background(), userID, exchangeID)
+		err := tradingService.DeleteTrading(context.Background(), userID, tradingID)
 
 		// Verify results
 		require.Error(t, err)
@@ -587,8 +587,8 @@ func TestExchangeService_DeleteTrading(t *testing.T) {
 	})
 }
 
-// TestExchangeService_GetTradingByID tests the GetTradingByID functionality (admin)
-func TestExchangeService_GetTradingByID(t *testing.T) {
+// TestTradingService_GetTradingByID tests the GetTradingByID functionality (admin)
+func TestTradingService_GetTradingByID(t *testing.T) {
 	// Create mocks
 	mockTradingRepo := &mocks.MockTradingRepository{}
 
@@ -607,37 +607,37 @@ func TestExchangeService_GetTradingByID(t *testing.T) {
 	tradingService := services.NewTradingService(repos)
 
 	// Create test data
-	exchangeID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
-	testExchange := exchangeFactory.Build()
-	testExchange.ID = exchangeID
+	tradingID := uuid.New()
+	tradingFactory := helpers.NewTradingFactory()
+	testTradingPlatform := tradingFactory.Build()
+	testTradingPlatform.ID = tradingID
 
 	// Test successful retrieval
 	t.Run("successful_retrieval", func(t *testing.T) {
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
-			Return(testExchange, nil).Once()
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
+			Return(testTradingPlatform, nil).Once()
 
 		// Execute test
-		result, err := tradingService.GetTradingByID(context.Background(), exchangeID)
+		result, err := tradingService.GetTradingByID(context.Background(), tradingID)
 
 		// Verify results
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, exchangeID, result.ID)
+		assert.Equal(t, tradingID, result.ID)
 
 		// Verify mock expectations
 		mockTradingRepo.AssertExpectations(t)
 	})
 
-	// Test exchange not found
-	t.Run("exchange_not_found", func(t *testing.T) {
+	// Test trading platform not found
+	t.Run("trading_not_found", func(t *testing.T) {
 		// Setup mock expectations
-		mockTradingRepo.On("GetByID", mock.Anything, exchangeID).
+		mockTradingRepo.On("GetByID", mock.Anything, tradingID).
 			Return(nil, nil).Once()
 
 		// Execute test
-		result, err := tradingService.GetTradingByID(context.Background(), exchangeID)
+		result, err := tradingService.GetTradingByID(context.Background(), tradingID)
 
 		// Verify results
 		require.Error(t, err)
@@ -649,8 +649,8 @@ func TestExchangeService_GetTradingByID(t *testing.T) {
 	})
 }
 
-// Performance test for exchange operations
-func TestExchangeService_Performance(t *testing.T) {
+// Performance test for trading platform operations
+func TestTradingService_Performance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance test in short mode")
 	}
@@ -674,17 +674,17 @@ func TestExchangeService_Performance(t *testing.T) {
 
 	// Create test data
 	userID := uuid.New()
-	exchangeFactory := helpers.NewTradingFactory()
-	testExchanges := []*models.Trading{
-		exchangeFactory.WithUserID(userID),
-		exchangeFactory.WithUserID(userID),
-		exchangeFactory.WithUserID(userID),
+	tradingFactory := helpers.NewTradingFactory()
+	testTradingPlatforms := []*models.Trading{
+		tradingFactory.WithUserID(userID),
+		tradingFactory.WithUserID(userID),
+		tradingFactory.WithUserID(userID),
 	}
 
-	t.Run("get_user_exchanges_performance", func(t *testing.T) {
+	t.Run("get_user_trading_platforms_performance", func(t *testing.T) {
 		// Setup mock for multiple calls
 		mockTradingRepo.On("GetByUserID", mock.Anything, userID).
-			Return(testExchanges, nil).Times(100)
+			Return(testTradingPlatforms, nil).Times(100)
 
 		timer := helpers.NewPerformanceTimer()
 		timer.Start()
