@@ -20,12 +20,34 @@ func NewTradingRepository(db *gorm.DB) TradingRepository {
 }
 
 func (r *tradingRepository) Create(ctx context.Context, trading *models.Trading) error {
+	// Validate that the exchange binding exists and user has access to it
+	if trading.ExchangeBindingID != uuid.Nil {
+		var binding models.ExchangeBinding
+		err := r.db.WithContext(ctx).
+			Where("id = ?", trading.ExchangeBindingID).
+			First(&binding).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return models.ErrExchangeBindingNotFound
+			}
+			return err
+		}
+
+		// Validate access to the exchange binding
+		if binding.IsPrivate() && (binding.UserID == nil || *binding.UserID != trading.UserID) {
+			return errors.New("access denied to exchange binding")
+		}
+	}
+
 	return r.db.WithContext(ctx).Create(trading).Error
 }
 
 func (r *tradingRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Trading, error) {
 	var trading models.Trading
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&trading).Error
+	err := r.db.WithContext(ctx).
+		Preload("ExchangeBinding").
+		Where("id = ?", id).
+		First(&trading).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -38,6 +60,7 @@ func (r *tradingRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.
 func (r *tradingRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*models.Trading, error) {
 	var tradings []*models.Trading
 	err := r.db.WithContext(ctx).
+		Preload("ExchangeBinding").
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
 		Find(&tradings).Error
@@ -50,6 +73,7 @@ func (r *tradingRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (
 func (r *tradingRepository) GetByUserIDAndType(ctx context.Context, userID uuid.UUID, tradingType string) ([]*models.Trading, error) {
 	var tradings []*models.Trading
 	err := r.db.WithContext(ctx).
+		Preload("ExchangeBinding").
 		Where("user_id = ? AND type = ?", userID, tradingType).
 		Order("created_at DESC").
 		Find(&tradings).Error
@@ -60,6 +84,25 @@ func (r *tradingRepository) GetByUserIDAndType(ctx context.Context, userID uuid.
 }
 
 func (r *tradingRepository) Update(ctx context.Context, trading *models.Trading) error {
+	// Validate exchange binding if it's being updated
+	if trading.ExchangeBindingID != uuid.Nil {
+		var binding models.ExchangeBinding
+		err := r.db.WithContext(ctx).
+			Where("id = ?", trading.ExchangeBindingID).
+			First(&binding).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return models.ErrExchangeBindingNotFound
+			}
+			return err
+		}
+
+		// Validate access to the exchange binding
+		if binding.IsPrivate() && (binding.UserID == nil || *binding.UserID != trading.UserID) {
+			return errors.New("access denied to exchange binding")
+		}
+	}
+
 	return r.db.WithContext(ctx).Save(trading).Error
 }
 
@@ -75,4 +118,17 @@ func (r *tradingRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return r.db.WithContext(ctx).Delete(&models.Trading{}, id).Error
+}
+
+func (r *tradingRepository) GetByExchangeBinding(ctx context.Context, bindingID uuid.UUID) ([]*models.Trading, error) {
+	var tradings []*models.Trading
+	err := r.db.WithContext(ctx).
+		Preload("ExchangeBinding").
+		Where("exchange_binding_id = ?", bindingID).
+		Order("created_at DESC").
+		Find(&tradings).Error
+	if err != nil {
+		return nil, err
+	}
+	return tradings, nil
 }

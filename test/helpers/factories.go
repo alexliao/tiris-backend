@@ -114,6 +114,61 @@ func (f *UserFactory) AdminUser() *models.User {
 	return user
 }
 
+// ExchangeBindingFactory creates exchange binding test data
+type ExchangeBindingFactory struct {
+	factory *TestDataFactory
+}
+
+// NewExchangeBindingFactory creates a new ExchangeBindingFactory
+func NewExchangeBindingFactory() *ExchangeBindingFactory {
+	return &ExchangeBindingFactory{
+		factory: NewTestDataFactory(),
+	}
+}
+
+// Build creates a basic exchange binding with default values
+func (f *ExchangeBindingFactory) Build() *models.ExchangeBinding {
+	id := f.factory.nextID()
+	userID := uuid.New() // Create UUID first, then take address
+	return &models.ExchangeBinding{
+		ID:       uuid.New(),
+		UserID:   &userID, // Private binding by default
+		Name:     fmt.Sprintf("binding_%d", id),
+		Exchange: "virtual",
+		Type:     "private",
+		APIKey:   fmt.Sprintf("test_key_%d", id),
+		APISecret: fmt.Sprintf("test_secret_%d", id),
+		Status:   "active",
+		Info:     models.JSON(map[string]interface{}{"test": true}),
+		CreatedAt: time.Now().Add(-time.Duration(rand.Intn(48)) * time.Hour),
+		UpdatedAt: time.Now().Add(-time.Duration(rand.Intn(12)) * time.Hour),
+	}
+}
+
+// WithUserID sets the user ID for a private binding
+func (f *ExchangeBindingFactory) WithUserID(userID uuid.UUID) *models.ExchangeBinding {
+	binding := f.Build()
+	binding.UserID = &userID
+	return binding
+}
+
+// PublicBinding creates a public exchange binding
+func (f *ExchangeBindingFactory) PublicBinding() *models.ExchangeBinding {
+	binding := f.Build()
+	binding.UserID = nil
+	binding.Type = "public"
+	binding.APIKey = ""
+	binding.APISecret = ""
+	return binding
+}
+
+// WithExchange sets the exchange type
+func (f *ExchangeBindingFactory) WithExchange(exchange string) *models.ExchangeBinding {
+	binding := f.Build()
+	binding.Exchange = exchange
+	return binding
+}
+
 // TradingFactory creates Trading test data
 type TradingFactory struct {
 	factory *TestDataFactory
@@ -130,13 +185,12 @@ func NewTradingFactory() *TradingFactory {
 func (f *TradingFactory) Build() *models.Trading {
 	id := f.factory.nextID()
 	return &models.Trading{
-		ID:        uuid.New(),
-		UserID:    uuid.New(), // Will be overridden in WithUserID
-		Name:      fmt.Sprintf("trading_%d", id),
-		Type:      "spot",
-		APIKey:    fmt.Sprintf("test_api_key_%d", id),
-		APISecret: fmt.Sprintf("test_api_secret_%d", id),
-		Status:    "active",
+		ID:                uuid.New(),
+		UserID:            uuid.New(), // Will be overridden in WithUserID
+		ExchangeBindingID: uuid.New(), // Default to random binding ID
+		Name:              fmt.Sprintf("trading_%d", id),
+		Type:              "real",
+		Status:            "active",
 		Info:      models.JSON(map[string]interface{}{"sandbox": true}),
 		CreatedAt: time.Now().Add(-time.Duration(rand.Intn(48)) * time.Hour),
 		UpdatedAt: time.Now().Add(-time.Duration(rand.Intn(12)) * time.Hour),
@@ -147,6 +201,21 @@ func (f *TradingFactory) Build() *models.Trading {
 func (f *TradingFactory) WithUserID(userID uuid.UUID) *models.Trading {
 	trading := f.Build()
 	trading.UserID = userID
+	return trading
+}
+
+// WithExchangeBindingID sets a specific exchange binding ID
+func (f *TradingFactory) WithExchangeBindingID(bindingID uuid.UUID) *models.Trading {
+	trading := f.Build()
+	trading.ExchangeBindingID = bindingID
+	return trading
+}
+
+// WithUserAndBinding sets both user ID and exchange binding ID
+func (f *TradingFactory) WithUserAndBinding(userID uuid.UUID, bindingID uuid.UUID) *models.Trading {
+	trading := f.Build()
+	trading.UserID = userID
+	trading.ExchangeBindingID = bindingID
 	return trading
 }
 
@@ -164,11 +233,10 @@ func (f *TradingFactory) WithType(tradingType string) *models.Trading {
 	return trading
 }
 
-// WithCredentials sets API credentials
-func (f *TradingFactory) WithCredentials(apiKey, apiSecret string) *models.Trading {
+// WithExchangeBinding sets the exchange binding ID
+func (f *TradingFactory) WithExchangeBinding(bindingID uuid.UUID) *models.Trading {
 	trading := f.Build()
-	trading.APIKey = apiKey
-	trading.APISecret = apiSecret
+	trading.ExchangeBindingID = bindingID
 	return trading
 }
 

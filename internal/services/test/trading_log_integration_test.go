@@ -16,10 +16,8 @@ import (
 
 // TestTradingLogService_Integration_EndToEnd tests complete trading workflows
 func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
-	// Check if running in CI environment
-	if testing.Short() {
-		t.Skip("Skipping integration tests in short mode")
-	}
+	// Skip integration tests in unit test package - they belong in internal/integration
+	t.Skip("Integration test moved to internal/integration package - run make test-integration-docker")
 
 	// Setup test database
 	testConfig := config.GetProfileConfig(config.ProfileQuick)
@@ -36,10 +34,17 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("complete_long_position_workflow", func(t *testing.T) {
+		// Setup: Create exchange binding first
+		bindingFactory := helpers.NewExchangeBindingFactory()
+		testBinding := bindingFactory.WithUserID(testUser.ID)
+		testBinding.Exchange = "virtual"
+		err := repos.ExchangeBinding.Create(context.Background(), testBinding)
+		require.NoError(t, err)
+
 		// Setup: Create trading
 		tradingFactory := helpers.NewTradingFactory()
-		testTrading := tradingFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testTrading)
+		testTrading := tradingFactory.WithUserAndBinding(testUser.ID, testBinding.ID)
+		err = repos.Trading.Create(context.Background(), testTrading)
 		require.NoError(t, err)
 
 		// Setup: Create sub-accounts
@@ -114,10 +119,17 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("complete_short_position_workflow", func(t *testing.T) {
+		// Setup: Create exchange binding first
+		bindingFactory := helpers.NewExchangeBindingFactory()
+		testBinding := bindingFactory.WithUserID(testUser.ID)
+		testBinding.Exchange = "virtual"
+		err := repos.ExchangeBinding.Create(context.Background(), testBinding)
+		require.NoError(t, err)
+
 		// Setup: Create fresh trading for isolation
 		tradingFactory := helpers.NewTradingFactory()
-		testTrading := tradingFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testTrading)
+		testTrading := tradingFactory.WithUserAndBinding(testUser.ID, testBinding.ID)
+		err = repos.Trading.Create(context.Background(), testTrading)
 		require.NoError(t, err)
 
 		// Setup: Create sub-accounts with starting balances
@@ -191,10 +203,17 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("complete_stop_loss_workflow", func(t *testing.T) {
+		// Setup: Create exchange binding first
+		bindingFactory := helpers.NewExchangeBindingFactory()
+		testBinding := bindingFactory.WithUserID(testUser.ID)
+		testBinding.Exchange = "virtual"
+		err := repos.ExchangeBinding.Create(context.Background(), testBinding)
+		require.NoError(t, err)
+
 		// Setup: Create fresh trading for isolation
 		tradingFactory := helpers.NewTradingFactory()
-		testTrading := tradingFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testTrading)
+		testTrading := tradingFactory.WithUserAndBinding(testUser.ID, testBinding.ID)
+		err = repos.Trading.Create(context.Background(), testTrading)
 		require.NoError(t, err)
 
 		// Setup: Create sub-accounts
@@ -267,9 +286,8 @@ func TestTradingLogService_Integration_EndToEnd(t *testing.T) {
 
 // TestTradingLogService_Integration_ErrorHandling tests error scenarios with real database
 func TestTradingLogService_Integration_ErrorHandling(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration tests in short mode")
-	}
+	// Skip integration tests in unit test package - they belong in internal/integration
+	t.Skip("Integration test moved to internal/integration package - run make test-integration-docker")
 
 	// Setup test database
 	testConfig := config.GetProfileConfig(config.ProfileQuick)
@@ -285,10 +303,17 @@ func TestTradingLogService_Integration_ErrorHandling(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("insufficient_balance_real_database", func(t *testing.T) {
+		// Setup: Create exchange binding first
+		bindingFactory := helpers.NewExchangeBindingFactory()
+		testBinding := bindingFactory.WithUserID(testUser.ID)
+		testBinding.Exchange = "virtual"
+		err := repos.ExchangeBinding.Create(context.Background(), testBinding)
+		require.NoError(t, err)
+
 		// Setup: Create trading and accounts
 		tradingFactory := helpers.NewTradingFactory()
-		testTrading := tradingFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testTrading)
+		testTrading := tradingFactory.WithUserAndBinding(testUser.ID, testBinding.ID)
+		err = repos.Trading.Create(context.Background(), testTrading)
 		require.NoError(t, err)
 
 		subAccountFactory := helpers.NewSubAccountFactory()
@@ -356,9 +381,16 @@ func TestTradingLogService_Integration_ErrorHandling(t *testing.T) {
 		err := repos.User.Create(context.Background(), otherUser)
 		require.NoError(t, err)
 
+		// Setup: Create exchange binding for first user
+		bindingFactory := helpers.NewExchangeBindingFactory()
+		testBinding := bindingFactory.WithUserID(testUser.ID)
+		testBinding.Exchange = "virtual"
+		err = repos.ExchangeBinding.Create(context.Background(), testBinding)
+		require.NoError(t, err)
+
 		// Setup: Create trading for first user
 		tradingFactory := helpers.NewTradingFactory()
-		testTrading := tradingFactory.WithUserID(testUser.ID)
+		testTrading := tradingFactory.WithUserAndBinding(testUser.ID, testBinding.ID)
 		err = repos.Trading.Create(context.Background(), testTrading)
 		require.NoError(t, err)
 
@@ -427,10 +459,17 @@ func TestTradingLogService_Integration_ConcurrentTransactions(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("concurrent_balance_updates", func(t *testing.T) {
+		// Setup: Create exchange binding first
+		bindingFactory := helpers.NewExchangeBindingFactory()
+		testBinding := bindingFactory.WithUserID(testUser.ID)
+		testBinding.Exchange = "virtual"
+		err := repos.ExchangeBinding.Create(context.Background(), testBinding)
+		require.NoError(t, err)
+
 		// Setup: Create trading and accounts
 		tradingFactory := helpers.NewTradingFactory()
-		testTrading := tradingFactory.WithUserID(testUser.ID)
-		err := repos.Trading.Create(context.Background(), testTrading)
+		testTrading := tradingFactory.WithUserAndBinding(testUser.ID, testBinding.ID)
+		err = repos.Trading.Create(context.Background(), testTrading)
 		require.NoError(t, err)
 
 		subAccountFactory := helpers.NewSubAccountFactory()

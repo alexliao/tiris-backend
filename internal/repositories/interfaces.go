@@ -38,6 +38,7 @@ type TradingRepository interface {
 	Update(ctx context.Context, trading *models.Trading) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByUserIDAndType(ctx context.Context, userID uuid.UUID, tradingType string) ([]*models.Trading, error)
+	GetByExchangeBinding(ctx context.Context, bindingID uuid.UUID) ([]*models.Trading, error)
 }
 
 // SubAccountRepository defines the interface for sub-account operations

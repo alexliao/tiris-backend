@@ -258,39 +258,3 @@ func (se *SecureTrading) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
-// TradingResponse represents the API response format for tradings
-type TradingResponse struct {
-	ID               uuid.UUID      `json:"id"`
-	UserID           uuid.UUID      `json:"user_id"`
-	Name             string         `json:"name"`
-	Type             string         `json:"type"`
-	MaskedAPIKey     string         `json:"masked_api_key"`
-	Status           string         `json:"status"`
-	Info             JSON `json:"info"`
-	LastUsedAt       *time.Time     `json:"last_used_at,omitempty"`
-	SecuritySettings JSON `json:"security_settings"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
-}
-
-// ToResponse converts SecureTrading to TradingResponse with masked credentials
-func (se *SecureTrading) ToResponse(tradingManager *TradingManager) (*TradingResponse, error) {
-	maskedKey, err := tradingManager.GetMaskedAPIKey(se)
-	if err != nil {
-		maskedKey = "***"
-	}
-
-	return &TradingResponse{
-		ID:               se.ID,
-		UserID:           se.UserID,
-		Name:             se.Name,
-		Type:             se.Type,
-		MaskedAPIKey:     maskedKey,
-		Status:           se.Status,
-		Info:             se.Info,
-		LastUsedAt:       se.LastUsedAt,
-		SecuritySettings: se.SecuritySettings,
-		CreatedAt:        se.CreatedAt,
-		UpdatedAt:        se.UpdatedAt,
-	}, nil
-}

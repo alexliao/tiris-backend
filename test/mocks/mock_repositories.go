@@ -113,6 +113,73 @@ func (m *MockTradingRepository) GetByUserIDAndType(ctx context.Context, userID u
 	return args.Get(0).([]*models.Trading), args.Error(1)
 }
 
+func (m *MockTradingRepository) GetByExchangeBinding(ctx context.Context, bindingID uuid.UUID) ([]*models.Trading, error) {
+	args := m.Called(ctx, bindingID)
+	return args.Get(0).([]*models.Trading), args.Error(1)
+}
+
+// MockExchangeBindingRepository is a mock implementation of ExchangeBindingRepository
+type MockExchangeBindingRepository struct {
+	mock.Mock
+}
+
+func (m *MockExchangeBindingRepository) Create(ctx context.Context, binding *models.ExchangeBinding) error {
+	args := m.Called(ctx, binding)
+	return args.Error(0)
+}
+
+func (m *MockExchangeBindingRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.ExchangeBinding, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ExchangeBinding), args.Error(1)
+}
+
+func (m *MockExchangeBindingRepository) GetByUserID(ctx context.Context, userID uuid.UUID, params models.PaginationParams) ([]*models.ExchangeBinding, *models.PaginationResult, error) {
+	args := m.Called(ctx, userID, params)
+	return args.Get(0).([]*models.ExchangeBinding), args.Get(1).(*models.PaginationResult), args.Error(2)
+}
+
+func (m *MockExchangeBindingRepository) GetPublicBindings(ctx context.Context, exchange string) ([]*models.ExchangeBinding, error) {
+	args := m.Called(ctx, exchange)
+	return args.Get(0).([]*models.ExchangeBinding), args.Error(1)
+}
+
+func (m *MockExchangeBindingRepository) Update(ctx context.Context, id uuid.UUID, updates map[string]interface{}) error {
+	args := m.Called(ctx, id, updates)
+	return args.Error(0)
+}
+
+func (m *MockExchangeBindingRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockExchangeBindingRepository) GetByNameAndUser(ctx context.Context, name string, userID *uuid.UUID) (*models.ExchangeBinding, error) {
+	args := m.Called(ctx, name, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ExchangeBinding), args.Error(1)
+}
+
+func (m *MockExchangeBindingRepository) GetByAPIKey(ctx context.Context, apiKey string, userID *uuid.UUID) (*models.ExchangeBinding, error) {
+	args := m.Called(ctx, apiKey, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ExchangeBinding), args.Error(1)
+}
+
+func (m *MockExchangeBindingRepository) GetByAPISecret(ctx context.Context, apiSecret string, userID *uuid.UUID) (*models.ExchangeBinding, error) {
+	args := m.Called(ctx, apiSecret, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ExchangeBinding), args.Error(1)
+}
+
 // MockSubAccountRepository is a mock implementation of SubAccountRepository
 type MockSubAccountRepository struct {
 	mock.Mock
@@ -452,6 +519,7 @@ func (m *MockTradingService) GetTradingByID(ctx context.Context, tradingID uuid.
 type MockRepositories struct {
 	User            repositories.UserRepository
 	Trading         repositories.TradingRepository
+	ExchangeBinding repositories.ExchangeBindingRepository
 	SubAccount      repositories.SubAccountRepository
 	Transaction     repositories.TransactionRepository
 	TradingLog      repositories.TradingLogRepository
@@ -464,6 +532,7 @@ func NewMockRepositories() *MockRepositories {
 	return &MockRepositories{
 		User:            &MockUserRepository{},
 		Trading:         &MockTradingRepository{},
+		ExchangeBinding: &MockExchangeBindingRepository{},
 		SubAccount:      &MockSubAccountRepository{},
 		Transaction:     &MockTransactionRepository{},
 		TradingLog:      &MockTradingLogRepository{},

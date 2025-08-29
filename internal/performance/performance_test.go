@@ -592,12 +592,11 @@ func (suite *PerformanceTestSuite) createTestTradings(count int) {
 		userIndex := i % len(suite.userIDs)
 		
 		trading := &models.Trading{
-			UserID:    suite.userIDs[userIndex],
-			Name:      fmt.Sprintf("PerfTestTrading_%d", i),
-			Type:      "spot",
-			APIKey:    "test_api_key",
-			APISecret: "test_api_secret",
-			Status:    "active",
+			UserID:            suite.userIDs[userIndex],
+			ExchangeBindingID: uuid.New(), // Use random binding for performance test
+			Name:              fmt.Sprintf("PerfTestTrading_%d", i),
+			Type:              "virtual",
+			Status:            "active",
 		}
 		
 		suite.repos.Trading.Create(context.Background(), trading)
@@ -609,12 +608,11 @@ func (suite *PerformanceTestSuite) createTestDataWithRelationships(tradingsPerUs
 		// Create tradings
 		for j := 0; j < tradingsPerUser; j++ {
 			trading := &models.Trading{
-				UserID:    userID,
-				Name:      fmt.Sprintf("ComplexTrading_%d_%d", i, j),
-				Type:      "spot",
-				APIKey:    "test_api_key",
-				APISecret: "test_api_secret",
-				Status:    "active",
+				UserID:            userID,
+				ExchangeBindingID: uuid.New(), // Use random binding for performance test
+				Name:              fmt.Sprintf("ComplexTrading_%d_%d", i, j),
+				Type:              "virtual",
+				Status:            "active",
 			}
 			
 			err := suite.repos.Trading.Create(context.Background(), trading)

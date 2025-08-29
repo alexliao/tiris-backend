@@ -129,6 +129,8 @@ setup-test-db-docker: build-migrate
 	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000004_fix_soft_delete_unique_constraints.up.sql || { echo "Error: Soft deletion compatibility migration failed"; exit 1; }
 	@echo "Applying exchange to trading rename migration..."
 	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000005_rename_exchanges_to_tradings.up.sql || { echo "Error: Exchange to trading rename migration failed"; exit 1; }
+	@echo "Applying exchange bindings architecture migration..."
+	@PGPASSWORD=tiris_test psql -h localhost -p 5433 -U tiris_test -d tiris_test -f migrations/000006_add_exchange_bindings_architecture.up.sql || { echo "Error: Exchange bindings architecture migration failed"; exit 1; }
 	@echo "Database schema setup completed successfully (migration tracking skipped for test environment)"
 	@echo "Test database is ready!"
 

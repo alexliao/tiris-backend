@@ -10,49 +10,67 @@ import (
 	"github.com/google/uuid"
 )
 
+
 // TradingService handles trading business logic
 type TradingService struct {
-	repos *repositories.Repositories
+	repos                  *repositories.Repositories
+	exchangeBindingService ExchangeBindingService
 }
 
 // NewTradingService creates a new trading service
-func NewTradingService(repos *repositories.Repositories) *TradingService {
+func NewTradingService(repos *repositories.Repositories, exchangeBindingService ExchangeBindingService) *TradingService {
 	return &TradingService{
-		repos: repos,
+		repos:                  repos,
+		exchangeBindingService: exchangeBindingService,
 	}
 }
 
 // TradingResponse represents trading information in responses
 type TradingResponse struct {
-	ID        uuid.UUID              `json:"id"`
-	UserID    uuid.UUID              `json:"user_id"`
-	Name      string                 `json:"name"`
-	Type      string                 `json:"type"`
-	APIKey    string                 `json:"api_key,omitempty"` // Masked in production
-	Status    string                 `json:"status"`
-	Info      map[string]interface{} `json:"info"`
-	CreatedAt string                 `json:"created_at"`
-	UpdatedAt string                 `json:"updated_at"`
+	ID              uuid.UUID               `json:"id"`
+	UserID          uuid.UUID               `json:"user_id"`
+	Name            string                  `json:"name"`
+	Type            string                  `json:"type"`
+	ExchangeBinding *ExchangeBindingInfo    `json:"exchange_binding,omitempty"`
+	Status          string                  `json:"status"`
+	Info            map[string]interface{}  `json:"info"`
+	CreatedAt       string                  `json:"created_at"`
+	UpdatedAt       string                  `json:"updated_at"`
+}
+
+// ExchangeBindingInfo represents exchange binding information in responses
+type ExchangeBindingInfo struct {
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Exchange     string    `json:"exchange"`
+	Type         string    `json:"type"`
+	MaskedAPIKey string    `json:"masked_api_key,omitempty"`
 }
 
 // CreateTradingRequest represents trading creation request
 type CreateTradingRequest struct {
-	Name      string `json:"name" binding:"required,min=1,max=100" example:"My Trading Account"`
-	Type      string `json:"type" binding:"required" example:"binance"`
-	APIKey    string `json:"api_key" binding:"required,min=1" example:"your_api_key_here"`
-	APISecret string `json:"api_secret" binding:"required,min=1" example:"your_api_secret_here"`
+	Name              string    `json:"name" binding:"required,min=1,max=100" example:"My Trading Account"`
+	Type              string    `json:"type" binding:"required" example:"real"`
+	ExchangeBindingID uuid.UUID `json:"exchange_binding_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
 }
 
 // UpdateTradingRequest represents trading update request
 type UpdateTradingRequest struct {
-	Name      *string `json:"name,omitempty" binding:"omitempty,min=1,max=100" example:"My Updated Trading Account"`
-	APIKey    *string `json:"api_key,omitempty" binding:"omitempty,min=1" example:"updated_api_key_12345"`
-	APISecret *string `json:"api_secret,omitempty" binding:"omitempty,min=1" example:"updated_api_secret_67890"`
-	Status    *string `json:"status,omitempty" binding:"omitempty,oneof=active inactive" example:"active"`
+	Name              *string    `json:"name,omitempty" binding:"omitempty,min=1,max=100" example:"My Updated Trading Account"`
+	ExchangeBindingID *uuid.UUID `json:"exchange_binding_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Status            *string    `json:"status,omitempty" binding:"omitempty,oneof=active inactive" example:"active"`
 }
 
 // CreateTrading creates a new trading configuration
 func (s *TradingService) CreateTrading(ctx context.Context, userID uuid.UUID, req *CreateTradingRequest) (*TradingResponse, error) {
+	// Validate that the user has access to the exchange binding
+	hasAccess, err := s.exchangeBindingService.ValidateExchangeBindingAccess(ctx, userID, req.ExchangeBindingID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate exchange binding access: %w", err)
+	}
+	if !hasAccess {
+		return nil, fmt.Errorf("access denied to exchange binding")
+	}
 
 	// Create info map with metadata
 	infoMap := map[string]interface{}{
@@ -62,14 +80,13 @@ func (s *TradingService) CreateTrading(ctx context.Context, userID uuid.UUID, re
 
 	// Create trading model
 	trading := &models.Trading{
-		ID:        uuid.New(),
-		UserID:    userID,
-		Name:      req.Name,
-		Type:      req.Type,
-		APIKey:    req.APIKey,
-		APISecret: req.APISecret,
-		Status:    "active", // Default to active
-		Info:      models.JSON(infoMap),
+		ID:                uuid.New(),
+		UserID:            userID,
+		Name:              req.Name,
+		Type:              req.Type,
+		ExchangeBindingID: req.ExchangeBindingID,
+		Status:            "active", // Default to active
+		Info:              models.JSON(infoMap),
 	}
 
 	// Save to database - let database constraints handle uniqueness validation
@@ -81,7 +98,7 @@ func (s *TradingService) CreateTrading(ctx context.Context, userID uuid.UUID, re
 		return nil, fmt.Errorf("failed to create trading: %w", err)
 	}
 
-	return s.convertToTradingResponse(trading), nil
+	return s.convertToTradingResponse(ctx, trading)
 }
 
 // GetUserTradings retrieves all tradings for a user
@@ -93,7 +110,11 @@ func (s *TradingService) GetUserTradings(ctx context.Context, userID uuid.UUID) 
 
 	var responses []*TradingResponse
 	for _, trading := range tradings {
-		responses = append(responses, s.convertToTradingResponse(trading))
+		resp, err := s.convertToTradingResponse(ctx, trading)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert trading response: %w", err)
+		}
+		responses = append(responses, resp)
 	}
 
 	return responses, nil
@@ -114,7 +135,7 @@ func (s *TradingService) GetTrading(ctx context.Context, userID, tradingID uuid.
 		return nil, fmt.Errorf("trading not found")
 	}
 
-	return s.convertToTradingResponse(trading), nil
+	return s.convertToTradingResponse(ctx, trading)
 }
 
 // UpdateTrading updates an existing trading
@@ -133,17 +154,21 @@ func (s *TradingService) UpdateTrading(ctx context.Context, userID, tradingID uu
 		return nil, fmt.Errorf("trading not found")
 	}
 
-	// Update fields if provided - let database constraints handle uniqueness validation
+	// Update fields if provided
 	if req.Name != nil {
 		trading.Name = *req.Name
 	}
 
-	if req.APIKey != nil {
-		trading.APIKey = *req.APIKey
-	}
-
-	if req.APISecret != nil {
-		trading.APISecret = *req.APISecret
+	if req.ExchangeBindingID != nil {
+		// Validate that the user has access to the new exchange binding
+		hasAccess, err := s.exchangeBindingService.ValidateExchangeBindingAccess(ctx, userID, *req.ExchangeBindingID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to validate exchange binding access: %w", err)
+		}
+		if !hasAccess {
+			return nil, fmt.Errorf("access denied to exchange binding")
+		}
+		trading.ExchangeBindingID = *req.ExchangeBindingID
 	}
 
 	if req.Status != nil {
@@ -159,7 +184,7 @@ func (s *TradingService) UpdateTrading(ctx context.Context, userID, tradingID uu
 		return nil, fmt.Errorf("failed to update trading: %w", err)
 	}
 
-	return s.convertToTradingResponse(trading), nil
+	return s.convertToTradingResponse(ctx, trading)
 }
 
 // DeleteTrading deletes a trading (soft delete)
@@ -214,11 +239,11 @@ func (s *TradingService) GetTradingByID(ctx context.Context, tradingID uuid.UUID
 		return nil, fmt.Errorf("trading not found")
 	}
 
-	return s.convertToTradingResponse(trading), nil
+	return s.convertToTradingResponse(ctx, trading)
 }
 
 // convertToTradingResponse converts a trading model to response format
-func (s *TradingService) convertToTradingResponse(trading *models.Trading) *TradingResponse {
+func (s *TradingService) convertToTradingResponse(ctx context.Context, trading *models.Trading) (*TradingResponse, error) {
 	var info map[string]interface{}
 	if len(trading.Info) > 0 {
 		info = trading.Info
@@ -226,21 +251,31 @@ func (s *TradingService) convertToTradingResponse(trading *models.Trading) *Trad
 		info = make(map[string]interface{})
 	}
 
-	// Mask API key for security (show only first 4 and last 4 characters)
-	maskedAPIKey := trading.APIKey
-	if len(maskedAPIKey) > 8 {
-		maskedAPIKey = maskedAPIKey[:4] + "****" + maskedAPIKey[len(maskedAPIKey)-4:]
-	}
-
-	return &TradingResponse{
+	resp := &TradingResponse{
 		ID:        trading.ID,
 		UserID:    trading.UserID,
 		Name:      trading.Name,
 		Type:      trading.Type,
-		APIKey:    maskedAPIKey,
 		Status:    trading.Status,
 		Info:      info,
 		CreatedAt: trading.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: trading.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
+
+	// Include exchange binding information if available (check if ID is not zero)
+	if trading.ExchangeBinding.ID != uuid.Nil {
+		resp.ExchangeBinding = &ExchangeBindingInfo{
+			ID:       trading.ExchangeBinding.ID,
+			Name:     trading.ExchangeBinding.Name,
+			Exchange: trading.ExchangeBinding.Exchange,
+			Type:     trading.ExchangeBinding.Type,
+		}
+
+		// Include masked API key for private bindings that have credentials
+		if trading.ExchangeBinding.IsPrivate() && trading.ExchangeBinding.HasCredentials() {
+			resp.ExchangeBinding.MaskedAPIKey = trading.ExchangeBinding.GetMaskedAPIKey()
+		}
+	}
+
+	return resp, nil
 }

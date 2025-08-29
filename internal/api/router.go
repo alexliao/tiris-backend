@@ -27,13 +27,14 @@ type Server struct {
 	natsManager        *nats.Manager
 	repos              *repositories.Repositories
 	jwtManager         *auth.JWTManager
-	authService        *services.AuthService
-	userService        *services.UserService
-	tradingService     *services.TradingService
-	subAccountService  *services.SubAccountService
-	transactionService *services.TransactionService
-	tradingLogService  *services.TradingLogService
-	metrics            *metrics.Metrics
+	authService          *services.AuthService
+	userService          *services.UserService
+	exchangeBindingService services.ExchangeBindingService
+	tradingService       *services.TradingService
+	subAccountService    *services.SubAccountService
+	transactionService   *services.TransactionService
+	tradingLogService    *services.TradingLogService
+	metrics              *metrics.Metrics
 }
 
 // NewServer creates a new API server
@@ -67,24 +68,26 @@ func NewServer(cfg *config.Config, repos *repositories.Repositories, db *databas
 	// Initialize services
 	authService := services.NewAuthService(repos, jwtManager, oauthManager)
 	userService := services.NewUserService(repos)
-	tradingService := services.NewTradingService(repos)
+	exchangeBindingService := services.NewExchangeBindingService(repos.ExchangeBinding)
+	tradingService := services.NewTradingService(repos, exchangeBindingService)
 	subAccountService := services.NewSubAccountService(repos)
 	transactionService := services.NewTransactionService(repos)
 	tradingLogService := services.NewTradingLogService(repos, db.DB)
 
 	return &Server{
-		config:             cfg,
-		db:                 db,
-		natsManager:        natsManager,
-		repos:              repos,
-		jwtManager:         jwtManager,
-		authService:        authService,
-		userService:        userService,
-		tradingService:     tradingService,
-		subAccountService:  subAccountService,
-		transactionService: transactionService,
-		tradingLogService:  tradingLogService,
-		metrics:            metricsInstance,
+		config:               cfg,
+		db:                   db,
+		natsManager:          natsManager,
+		repos:                repos,
+		jwtManager:           jwtManager,
+		authService:          authService,
+		userService:          userService,
+		exchangeBindingService: exchangeBindingService,
+		tradingService:       tradingService,
+		subAccountService:    subAccountService,
+		transactionService:   transactionService,
+		tradingLogService:    tradingLogService,
+		metrics:              metricsInstance,
 	}
 }
 
@@ -130,6 +133,9 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// User management routes
 	s.setupUserRoutes(protected)
+
+	// Exchange binding management routes
+	s.setupExchangeBindingRoutes(protected)
 
 	// Trading management routes
 	s.setupTradingRoutes(protected)
@@ -192,6 +198,24 @@ func (s *Server) setupUserRoutes(protected *gin.RouterGroup) {
 	adminUsers.GET("", userHandler.ListUsers)
 	adminUsers.GET("/:id", userHandler.GetUserByID)
 	adminUsers.PUT("/:id/disable", userHandler.DisableUser)
+}
+
+// setupExchangeBindingRoutes sets up exchange binding management routes
+func (s *Server) setupExchangeBindingRoutes(protected *gin.RouterGroup) {
+	exchangeBindingHandler := NewExchangeBindingHandler(s.exchangeBindingService)
+
+	bindings := protected.Group("/exchange-bindings")
+
+	// User exchange binding routes
+	bindings.POST("", exchangeBindingHandler.CreateExchangeBinding)
+	bindings.GET("", exchangeBindingHandler.GetUserExchangeBindings)
+	bindings.GET("/:id", exchangeBindingHandler.GetExchangeBinding)
+	bindings.PUT("/:id", exchangeBindingHandler.UpdateExchangeBinding)
+	bindings.DELETE("/:id", exchangeBindingHandler.DeleteExchangeBinding)
+
+	// Public exchange bindings (read-only, but still under protected group for user context)
+	publicBindings := protected.Group("/exchange-bindings/public")
+	publicBindings.GET("", exchangeBindingHandler.GetPublicExchangeBindings)
 }
 
 // setupTradingRoutes sets up trading management routes

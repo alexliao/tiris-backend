@@ -51,7 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_oauth_tokens_info ON oauth_tokens USING GIN(info)
 -- Exchange bindings table
 CREATE TABLE IF NOT EXISTS exchange_bindings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID,
     name VARCHAR(100) NOT NULL,
     exchange VARCHAR(50) NOT NULL,
     type VARCHAR(20) NOT NULL CHECK (type IN ('private', 'public')),
@@ -64,7 +64,6 @@ CREATE TABLE IF NOT EXISTS exchange_bindings (
     
     -- Constraints
     CONSTRAINT exchange_bindings_exchange_valid CHECK (exchange IN ('binance', 'kraken', 'gate', 'coinbase', 'virtual')),
-    CONSTRAINT exchange_bindings_name_unique UNIQUE (COALESCE(user_id, '00000000-0000-0000-0000-000000000000'::UUID), name),
     CONSTRAINT exchange_bindings_private_requires_user CHECK (type = 'public' OR user_id IS NOT NULL),
     CONSTRAINT exchange_bindings_private_requires_keys CHECK (
         type = 'public' OR (api_key IS NOT NULL AND api_secret IS NOT NULL)
@@ -77,6 +76,24 @@ CREATE INDEX IF NOT EXISTS idx_exchange_bindings_exchange ON exchange_bindings(e
 CREATE INDEX IF NOT EXISTS idx_exchange_bindings_type ON exchange_bindings(type);
 CREATE INDEX IF NOT EXISTS idx_exchange_bindings_status ON exchange_bindings(status);
 CREATE INDEX IF NOT EXISTS idx_exchange_bindings_info ON exchange_bindings USING GIN(info);
+
+-- Create unique constraint on name per user (allowing NULL user_id for public bindings)
+CREATE UNIQUE INDEX IF NOT EXISTS exchange_bindings_name_unique 
+ON exchange_bindings (COALESCE(user_id, '00000000-0000-0000-0000-000000000000'::UUID), name);
+
+-- Add foreign key constraint for user_id (allows NULL values for public bindings)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'fk_exchange_bindings_user_id' 
+        AND table_name = 'exchange_bindings'
+    ) THEN
+        ALTER TABLE exchange_bindings 
+        ADD CONSTRAINT fk_exchange_bindings_user_id 
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
 -- Tradings table
 CREATE TABLE IF NOT EXISTS tradings (
@@ -228,7 +245,10 @@ CREATE OR REPLACE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 CREATE OR REPLACE TRIGGER update_oauth_tokens_updated_at BEFORE UPDATE ON oauth_tokens 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE OR REPLACE TRIGGER update_exchanges_updated_at BEFORE UPDATE ON exchanges 
+CREATE OR REPLACE TRIGGER update_exchange_bindings_updated_at BEFORE UPDATE ON exchange_bindings 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE OR REPLACE TRIGGER update_tradings_updated_at BEFORE UPDATE ON tradings 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE OR REPLACE TRIGGER update_sub_accounts_updated_at BEFORE UPDATE ON sub_accounts 

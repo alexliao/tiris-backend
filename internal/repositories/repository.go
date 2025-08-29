@@ -9,6 +9,7 @@ type Repositories struct {
 	User            UserRepository
 	OAuthToken      OAuthTokenRepository
 	Trading         TradingRepository
+	ExchangeBinding ExchangeBindingRepository
 	SubAccount      SubAccountRepository
 	Transaction     TransactionRepository
 	TradingLog      TradingLogRepository
@@ -21,6 +22,7 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		User:            NewUserRepository(db),
 		OAuthToken:      NewOAuthTokenRepository(db),
 		Trading:         NewTradingRepository(db),
+		ExchangeBinding: NewExchangeBindingRepository(db),
 		SubAccount:      NewSubAccountRepository(db),
 		Transaction:     NewTransactionRepository(db),
 		TradingLog:      NewTradingLogRepository(db),

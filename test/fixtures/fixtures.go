@@ -60,6 +60,48 @@ var UserFixtures = struct {
 	},
 }
 
+// ExchangeBindingFixtures provides test exchange binding data
+var ExchangeBindingFixtures = struct {
+	BinanceBinding *models.ExchangeBinding
+	OKXBinding     *models.ExchangeBinding
+	PublicBinding  *models.ExchangeBinding
+}{
+	BinanceBinding: &models.ExchangeBinding{
+		ID:        uuid.MustParse("333e4567-e89b-12d3-a456-426614174000"),
+		UserID:    &UserFixtures.ValidUser.ID,
+		Name:      "Binance Main Account",
+		Exchange:  "binance",
+		Type:      "private",
+		APIKey:    "test_binance_api_key",
+		APISecret: "test_binance_secret",
+		Status:    "active",
+		CreatedAt: time.Now().Add(-12 * time.Hour),
+		UpdatedAt: time.Now().Add(-1 * time.Hour),
+	},
+	OKXBinding: &models.ExchangeBinding{
+		ID:        uuid.MustParse("333e4567-e89b-12d3-a456-426614174001"),
+		UserID:    &UserFixtures.ValidUser.ID,
+		Name:      "OKX Trading Account",
+		Exchange:  "okx",
+		Type:      "private",
+		APIKey:    "test_okx_api_key",
+		APISecret: "test_okx_secret",
+		Status:    "active",
+		CreatedAt: time.Now().Add(-10 * time.Hour),
+		UpdatedAt: time.Now().Add(-30 * time.Minute),
+	},
+	PublicBinding: &models.ExchangeBinding{
+		ID:       uuid.MustParse("333e4567-e89b-12d3-a456-426614174002"),
+		UserID:   nil, // Public binding
+		Name:     "Binance Public Data",
+		Exchange: "binance",
+		Type:     "public",
+		Status:   "active",
+		CreatedAt: time.Now().Add(-24 * time.Hour),
+		UpdatedAt: time.Now().Add(-1 * time.Hour),
+	},
+}
+
 // TradingFixtures provides test trading data
 var TradingFixtures = struct {
 	BinanceTrading *models.Trading
@@ -67,37 +109,34 @@ var TradingFixtures = struct {
 	TestTrading    *models.Trading
 }{
 	BinanceTrading: &models.Trading{
-		ID:        uuid.MustParse("223e4567-e89b-12d3-a456-426614174000"),
-		UserID:    UserFixtures.ValidUser.ID,
-		Name:      "binance",
-		Type:      "spot",
-		APIKey:    "test_binance_api_key",
-		APISecret: "test_binance_secret",
-		Status:    "active",
+		ID:                uuid.MustParse("223e4567-e89b-12d3-a456-426614174000"),
+		UserID:            UserFixtures.ValidUser.ID,
+		ExchangeBindingID: ExchangeBindingFixtures.BinanceBinding.ID,
+		Name:              "binance",
+		Type:              "real",
+		Status:            "active",
 		Info:      models.JSON{"sandbox": true},
 		CreatedAt: time.Now().Add(-12 * time.Hour),
 		UpdatedAt: time.Now().Add(-1 * time.Hour),
 	},
 	OKXTrading: &models.Trading{
-		ID:        uuid.MustParse("223e4567-e89b-12d3-a456-426614174001"),
-		UserID:    UserFixtures.ValidUser.ID,
-		Name:      "okx",
-		Type:      "spot",
-		APIKey:    "test_okx_api_key",
-		APISecret: "test_okx_secret",
-		Status:    "active",
+		ID:                uuid.MustParse("223e4567-e89b-12d3-a456-426614174001"),
+		UserID:            UserFixtures.ValidUser.ID,
+		ExchangeBindingID: ExchangeBindingFixtures.OKXBinding.ID,
+		Name:              "okx",
+		Type:              "real",
+		Status:            "active",
 		Info:      models.JSON{"sandbox": true, "passphrase": "test_passphrase"},
 		CreatedAt: time.Now().Add(-6 * time.Hour),
 		UpdatedAt: time.Now().Add(-30 * time.Minute),
 	},
 	TestTrading: &models.Trading{
-		ID:        uuid.MustParse("223e4567-e89b-12d3-a456-426614174002"),
-		UserID:    UserFixtures.AdminUser.ID,
-		Name:      "test_trading",
-		Type:      "futures",
-		APIKey:    "test_api_key",
-		APISecret: "test_secret_key",
-		Status:    "inactive",
+		ID:                uuid.MustParse("223e4567-e89b-12d3-a456-426614174002"),
+		UserID:            UserFixtures.AdminUser.ID,
+		ExchangeBindingID: ExchangeBindingFixtures.PublicBinding.ID,
+		Name:              "test_trading",
+		Type:              "backtest",
+		Status:            "inactive",
 		Info:      models.JSON{"sandbox": false},
 		CreatedAt: time.Now().Add(-3 * time.Hour),
 		UpdatedAt: time.Now().Add(-15 * time.Minute),
@@ -279,16 +318,15 @@ func CreateUser() *models.User {
 // CreateTrading creates a new trading with randomized values for testing
 func CreateTrading(userID uuid.UUID) *models.Trading {
 	return &models.Trading{
-		ID:        uuid.New(),
-		UserID:    userID,
-		Name:      "test_trading_" + uuid.New().String()[:8],
-		Type:      "spot",
-		APIKey:    "test_api_key",
-		APISecret: "test_api_secret",
-		Status:    "active",
-		Info:      models.JSON{},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:                uuid.New(),
+		UserID:            userID,
+		ExchangeBindingID: ExchangeBindingFixtures.PublicBinding.ID,
+		Name:              "test_trading_" + uuid.New().String()[:8],
+		Type:              "virtual",
+		Status:            "active",
+		Info:              models.JSON{},
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
 	}
 }
 

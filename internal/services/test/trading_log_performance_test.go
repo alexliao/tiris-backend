@@ -18,9 +18,8 @@ import (
 
 // TestTradingLogService_Performance_HighVolume tests high-volume trading scenarios
 func TestTradingLogService_Performance_HighVolume(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping performance tests in short mode")
-	}
+	// Skip performance tests in unit test package - they belong in internal/performance
+	t.Skip("Performance test moved to internal/performance package - run make test-integration-docker")
 
 	// Setup test database
 	testConfig := config.GetProfileConfig(config.ProfileQuick)
@@ -197,9 +196,8 @@ func TestTradingLogService_Performance_HighVolume(t *testing.T) {
 
 // TestTradingLogService_Performance_StressTest tests system limits
 func TestTradingLogService_Performance_StressTest(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping stress tests in short mode")
-	}
+	// Skip performance tests in unit test package - they belong in internal/performance
+	t.Skip("Performance test moved to internal/performance package - run make test-integration-docker")
 
 	// Setup test database
 	testConfig := config.GetProfileConfig(config.ProfileQuick)
@@ -371,9 +369,8 @@ func TestTradingLogService_Performance_StressTest(t *testing.T) {
 
 // TestTradingLogService_Performance_Benchmarks provides benchmark tests
 func TestTradingLogService_Performance_Benchmarks(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping benchmark tests in short mode")
-	}
+	// Skip performance tests in unit test package - they belong in internal/performance
+	t.Skip("Performance test moved to internal/performance package - run make test-integration-docker")
 
 	// Setup test database
 	testConfig := config.GetProfileConfig(config.ProfileQuick)
