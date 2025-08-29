@@ -1,4 +1,21 @@
-# Tiris Reverse Proxy
+# ⚠️ REFERENCE ONLY - NOT USED IN CURRENT DEPLOYMENT
+
+**This proxy configuration is a reference implementation and is NOT active in the current deployment.**
+
+## Current Active Setup
+- **Deployment**: `docker-compose.simple.yml` with `--profile ssl`
+- **Nginx Config**: `nginx.simple.conf` (multi-app + HTTPS/SSL)
+- **Container**: `tiris-nginx-simple`
+- **Status**: ✅ Working with full SSL support
+
+## This Folder (Reference Only)
+- **Purpose**: Alternative centralized proxy architecture
+- **Config**: `nginx.conf` (HTTP-only, no SSL)
+- **Status**: ❌ Not used, kept for reference
+
+---
+
+# Tiris Reverse Proxy (Reference Implementation)
 
 Central reverse proxy for routing traffic to multiple Tiris applications based on subdomain.
 
