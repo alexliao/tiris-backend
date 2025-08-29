@@ -181,6 +181,41 @@ cd tiris-backend
 git pull origin main
 docker-compose -f docker-compose.simple.yml down
 docker-compose -f docker-compose.simple.yml up -d --build
+
+# Run database migrations (if needed)
+docker exec tiris-app-simple ./migrate up
+```
+
+### Database Migration for Tiris Backend
+After updating the backend application, you may need to run database migrations:
+
+```bash
+# Run all pending migrations
+docker exec tiris-app-simple ./migrate up
+
+# Check current migration version
+docker exec tiris-app-simple ./migrate version
+
+# Rollback migrations (if needed)
+docker exec tiris-app-simple ./migrate down    # Rollback 1 step
+docker exec tiris-app-simple ./migrate down 3  # Rollback 3 steps
+```
+
+**When to run migrations:**
+- After updating tiris-backend application code
+- When setting up the system for the first time (if migrations weren't applied during initial setup)
+- After pulling updates that include database schema changes
+
+**Migration troubleshooting:**
+```bash
+# Check database connectivity
+docker exec tiris-postgres-simple pg_isready -U tiris_user -d tiris
+
+# Check application logs for migration errors
+docker logs tiris-app-simple --tail 50
+
+# Check database logs
+docker logs tiris-postgres-simple --tail 20
 ```
 
 ## SSL/HTTPS Setup (Recommended for Production)

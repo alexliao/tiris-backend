@@ -47,6 +47,15 @@ Your application will be running at `http://localhost:8080`
 
 [📖 Quick Deploy Guide](./QUICK_DEPLOY.md)
 
+**Database Migration:** After deployment or updates, you may need to run migrations:
+```bash
+# For Docker deployments
+docker exec tiris-app-simple ./migrate up
+
+# For local development  
+make migrate-up
+```
+
 ### 🏭 Production Deploy (30 minutes)
 Full production deployment with monitoring, backups, and security:
 

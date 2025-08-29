@@ -219,6 +219,65 @@ docker logs --tail 50 tiris-app-simple
 docker logs tiris-app-simple | grep ERROR
 ```
 
+## 💾 **Database Migration**
+
+### **Running Database Migrations:**
+After updating your application code, you may need to run database migrations to update the database schema.
+
+```bash
+# Run all pending migrations
+docker exec tiris-app-simple ./migrate up
+
+# Check current migration version
+docker exec tiris-app-simple ./migrate version
+
+# Rollback migrations (if needed)
+docker exec tiris-app-simple ./migrate down    # Rollback 1 step
+docker exec tiris-app-simple ./migrate down 3  # Rollback 3 steps
+```
+
+### **When to Run Migrations:**
+- After deploying new application code
+- When setting up the application for the first time (if initial setup didn't run migrations)
+- After pulling updates that include database schema changes
+
+### **Migration Output Examples:**
+```bash
+# Successful migration
+$ docker exec tiris-app-simple ./migrate up
+⬆️  Running migration up...
+⏳ Waiting for database connection...
+✅ Database is ready!
+Migrations completed successfully
+
+# No migrations needed
+$ docker exec tiris-app-simple ./migrate up
+⬆️  Running migration up...
+⏳ Waiting for database connection...
+✅ Database is ready!
+No new migrations to run
+
+# Check version
+$ docker exec tiris-app-simple ./migrate version
+📊 Checking migration status...
+⏳ Waiting for database connection...
+✅ Database is ready!
+Current migration version: 5
+```
+
+### **Migration Troubleshooting:**
+If migration fails, check the database connection and logs:
+```bash
+# Check database connectivity
+docker exec tiris-postgres-simple pg_isready -U tiris_user -d tiris
+
+# Check application logs for migration errors
+docker logs tiris-app-simple --tail 50
+
+# Check database logs
+docker logs tiris-postgres-simple --tail 20
+```
+
 ## 🔄 **Updates & Maintenance**
 
 ### **Update Application:**
@@ -228,6 +287,9 @@ git pull origin main
 
 # Rebuild and restart
 docker compose -f docker-compose.simple.yml --env-file .env.simple up -d --build app
+
+# Run database migrations (if needed)
+docker exec tiris-app-simple ./migrate up
 
 # Validate deployment
 ./scripts/validate-deployment.sh
