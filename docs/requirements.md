@@ -29,24 +29,46 @@ This document defines the functional and non-functional requirements for the Tir
 - The system MUST provide APIs to query user information
 - The system MUST enforce proper authorization for user data access
 
-### 2.2 Trading Management (FR-TM)
+### 2.2 Exchange Binding Management (FR-EB)
 
-**FR-TM-001: Trading Binding**
-- Users MUST be able to bind multiple tradings to their account
-- Users MUST provide trading type, name, API key, and API secret
-- The system MUST validate trading credentials before binding
-- The system MUST create a virtual trading for each user by default for simulation trading
+**FR-EB-001: Exchange Binding Creation**
+- Users MUST be able to create multiple exchange bindings to their account
+- Users MUST provide binding name, exchange type, API key, and API secret for private bindings
+- The system MUST validate exchange credentials before creating private bindings
+- The system MUST support public exchange bindings for simulation and backtesting
+- The system MUST pre-create public bindings during database migration
+
+**FR-EB-002: Exchange Binding Operations**
+- Users MUST be able to modify exchange binding configurations
+- Users MUST be able to delete exchange bindings (if not referenced by active tradings)
+- The system MUST secure API keys and secrets using encryption
+- The system MUST support both private (user-specific) and public (system-wide) binding types
+
+**FR-EB-003: Exchange Binding Queries**
+- Users MUST be able to query their exchange binding information
+- Users MUST be able to view available public exchange bindings
+- The system MUST not expose sensitive credentials in API responses
+
+### 2.3 Trading Management (FR-TM)
+
+**FR-TM-001: Trading Creation**
+- Users MUST be able to create multiple tradings using existing exchange bindings
+- Users MUST provide trading type, name, and reference to an exchange_binding_id
+- The system MUST create a virtual trading for each user by default using a public exchange binding
+- The system MUST validate that the referenced exchange binding exists and is accessible
 
 **FR-TM-002: Trading Configuration**
 - Users MUST be able to modify trading configurations
-- Users MUST be able to unbind (remove) tradings
-- The system MUST secure API keys and secrets using encryption
+- Users MUST be able to delete tradings
+- Users MUST be able to change the exchange binding associated with a trading
+- The system MUST preserve trading history when changing exchange bindings
 
 **FR-TM-003: Trading Data Queries**
 - Users MUST be able to query their trading information
-- The system MUST not expose sensitive credentials in API responses
+- The system MUST provide trading details along with associated exchange information
+- The system MUST not expose sensitive exchange credentials in API responses
 
-### 2.3 Sub-account Management (FR-SM)
+### 2.4 Sub-account Management (FR-SM)
 
 **FR-SM-001: Sub-account Creation**
 - Users MUST be able to create multiple sub-accounts within a trading
@@ -63,19 +85,19 @@ This document defines the functional and non-functional requirements for the Tir
 - Users MUST be able to query sub-account information
 - The system MUST provide real-time balance information
 
-### 2.4 Transaction Management (FR-TM)
+### 2.5 Transaction Management (FR-TR)
 
-**FR-TM-001: Transaction Recording**
+**FR-TR-001: Transaction Recording**
 - The system MUST automatically create transactions based on trading logs
 - Transactions MUST record timestamp, direction (debit/credit), reason, amount, closing balance, price, and quote symbol
 - The system MUST maintain transaction integrity and consistency
 
-**FR-TM-002: Transaction Queries**
+**FR-TR-002: Transaction Queries**
 - Users MUST be able to query transaction history
 - The system MUST support filtering by date range, sub-account, and transaction type
 - The system MUST provide pagination for large result sets
 
-### 2.5 Trading Log Management (FR-TL)
+### 2.6 Trading Log Management (FR-TL)
 
 **FR-TL-001: Trading Log Creation**
 - The system MUST accept trading logs from external sources (bots via NATS, manual trading via API)
@@ -87,7 +109,7 @@ This document defines the functional and non-functional requirements for the Tir
 - Administrators MUST be able to delete trading logs
 - The system MUST support real-time log streaming for monitoring
 
-### 2.6 Message Queue Processing (FR-MQ)
+### 2.7 Message Queue Processing (FR-MQ)
 
 **FR-MQ-001: Event Consumption**
 - The system MUST consume trading events from NATS JetStream

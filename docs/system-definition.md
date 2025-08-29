@@ -16,7 +16,9 @@ The database includes the following core tables:
 
 * **users**: Contains user profile information similar to most user management systems, including username, email, avatar, settings (JSON), and other profile data.
 
-* **tradings**: Each user can bind multiple tradings by saving the API key and secret for each specific trading. A virtual trading is created for each user by default for simulation trading. The tradings table includes columns for name, type, API key, API secret, and other necessary information, with a user_id column as a foreign key to relate to the users table.
+* **exchange_bindings**: Save the binding information for a user with a specific exchange such as Binance, Kraken, Gate.io, Coinbase, etc. Each user can bind multiple exchanges by saving the API key and secret for each particular exchange. The exchange_bindings table includes columns for name, exchange, type(private/public), API key, API secret, and other necessary information, with a user_id column as a foreign key to relate to the users table. user_id can be null for public type of bindings. Some public exchange bindings are pre-created with the system database migration. For example, a binding of {name:"Binance", type:"public", api_key:null, api_secret:null, info:{description:"A virtual Binance exchange for simulation and backtesting"}}
+
+* **tradings**: A trading represents a series of trading activities with exclusive sub accounts. Each user can create multiple tradings. A virtual trading is created for each user by default for simulation trading. Real trading refers to transactions conducted on a specific exchange. The tradings table includes columns for name, type(real/virtual/backtest), and other necessary information, with a user_id column as a foreign key to relate to the users table and an exchange_binding_id as a foreign key to relate to the exchange_bindings table.
 
 * **sub_accounts**: Assets in each trading of a user can be divided into multiple sub-accounts within the Tiris system. For example, if a user has a spot account with 10,000 USDT on Binance, they can create two sub-accounts in the Tiris database: one with 5,000 USDT as the initial balance and another with 3,000 USDT as the initial balance. The user can assign the first sub-account to one trading bot and the second sub-account to another trading bot. These two trading bots will only use their respective 5,000 and 3,000 USDT as initial funds for trading. The remaining 2,000 USDT balance will not be used by the Tiris system at all. Users can manually withdraw funds less than 2,000 USDT from Binance at any time without affecting the operation of Tiris trading bots. The sub_accounts table includes columns for name, symbol, balance, and foreign keys for trading_id and user_id.
 
@@ -36,7 +38,7 @@ The Tiris-backend API includes the following components:
   * Query user information
 
 * **Trading Management**:
-  * Bind (create) a trading by setting the trading type, name, API key, and secret
+  * Create a trading by setting the trading type, name, and exchange_binding_id
   * Modify trading configurations
   * Unbind (remove) a trading
   * Query trading information

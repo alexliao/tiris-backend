@@ -67,14 +67,15 @@ CREATE TRIGGER update_users_updated_at
 - `info`: Extended user information (profile data, OAuth details)
 - `status`: Account status (active, disabled, deleted)
 
-### 2.2 Tradings Table
+### 2.2 Exchange Bindings Table
 
 ```sql
-CREATE TABLE tradings (
+CREATE TABLE exchange_bindings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    type VARCHAR(50) NOT NULL,
+    exchange VARCHAR(50) NOT NULL,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('private', 'public')),
     api_key_encrypted TEXT,
     api_secret_encrypted TEXT,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'error')),
@@ -83,14 +84,61 @@ CREATE TABLE tradings (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     
     -- Constraints
-    CONSTRAINT tradings_type_valid CHECK (type IN ('binance', 'kraken', 'gate', 'virtual')),
-    CONSTRAINT tradings_user_name_unique UNIQUE (user_id, name),
-    CONSTRAINT tradings_user_api_key_unique UNIQUE (user_id, api_key),
-    CONSTRAINT tradings_user_api_secret_unique UNIQUE (user_id, api_secret)
+    CONSTRAINT exchange_bindings_exchange_valid CHECK (exchange IN ('binance', 'kraken', 'gate', 'coinbase', 'virtual')),
+    CONSTRAINT exchange_bindings_name_unique UNIQUE (COALESCE(user_id, '00000000-0000-0000-0000-000000000000'::UUID), name),
+    CONSTRAINT exchange_bindings_private_requires_user CHECK (type = 'public' OR user_id IS NOT NULL),
+    CONSTRAINT exchange_bindings_private_requires_keys CHECK (
+        type = 'public' OR (api_key_encrypted IS NOT NULL AND api_secret_encrypted IS NOT NULL)
+    )
+);
+
+-- Indexes
+CREATE INDEX idx_exchange_bindings_user_id ON exchange_bindings(user_id);
+CREATE INDEX idx_exchange_bindings_exchange ON exchange_bindings(exchange);
+CREATE INDEX idx_exchange_bindings_type ON exchange_bindings(type);
+CREATE INDEX idx_exchange_bindings_status ON exchange_bindings(status);
+CREATE INDEX idx_exchange_bindings_info_gin ON exchange_bindings USING gin(info);
+
+-- Trigger for updated_at
+CREATE TRIGGER update_exchange_bindings_updated_at 
+    BEFORE UPDATE ON exchange_bindings 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+```
+
+**Fields Description:**
+- `id`: Unique identifier (UUID)
+- `user_id`: Foreign key to users table (NULL for public bindings)
+- `name`: User-defined name for the exchange binding
+- `exchange`: Exchange name (binance, kraken, gate, coinbase, virtual)
+- `type`: Binding type (private for user credentials, public for system-wide)
+- `api_key_encrypted`: Encrypted API key (NULL for public bindings)
+- `api_secret_encrypted`: Encrypted API secret (NULL for public bindings)
+- `status`: Exchange connection status
+- `info`: Additional exchange data (permissions, testnet flag, description)
+
+### 2.3 Tradings Table
+
+```sql
+CREATE TABLE tradings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    exchange_binding_id UUID NOT NULL REFERENCES exchange_bindings(id) ON DELETE RESTRICT,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'paused')),
+    info JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT tradings_type_valid CHECK (type IN ('real', 'virtual', 'backtest')),
+    CONSTRAINT tradings_user_name_unique UNIQUE (user_id, name)
 );
 
 -- Indexes
 CREATE INDEX idx_tradings_user_id ON tradings(user_id);
+CREATE INDEX idx_tradings_exchange_binding_id ON tradings(exchange_binding_id);
 CREATE INDEX idx_tradings_type ON tradings(type);
 CREATE INDEX idx_tradings_status ON tradings(status);
 CREATE INDEX idx_tradings_info_gin ON tradings USING gin(info);
@@ -105,14 +153,13 @@ CREATE TRIGGER update_tradings_updated_at
 **Fields Description:**
 - `id`: Unique identifier (UUID)
 - `user_id`: Foreign key to users table
+- `exchange_binding_id`: Foreign key to exchange_bindings table
 - `name`: User-defined name for the trading
-- `type`: Trading type (binance, kraken, gate, virtual)
-- `api_key_encrypted`: Encrypted API key
-- `api_secret_encrypted`: Encrypted API secret
-- `status`: Trading connection status
-- `info`: Additional trading data (permissions, testnet flag, sync status)
+- `type`: Trading type (real, virtual, backtest)
+- `status`: Trading status (active, inactive, paused)
+- `info`: Additional trading data (strategies, settings, performance metrics)
 
-### 2.3 Sub-accounts Table
+### 2.4 Sub-accounts Table
 
 ```sql
 CREATE TABLE sub_accounts (
@@ -152,7 +199,7 @@ CREATE TRIGGER update_sub_accounts_updated_at
 - `balance`: Current available balance (updated when orders complete)
 - `info`: Additional sub-account data (initial balance, trading rules, bot configuration)
 
-### 2.4 Transactions Table (Time-series)
+### 2.5 Transactions Table (Time-series)
 
 ```sql
 CREATE TABLE transactions (
@@ -208,7 +255,7 @@ SELECT add_retention_policy('transactions', INTERVAL '2 years');
 - `quote_symbol`: Quote currency for price
 - `info`: Additional transaction data (order details, fees, etc.)
 
-### 2.5 Trading Logs Table (Time-series)
+### 2.6 Trading Logs Table (Time-series)
 
 ```sql
 CREATE TABLE trading_logs (
@@ -382,19 +429,22 @@ CREATE VIEW user_portfolios AS
 SELECT 
     u.id as user_id,
     u.username,
-    e.id as trading_id,
-    e.name as trading_name,
-    e.type as trading_type,
+    t.id as trading_id,
+    t.name as trading_name,
+    t.type as trading_type,
+    eb.exchange as exchange_name,
+    eb.type as exchange_type,
     COUNT(sa.id) as sub_account_count,
     COALESCE(SUM(CASE WHEN sa.symbol = 'BTC' THEN sa.balance ELSE 0 END), 0) as btc_balance,
     COALESCE(SUM(CASE WHEN sa.symbol = 'ETH' THEN sa.balance ELSE 0 END), 0) as eth_balance,
     COALESCE(SUM(CASE WHEN sa.symbol = 'USDT' THEN sa.balance ELSE 0 END), 0) as usdt_balance,
-    e.created_at as trading_added_at
+    t.created_at as trading_added_at
 FROM users u
-LEFT JOIN tradings e ON u.id = e.user_id AND e.status = 'active'
-LEFT JOIN sub_accounts sa ON e.id = sa.trading_id
+LEFT JOIN tradings t ON u.id = t.user_id AND t.status = 'active'
+LEFT JOIN exchange_bindings eb ON t.exchange_binding_id = eb.id AND eb.status = 'active'
+LEFT JOIN sub_accounts sa ON t.id = sa.trading_id
 WHERE u.status = 'active'
-GROUP BY u.id, u.username, e.id, e.name, e.type, e.created_at;
+GROUP BY u.id, u.username, t.id, t.name, t.type, eb.exchange, eb.type, t.created_at;
 ```
 
 ### 4.2 Daily Transaction Summary (Materialized View)
@@ -541,15 +591,15 @@ RETURNS TABLE(
 BEGIN
     RETURN QUERY
     SELECT 
-        COUNT(DISTINCT e.id)::INT as total_tradings,
-        COUNT(DISTINCT CASE WHEN e.status = 'active' THEN e.id END)::INT as active_tradings,
+        COUNT(DISTINCT tr.id)::INT as total_tradings,
+        COUNT(DISTINCT CASE WHEN tr.status = 'active' THEN tr.id END)::INT as active_tradings,
         COUNT(DISTINCT sa.id)::INT as total_sub_accounts,
         COALESCE(COUNT(t.id), 0) as total_transactions,
         MIN(t.timestamp) as first_transaction_date,
         MAX(t.timestamp) as last_transaction_date
     FROM users u
-    LEFT JOIN tradings e ON u.id = e.user_id
-    LEFT JOIN sub_accounts sa ON e.id = sa.trading_id
+    LEFT JOIN tradings tr ON u.id = tr.user_id
+    LEFT JOIN sub_accounts sa ON tr.id = sa.trading_id
     LEFT JOIN transactions t ON sa.id = t.sub_account_id
     WHERE u.id = p_user_id
     GROUP BY u.id;
@@ -644,18 +694,19 @@ CHECK (closing_balance >= 0);
 - `users.username`: Usernames must be globally unique across all users
 
 **Per-User Uniqueness:**
+- `exchange_bindings.name`: Exchange binding names must be unique within each user's account (or globally for public bindings)
 - `tradings.name`: Trading names must be unique within each user's account
-- `tradings.api_key`: API keys must be unique within each user's account (prevents accidental reuse)
-- `tradings.api_secret`: API secrets must be unique within each user's account (prevents accidental reuse)
 
 **Per-Trading Uniqueness:**
 - `sub_accounts.name`: Sub-account names must be unique within each trading
 
 ```sql
+-- Exchange binding uniqueness constraints 
+ALTER TABLE exchange_bindings ADD CONSTRAINT exchange_bindings_name_unique 
+    UNIQUE (COALESCE(user_id, '00000000-0000-0000-0000-000000000000'::UUID), name);
+
 -- Trading uniqueness constraints (per user)
 ALTER TABLE tradings ADD CONSTRAINT tradings_user_name_unique UNIQUE (user_id, name);
-ALTER TABLE tradings ADD CONSTRAINT tradings_user_api_key_unique UNIQUE (user_id, api_key);
-ALTER TABLE tradings ADD CONSTRAINT tradings_user_api_secret_unique UNIQUE (user_id, api_secret);
 
 -- Sub-account uniqueness constraints (per trading)  
 ALTER TABLE sub_accounts ADD CONSTRAINT sub_accounts_trading_name_unique UNIQUE (trading_id, name);
@@ -664,9 +715,9 @@ ALTER TABLE sub_accounts ADD CONSTRAINT sub_accounts_trading_name_unique UNIQUE 
 ### 7.3 Referential Integrity
 
 **Foreign Key Policies:**
-- `CASCADE`: Delete child records when parent is deleted (users -> tradings -> sub_accounts)
+- `CASCADE`: Delete child records when parent is deleted (users -> exchange_bindings, users -> tradings -> sub_accounts)
 - `SET NULL`: Set foreign key to NULL when referenced record is deleted (optional references)
-- `RESTRICT`: Prevent deletion if child records exist (where appropriate)
+- `RESTRICT`: Prevent deletion if child records exist (exchange_bindings referenced by tradings)
 
 ### 7.4 Data Validation
 
@@ -689,8 +740,8 @@ CHECK (symbol ~* '^[A-Z]{2,10}$');
 ### 8.1 Data Encryption
 
 **Encrypted Fields:**
-- `tradings.api_key_encrypted`
-- `tradings.api_secret_encrypted`
+- `exchange_bindings.api_key_encrypted`
+- `exchange_bindings.api_secret_encrypted`
 - `oauth_tokens.access_token_encrypted`
 - `oauth_tokens.refresh_token_encrypted`
 
@@ -722,6 +773,7 @@ GRANT tiris_write TO tiris_app;
 ```sql
 -- Enable RLS on sensitive tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exchange_bindings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tradings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sub_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
@@ -731,6 +783,10 @@ ALTER TABLE trading_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY user_own_data ON users
 FOR ALL TO tiris_app
 USING (id = current_setting('app.current_user_id')::UUID);
+
+CREATE POLICY exchange_binding_own_data ON exchange_bindings
+FOR ALL TO tiris_app
+USING (user_id = current_setting('app.current_user_id')::UUID OR type = 'public');
 
 CREATE POLICY trading_own_data ON tradings
 FOR ALL TO tiris_app
