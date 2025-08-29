@@ -4,11 +4,13 @@
 # 
 # This script performs basic API testing for manual use:
 # 1. Show user profile
-# 2. Add a Binance trading for the user (or get existing one if it already exists)
-# 3. Add a sub-account to the trading (or get existing one if it already exists)
-# 4. Initialize sub-account balance using deposit trading log (demonstrates business logic)
-# 5. Retrieve transaction records to show automatic audit trail from deposit
-# 6. Add a trading log entry (long position with business logic processing)
+# 2. Add an exchange binding for the user (or get existing one if it already exists)
+# 3. Add a trading using the exchange binding (or get existing one if it already exists)
+# 4. Add a sub-account to the trading (or get existing one if it already exists)
+# 5. Add a second sub-account (ETH) to the trading (or get existing one if it already exists)
+# 6. Initialize sub-account balance using deposit trading log (demonstrates business logic)
+# 7. Retrieve transaction records to show automatic audit trail from deposit
+# 8. Add a trading log entry (long position with business logic processing)
 # 
 # USAGE:
 #   ./scripts/test-api.sh                                     - Run normal API tests (localhost:8080)
@@ -475,6 +477,7 @@ AUTH_HEADER="Authorization: Bearer $JWT_TOKEN"
 
 # Test status tracking
 USER_PROFILE_SUCCESS=false
+EXCHANGE_BINDING_SUCCESS=false
 TRADING_SUCCESS=false
 SUBACCOUNT_SUCCESS=false
 ETH_SUBACCOUNT_SUCCESS=false
@@ -497,6 +500,7 @@ cleanup_database() {
     echo "- Transactions (automatically deleted with sub-accounts)" 
     echo "- Sub-accounts"
     echo "- Tradings"
+    echo "- Exchange bindings"
     echo ""
     echo "Note: User accounts themselves are NOT deleted"
     echo ""
@@ -673,6 +677,31 @@ cleanup_database() {
         echo "No tradings found or failed to fetch"
     fi
     
+    # Step 5: Delete all exchange bindings for this user
+    print_header "🔗 Cleaning Exchange Bindings"
+    echo "Fetching exchange bindings to delete..."
+    
+    EXCHANGE_BINDINGS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/exchange-bindings")
+    if echo "$EXCHANGE_BINDINGS_RESPONSE" | jq -e '.success == true and .data.exchange_bindings' > /dev/null 2>&1; then
+        EXCHANGE_BINDING_COUNT=$(echo "$EXCHANGE_BINDINGS_RESPONSE" | jq -r '.data.exchange_bindings | length')
+        echo "Found $EXCHANGE_BINDING_COUNT exchange binding(s) to delete"
+        
+        # Delete each exchange binding
+        echo "$EXCHANGE_BINDINGS_RESPONSE" | jq -r '.data.exchange_bindings[].id' | while read -r binding_id; do
+            if [ -n "$binding_id" ] && [ "$binding_id" != "null" ]; then
+                DELETE_RESPONSE=$(curl -s -X DELETE -H "$AUTH_HEADER" "$BASE_URL/exchange-bindings/$binding_id")
+                if echo "$DELETE_RESPONSE" | jq -e '.success == true' > /dev/null 2>&1; then
+                    echo "  ✅ Deleted exchange binding: $binding_id"
+                else
+                    echo "  ❌ Failed to delete exchange binding: $binding_id"
+                    echo "     Response: $(echo "$DELETE_RESPONSE" | jq -c '.')"
+                fi
+            fi
+        done
+    else
+        echo "No exchange bindings found or failed to fetch"
+    fi
+    
     echo ""
     echo -e "${GREEN}🎉 Database cleanup completed!${NC}"
     echo "The development database has been cleaned of all user data."
@@ -761,42 +790,104 @@ else
     echo -e "${RED}❌ User profile test failed - this may affect subsequent tests${NC}"
 fi
 
-# Test 2: Add Binance Trading or Get Binance Trading
-print_header "🏦 Adding Binance Trading"
-echo "Endpoint: POST /v1/tradings"
+# Test 2: Add Exchange Binding
+print_header "🔗 Adding Exchange Binding"
+echo "Endpoint: POST /v1/exchange-bindings"
 echo ""
 
-# Generate unique API credentials to avoid conflicts (but use fixed trading name)
+# Generate unique API credentials to avoid conflicts
 TIMESTAMP=$(date +%s)
-KRAKEN_PAYLOAD='{
-  "name": "My Binance",
-  "type": "binance",
+EXCHANGE_BINDING_PAYLOAD='{
+  "name": "My Binance Exchange",
+  "exchange": "binance",
+  "type": "private",
   "api_key": "binance_api_key_'$TIMESTAMP'",
   "api_secret": "binance_secret_'$TIMESTAMP'"
 }'
 
 echo "Request payload:"
-echo "$KRAKEN_PAYLOAD" | jq .
+echo "$EXCHANGE_BINDING_PAYLOAD" | jq .
 echo ""
 
 echo "Response:"
-KRAKEN_RESPONSE=$(curl -s -X POST \
+EXCHANGE_BINDING_RESPONSE=$(curl -s -X POST \
   -H "$AUTH_HEADER" \
   -H "$CONTENT_HEADER" \
-  -d "$KRAKEN_PAYLOAD" \
+  -d "$EXCHANGE_BINDING_PAYLOAD" \
+  "$BASE_URL/exchange-bindings")
+
+echo "$EXCHANGE_BINDING_RESPONSE" | jq . 2>/dev/null || echo "$EXCHANGE_BINDING_RESPONSE"
+
+if echo "$EXCHANGE_BINDING_RESPONSE" | jq -e '.success == true and .data.id' > /dev/null 2>&1; then
+    EXCHANGE_BINDING_ID=$(echo "$EXCHANGE_BINDING_RESPONSE" | jq -r '.data.id')
+    echo -e "${GREEN}✅ Exchange binding created successfully${NC}"
+    echo "Exchange Binding ID: $EXCHANGE_BINDING_ID"
+    EXCHANGE_BINDING_SUCCESS=true
+else
+    echo "❌ Exchange binding creation failed, trying to get existing exchange binding"
+    
+    print_header "🔍 Getting Existing Exchange Binding"
+    echo "Endpoint: GET /v1/exchange-bindings"
+    echo ""
+    
+    EXCHANGE_BINDINGS_RESPONSE=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/exchange-bindings")
+    echo "All exchange bindings response:"
+    echo "$EXCHANGE_BINDINGS_RESPONSE" | jq . 2>/dev/null || echo "$EXCHANGE_BINDINGS_RESPONSE"
+    echo ""
+    
+    # Extract the first Binance exchange binding ID
+    EXCHANGE_BINDING_ID=$(echo "$EXCHANGE_BINDINGS_RESPONSE" | jq -r '.data.exchange_bindings[] | select(.exchange == "binance") | .id' | head -1)
+    
+    if [ -n "$EXCHANGE_BINDING_ID" ] && [ "$EXCHANGE_BINDING_ID" != "null" ]; then
+        echo -e "${GREEN}✅ Found existing Binance exchange binding${NC}"
+        echo "Exchange Binding ID: $EXCHANGE_BINDING_ID"
+        EXCHANGE_BINDING_SUCCESS=true
+        
+        # Get specific exchange binding details
+        echo ""
+        echo "Getting exchange binding details:"
+        EXCHANGE_BINDING_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/exchange-bindings/$EXCHANGE_BINDING_ID")
+        echo "$EXCHANGE_BINDING_DETAILS" | jq . 2>/dev/null || echo "$EXCHANGE_BINDING_DETAILS"
+    else
+        echo "❌ No existing Binance exchange binding found"
+        EXCHANGE_BINDING_SUCCESS=false
+        echo "⚠️ Continuing without exchange binding - trading creation will likely fail"
+    fi
+fi
+
+# Test 3: Add Trading using Exchange Binding
+print_header "🏦 Adding Trading with Exchange Binding"
+echo "Endpoint: POST /v1/tradings"
+echo ""
+
+TRADING_PAYLOAD='{
+  "name": "My Binance Trading",
+  "exchange_binding_id": "'$EXCHANGE_BINDING_ID'",
+  "type": "real"
+}'
+
+echo "Request payload:"
+echo "$TRADING_PAYLOAD" | jq .
+echo ""
+
+echo "Response:"
+TRADING_RESPONSE=$(curl -s -X POST \
+  -H "$AUTH_HEADER" \
+  -H "$CONTENT_HEADER" \
+  -d "$TRADING_PAYLOAD" \
   "$BASE_URL/tradings")
 
-echo "$KRAKEN_RESPONSE" | jq . 2>/dev/null || echo "$KRAKEN_RESPONSE"
+echo "$TRADING_RESPONSE" | jq . 2>/dev/null || echo "$TRADING_RESPONSE"
 
-if echo "$KRAKEN_RESPONSE" | jq -e '.success == true and .data.id' > /dev/null 2>&1; then
-    TRADING_ID=$(echo "$KRAKEN_RESPONSE" | jq -r '.data.id')
-    echo -e "${GREEN}✅ Binance trading created successfully${NC}"
+if echo "$TRADING_RESPONSE" | jq -e '.success == true and .data.id' > /dev/null 2>&1; then
+    TRADING_ID=$(echo "$TRADING_RESPONSE" | jq -r '.data.id')
+    echo -e "${GREEN}✅ Trading created successfully${NC}"
     echo "Trading ID: $TRADING_ID"
     TRADING_SUCCESS=true
 else
-    echo "❌ Binance trading creation failed, trying to get existing trading"
+    echo "❌ Trading creation failed, trying to get existing trading"
     
-    print_header "🔍 Getting Existing Binance Trading"
+    print_header "🔍 Getting Existing Trading"
     echo "Endpoint: GET /v1/tradings"
     echo ""
     
@@ -805,28 +896,28 @@ else
     echo "$TRADINGS_RESPONSE" | jq . 2>/dev/null || echo "$TRADINGS_RESPONSE"
     echo ""
     
-    # Extract the first Binance trading ID
-    TRADING_ID=$(echo "$TRADINGS_RESPONSE" | jq -r '.data.tradings[] | select(.type == "binance") | .id' | head -1)
+    # Extract the first trading ID
+    TRADING_ID=$(echo "$TRADINGS_RESPONSE" | jq -r '.data.tradings[0].id' | head -1)
     
     if [ -n "$TRADING_ID" ] && [ "$TRADING_ID" != "null" ]; then
-        echo -e "${GREEN}✅ Found existing Binance trading${NC}"
+        echo -e "${GREEN}✅ Found existing trading${NC}"
         echo "Trading ID: $TRADING_ID"
         TRADING_SUCCESS=true
         
         # Get specific trading details
         echo ""
         echo "Getting trading details:"
-        KRAKEN_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/tradings/$TRADING_ID")
-        echo "$KRAKEN_DETAILS" | jq . 2>/dev/null || echo "$KRAKEN_DETAILS"
+        TRADING_DETAILS=$(curl -s -H "$AUTH_HEADER" -H "$CONTENT_HEADER" "$BASE_URL/tradings/$TRADING_ID")
+        echo "$TRADING_DETAILS" | jq . 2>/dev/null || echo "$TRADING_DETAILS"
     else
-        echo "❌ No existing Binance trading found"
+        echo "❌ No existing trading found"
         TRADING_SUCCESS=false
         echo "⚠️ Continuing without trading - remaining tests will likely fail"
     fi
 fi
 
-# Test 3: Add a sub-account to the Binance trading or get the first existing sub-account
-print_header "👤 Adding Sub-Account to Binance Trading"
+# Test 4: Add a sub-account to the trading or get the first existing sub-account
+print_header "👤 Adding Sub-Account to Trading"
 echo "Endpoint: POST /v1/sub-accounts"
 echo ""
 
@@ -886,7 +977,7 @@ else
     fi
 fi
 
-# Test 3b: Create Second Sub-Account (ETH)
+# Test 5: Create Second Sub-Account (ETH)
 print_header "🏦 Creating Second Sub-Account (ETH)"
 echo "Endpoint: POST /v1/sub-accounts"
 echo ""
@@ -933,7 +1024,7 @@ else
     fi
 fi
 
-# Test 4: Initialize Sub-Account with Deposit Trading Log
+# Test 6: Initialize Sub-Account with Deposit Trading Log
 print_header "💰 Initializing Sub-Account with Deposit"
 echo "Endpoint: POST /v1/trading-logs (type: deposit)"
 echo "This replaces the obsolete balance API with proper business logic"
@@ -989,7 +1080,7 @@ else
     DEPOSIT_SUCCESS=false
 fi
 
-# Test 5: Retrieve Transaction Records
+# Test 7: Retrieve Transaction Records
 if echo "$DEPOSIT_RESPONSE" | jq -e '.success == true' > /dev/null 2>&1; then
     print_header "📊 Retrieving Transaction Records from Deposit"
     echo "Endpoint: GET /v1/transactions/sub-account/{sub_account_id}"
@@ -1021,7 +1112,7 @@ else
     TRANSACTION_HISTORY_SUCCESS=false
 fi
 
-# Test 6: Add a trading log (conditional based on --no-trading-logs flag)
+# Test 8: Add a trading log (conditional based on --no-trading-logs flag)
 if [ "$SKIP_TRADING_LOGS" = false ]; then
     print_header "📊 Adding Trading Log for ETH Long Position"
 echo "Endpoint: POST /v1/trading-logs"
@@ -1193,10 +1284,16 @@ else
     echo "❌ User profile test failed"
 fi
 
-if [ "$TRADING_SUCCESS" = true ]; then
-    echo "✅ Binance trading test completed successfully"
+if [ "$EXCHANGE_BINDING_SUCCESS" = true ]; then
+    echo "✅ Exchange binding test completed successfully"
 else
-    echo "❌ Binance trading test failed"
+    echo "❌ Exchange binding test failed"
+fi
+
+if [ "$TRADING_SUCCESS" = true ]; then
+    echo "✅ Trading test completed successfully"
+else
+    echo "❌ Trading test failed"
 fi
 
 if [ "$SUBACCOUNT_SUCCESS" = true ]; then
@@ -1234,7 +1331,7 @@ fi
 echo ""
 
 # Overall test result summary
-if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$TRADING_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$DEPOSIT_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
+if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$EXCHANGE_BINDING_SUCCESS" = true ] && [ "$TRADING_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$DEPOSIT_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
     echo -e "${GREEN}🎉 All tests completed successfully!${NC}"
 else
     echo -e "${RED}⚠️ Some tests failed. Check the output above for details.${NC}"
@@ -1260,7 +1357,7 @@ echo "- Use --domain option to test different environments (localhost:8080, back
 
 # Final status summary for human review
 echo ""
-if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$TRADING_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$DEPOSIT_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
+if [ "$USER_PROFILE_SUCCESS" = true ] && [ "$EXCHANGE_BINDING_SUCCESS" = true ] && [ "$TRADING_SUCCESS" = true ] && [ "$SUBACCOUNT_SUCCESS" = true ] && [ "$ETH_SUBACCOUNT_SUCCESS" = true ] && [ "$DEPOSIT_SUCCESS" = true ] && [ "$TRANSACTION_HISTORY_SUCCESS" = true ] && [ "$TRADING_LOG_SUCCESS" = true ]; then
     echo -e "${GREEN}🎯 All tests completed successfully!${NC}"
     echo -e "${GREEN}✅ The API and business logic are working correctly.${NC}"
 else
@@ -1268,6 +1365,9 @@ else
     
     if [ "$USER_PROFILE_SUCCESS" != true ]; then
         echo "  • User profile: ❌ Failed"
+    fi
+    if [ "$EXCHANGE_BINDING_SUCCESS" != true ]; then
+        echo "  • Exchange binding: ❌ Failed"
     fi
     if [ "$TRADING_SUCCESS" != true ]; then
         echo "  • Trading management: ❌ Failed" 
