@@ -660,6 +660,413 @@ const docTemplate = `{
                 }
             }
         },
+        "/exchange-bindings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all exchange bindings for the authenticated user with pagination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange Bindings"
+                ],
+                "summary": "Get user exchange bindings",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.ExchangeBinding"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new exchange binding for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange Bindings"
+                ],
+                "summary": "Create new exchange binding",
+                "parameters": [
+                    {
+                        "description": "Create exchange binding request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateExchangeBindingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.ExchangeBinding"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/exchange-bindings/public": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all public exchange bindings (optionally filtered by exchange)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange Bindings"
+                ],
+                "summary": "Get public exchange bindings",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by exchange type",
+                        "name": "exchange",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.ExchangeBinding"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/exchange-bindings/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a specific exchange binding by ID (must be owned by user or be public)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange Bindings"
+                ],
+                "summary": "Get exchange binding by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exchange binding ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ExchangeBinding"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing exchange binding (must be owned by user)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange Bindings"
+                ],
+                "summary": "Update exchange binding",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exchange binding ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update exchange binding request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateExchangeBindingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ExchangeBinding"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes an exchange binding (must be owned by user and not in use)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exchange Bindings"
+                ],
+                "summary": "Delete exchange binding",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exchange binding ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.SuccessResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Provides detailed health information about the service and its dependencies",
@@ -2952,6 +3359,93 @@ const docTemplate = `{
                 }
             }
         },
+        "models.CreateExchangeBindingRequest": {
+            "type": "object",
+            "required": [
+                "exchange",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "api_key": {
+                    "type": "string"
+                },
+                "api_secret": {
+                    "type": "string"
+                },
+                "exchange": {
+                    "type": "string"
+                },
+                "info": {
+                    "$ref": "#/definitions/models.JSON"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ExchangeBinding": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "exchange": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "info": {
+                    "$ref": "#/definitions/models.JSON"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.JSON": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "models.UpdateExchangeBindingRequest": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string"
+                },
+                "api_secret": {
+                    "type": "string"
+                },
+                "info": {
+                    "$ref": "#/definitions/models.JSON"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "services.AuthResponse": {
             "type": "object",
             "properties": {
@@ -3090,21 +3584,14 @@ const docTemplate = `{
         "services.CreateTradingRequest": {
             "type": "object",
             "required": [
-                "api_key",
-                "api_secret",
+                "exchange_binding_id",
                 "name",
                 "type"
             ],
             "properties": {
-                "api_key": {
+                "exchange_binding_id": {
                     "type": "string",
-                    "minLength": 1,
-                    "example": "your_api_key_here"
-                },
-                "api_secret": {
-                    "type": "string",
-                    "minLength": 1,
-                    "example": "your_api_secret_here"
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "name": {
                     "type": "string",
@@ -3114,7 +3601,27 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string",
-                    "example": "binance"
+                    "example": "real"
+                }
+            }
+        },
+        "services.ExchangeBindingInfo": {
+            "type": "object",
+            "properties": {
+                "exchange": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "masked_api_key": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },
@@ -3259,12 +3766,11 @@ const docTemplate = `{
         "services.TradingResponse": {
             "type": "object",
             "properties": {
-                "api_key": {
-                    "description": "Masked in production",
-                    "type": "string"
-                },
                 "created_at": {
                     "type": "string"
+                },
+                "exchange_binding": {
+                    "$ref": "#/definitions/services.ExchangeBindingInfo"
                 },
                 "id": {
                     "type": "string"
@@ -3412,15 +3918,9 @@ const docTemplate = `{
         "services.UpdateTradingRequest": {
             "type": "object",
             "properties": {
-                "api_key": {
+                "exchange_binding_id": {
                     "type": "string",
-                    "minLength": 1,
-                    "example": "updated_api_key_12345"
-                },
-                "api_secret": {
-                    "type": "string",
-                    "minLength": 1,
-                    "example": "updated_api_secret_67890"
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "name": {
                     "type": "string",

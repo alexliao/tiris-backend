@@ -79,6 +79,64 @@ definitions:
       success:
         type: boolean
     type: object
+  models.CreateExchangeBindingRequest:
+    properties:
+      api_key:
+        type: string
+      api_secret:
+        type: string
+      exchange:
+        type: string
+      info:
+        $ref: '#/definitions/models.JSON'
+      name:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: string
+    required:
+    - exchange
+    - name
+    - type
+    type: object
+  models.ExchangeBinding:
+    properties:
+      created_at:
+        type: string
+      exchange:
+        type: string
+      id:
+        type: string
+      info:
+        $ref: '#/definitions/models.JSON'
+      name:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.JSON:
+    additionalProperties: true
+    type: object
+  models.UpdateExchangeBindingRequest:
+    properties:
+      api_key:
+        type: string
+      api_secret:
+        type: string
+      info:
+        $ref: '#/definitions/models.JSON'
+      name:
+        type: string
+      status:
+        type: string
+    type: object
   services.AuthResponse:
     properties:
       access_token:
@@ -187,13 +245,8 @@ definitions:
     type: object
   services.CreateTradingRequest:
     properties:
-      api_key:
-        example: your_api_key_here
-        minLength: 1
-        type: string
-      api_secret:
-        example: your_api_secret_here
-        minLength: 1
+      exchange_binding_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       name:
         example: My Trading Account
@@ -201,13 +254,25 @@ definitions:
         minLength: 1
         type: string
       type:
-        example: binance
+        example: real
         type: string
     required:
-    - api_key
-    - api_secret
+    - exchange_binding_id
     - name
     - type
+    type: object
+  services.ExchangeBindingInfo:
+    properties:
+      exchange:
+        type: string
+      id:
+        type: string
+      masked_api_key:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
     type: object
   services.LoginRequest:
     properties:
@@ -304,11 +369,10 @@ definitions:
     type: object
   services.TradingResponse:
     properties:
-      api_key:
-        description: Masked in production
-        type: string
       created_at:
         type: string
+      exchange_binding:
+        $ref: '#/definitions/services.ExchangeBindingInfo'
       id:
         type: string
       info:
@@ -411,13 +475,8 @@ definitions:
     type: object
   services.UpdateTradingRequest:
     properties:
-      api_key:
-        example: updated_api_key_12345
-        minLength: 1
-        type: string
-      api_secret:
-        example: updated_api_secret_67890
-        minLength: 1
+      exchange_binding_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       name:
         example: My Updated Trading Account
@@ -603,8 +662,7 @@ paths:
       - TradingLogs
   /admin/tradings:
     get:
-      description: Lists all trading configurations with pagination (admin
-        only)
+      description: Lists all trading configurations with pagination (admin only)
       parameters:
       - default: 100
         description: Number of tradings to return
@@ -912,6 +970,259 @@ paths:
       summary: Refresh access token
       tags:
       - Authentication
+  /exchange-bindings:
+    get:
+      description: Retrieves all exchange bindings for the authenticated user with
+        pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.ExchangeBinding'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user exchange bindings
+      tags:
+      - Exchange Bindings
+    post:
+      consumes:
+      - application/json
+      description: Creates a new exchange binding for the authenticated user
+      parameters:
+      - description: Create exchange binding request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateExchangeBindingRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ExchangeBinding'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create new exchange binding
+      tags:
+      - Exchange Bindings
+  /exchange-bindings/{id}:
+    delete:
+      description: Deletes an exchange binding (must be owned by user and not in use)
+      parameters:
+      - description: Exchange binding ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete exchange binding
+      tags:
+      - Exchange Bindings
+    get:
+      description: Retrieves a specific exchange binding by ID (must be owned by user
+        or be public)
+      parameters:
+      - description: Exchange binding ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ExchangeBinding'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get exchange binding by ID
+      tags:
+      - Exchange Bindings
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing exchange binding (must be owned by user)
+      parameters:
+      - description: Exchange binding ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update exchange binding request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateExchangeBindingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ExchangeBinding'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update exchange binding
+      tags:
+      - Exchange Bindings
+  /exchange-bindings/public:
+    get:
+      description: Retrieves all public exchange bindings (optionally filtered by
+        exchange)
+      parameters:
+      - description: Filter by exchange type
+        in: query
+        name: exchange
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.ExchangeBinding'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get public exchange bindings
+      tags:
+      - Exchange Bindings
   /health:
     get:
       description: Provides detailed health information about the service and its
@@ -1387,8 +1698,8 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "404":
-          description: Not Found - Trading ID or sub-account IDs referenced
-            in 'info' field do not exist
+          description: Not Found - Trading ID or sub-account IDs referenced in 'info'
+            field do not exist
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "422":
@@ -1613,8 +1924,8 @@ paths:
       - TradingLogs
   /trading-logs/trading/{trading_id}:
     get:
-      description: Retrieves trading log history for a specific trading (must
-        belong to authenticated user)
+      description: Retrieves trading log history for a specific trading (must belong
+        to authenticated user)
       parameters:
       - description: Trading ID
         in: path
@@ -1680,8 +1991,7 @@ paths:
       - TradingLogs
   /tradings:
     get:
-      description: Retrieves all trading configurations for the authenticated
-        user
+      description: Retrieves all trading configurations for the authenticated user
       produces:
       - application/json
       responses:
@@ -1707,8 +2017,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new trading configuration for the authenticated
-        user
+      description: Creates a new trading configuration for the authenticated user
       parameters:
       - description: Create trading request
         in: body
@@ -1746,8 +2055,7 @@ paths:
       - Tradings
   /tradings/{id}:
     delete:
-      description: Deletes a trading configuration (must belong to authenticated
-        user)
+      description: Deletes a trading configuration (must belong to authenticated user)
       parameters:
       - description: Trading ID
         in: path
@@ -1787,8 +2095,8 @@ paths:
       tags:
       - Tradings
     get:
-      description: Retrieves a specific trading configuration by ID (must
-        belong to authenticated user)
+      description: Retrieves a specific trading configuration by ID (must belong to
+        authenticated user)
       parameters:
       - description: Trading ID
         in: path
@@ -1826,8 +2134,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Updates an existing trading configuration (must belong
-        to authenticated user)
+      description: Updates an existing trading configuration (must belong to authenticated
+        user)
       parameters:
       - description: Trading ID
         in: path
@@ -2121,8 +2429,8 @@ paths:
       - Transactions
   /transactions/trading/{trading_id}:
     get:
-      description: Retrieves transaction history for a specific trading (must
-        belong to authenticated user)
+      description: Retrieves transaction history for a specific trading (must belong
+        to authenticated user)
       parameters:
       - description: Trading ID
         in: path

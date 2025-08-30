@@ -48,6 +48,16 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 - Rate limiting and throttling
 - API documentation (OpenAPI/Swagger)
 
+**API Endpoints:**
+- User Management (`/users/*`)
+- Exchange Binding Management (`/exchange-bindings/*`)
+- Trading Management (`/tradings/*`)
+- Sub-account Management (`/sub-accounts/*`)
+- Transaction Operations (`/transactions/*`)
+- Trading Log Operations (`/trading-logs/*`)
+- Authentication (`/auth/*`)
+- Health Monitoring (`/health/*`)
+
 **Components:**
 - HTTP Router (Gorilla Mux or Gin)
 - Middleware stack (Auth, Logging, CORS)
@@ -206,32 +216,60 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 ### 5.1 Database Schema Overview
 
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│    users    │    │  tradings  │    │sub_accounts │
-│             │◄──┐│             │◄──┐│             │
-│ - id        │   ││ - id        │   ││ - id        │
-│ - username  │   ││ - user_id   │   ││ - user_id   │
-│ - email     │   ││ - name      │   ││ - trading_id│
-│ - settings  │   ││ - type      │   ││ - name      │
-│ - info      │   ││ - api_key   │   ││ - symbol    │
-└─────────────┘   ││ - info      │   ││ - balance   │
-                  │└─────────────┘   ││ - info      │
-                  │                  │└─────────────┘
-┌─────────────┐   │┌─────────────┐   │
-│trading_logs │   ││transactions │   │
-│             │   ││             │   │
-│ - id        │   ││ - id        │   │
-│ - user_id   │───┘│ - user_id   │───┘
-│ - trading_id    │ - trading_id
-│ - timestamp │    │ - sub_account_id
-│ - type      │    │ - timestamp │
-│ - source    │    │ - direction │
-│ - message   │    │ - amount    │
-│ - info      │    │ - info      │
-└─────────────┘    └─────────────┘
+┌─────────────┐    ┌─────────────────┐    ┌─────────────┐    ┌─────────────┐
+│    users    │    │exchange_bindings│    │  tradings   │    │sub_accounts │
+│             │◄──┐│                 │◄──┐│             │◄──┐│             │
+│ - id        │   ││ - id            │   ││ - id        │   ││ - id        │
+│ - username  │   ││ - user_id       │   ││ - user_id   │   ││ - user_id   │
+│ - email     │   ││ - name          │   ││ - name      │   ││ - trading_id│
+│ - settings  │   ││ - exchange      │   ││ - type      │   ││ - name      │
+│ - info      │   ││ - type          │   ││ - exchange_b│   ││ - symbol    │
+└─────────────┘   ││ - api_key*      │   ││ - info      │   ││ - balance   │
+                  ││ - api_secret*   │   │└─────────────┘   ││ - info      │
+                  ││ - info          │   │                  │└─────────────┘
+                  │└─────────────────┘   │                  │
+                  │                      │                  │
+┌─────────────┐   │                      │┌─────────────┐   │
+│trading_logs │   │                      ││transactions │   │
+│             │   │                      ││             │   │
+│ - id        │   │                      ││ - id        │   │
+│ - user_id   │───┘                      ││ - user_id   │───┘
+│ - trading_id│──────────────────────────┘│ - trading_id│
+│ - timestamp │                           │ - sub_account_id
+│ - type      │                           │ - timestamp │
+│ - source    │                           │ - direction │
+│ - message   │                           │ - amount    │
+│ - info      │                           │ - info      │
+└─────────────┘                           └─────────────┘
+
+* Encrypted fields for private exchange bindings
 ```
 
-### 5.2 JSON Extensibility Design
+### 5.2 Exchange Binding Architecture
+
+**Separation of Concerns:**
+The system separates exchange connection credentials from trading activities through the exchange binding pattern:
+
+- **Exchange Bindings**: Store exchange connection information (API keys, exchange type)
+- **Tradings**: Represent trading activities that reference exchange bindings
+- **Decoupling**: Multiple tradings can share the same exchange binding
+
+**Exchange Binding Types:**
+- **Private Bindings**: User-specific with encrypted API credentials
+- **Public Bindings**: System-wide virtual exchanges for simulation/backtesting
+
+**Benefits:**
+- **Security**: Centralized credential management with encryption
+- **Reusability**: One exchange binding can support multiple tradings
+- **Flexibility**: Easy switching between live and simulation modes
+- **Maintenance**: Update credentials in one place for all related tradings
+
+**Trading Types:**
+- **Real**: Live trading using private exchange bindings
+- **Virtual**: Paper trading using public exchange bindings
+- **Backtest**: Historical simulation using public exchange bindings
+
+### 5.3 JSON Extensibility Design
 
 **Universal Info Column:**
 - All database tables include an `info` JSONB column for flexible data storage
@@ -246,7 +284,7 @@ Tiris Backend serves as the central data management microservice in the Tiris qu
 - Trading strategy parameters and metadata storage
 - Audit trail and debugging information
 
-### 5.3 Time-Series Data Optimization
+### 5.4 Time-Series Data Optimization
 
 **TimescaleDB Features:**
 - Automatic partitioning for transactions and trading_logs tables

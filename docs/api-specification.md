@@ -259,12 +259,83 @@ Authorization: Bearer {admin_jwt_token}
 }
 ```
 
-## 4. Trading Management API
+## 4. Exchange Binding Management API
 
-### 4.1 List User Tradings
-**Endpoint:** `GET /tradings`
+### 4.1 List User Exchange Bindings
+**Endpoint:** `GET /exchange-bindings`
 
-**Description:** Get all tradings bound to the current user.
+**Description:** Get all exchange bindings for the current user.
+
+**Headers:**
+```
+Authorization: Bearer {jwt_token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "eb123",
+      "name": "My Binance Connection",
+      "exchange": "binance",
+      "type": "private",
+      "status": "active",
+      "created_at": "2024-01-01T00:00:00Z",
+      "info": {
+        "testnet": false,
+        "permissions": ["spot", "futures"]
+      }
+    }
+  ]
+}
+```
+
+### 4.2 Create Exchange Binding
+**Endpoint:** `POST /exchange-bindings`
+
+**Description:** Create a new exchange binding with API credentials.
+
+**Headers:**
+```
+Authorization: Bearer {jwt_token}
+```
+
+**Request Body:**
+```json
+{
+  "name": "My Binance Connection",
+  "exchange": "binance",
+  "type": "private",
+  "api_key": "your_api_key",
+  "api_secret": "your_api_secret",
+  "info": {
+    "testnet": false,
+    "description": "Main trading account"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "eb123",
+    "name": "My Binance Connection", 
+    "exchange": "binance",
+    "type": "private",
+    "status": "active",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### 4.3 Get Exchange Binding
+**Endpoint:** `GET /exchange-bindings/{id}`
+
+**Description:** Get details of a specific exchange binding.
 
 **Headers:**
 ```
@@ -276,28 +347,25 @@ Authorization: Bearer {jwt_token}
 {
   "success": true,
   "data": {
-    "tradings": [
-      {
-        "id": "trading123",
-        "name": "My Binance Account",
-        "type": "binance",
-        "status": "active",
-        "created_at": "2024-01-01T00:00:00Z",
-        "info": {
-          "last_sync": "2024-01-15T10:00:00Z",
-          "testnet": false,
-          "permissions": ["spot", "futures"]
-        }
-      }
-    ]
+    "id": "eb123",
+    "name": "My Binance Connection",
+    "exchange": "binance", 
+    "type": "private",
+    "status": "active",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-15T10:30:00Z",
+    "info": {
+      "testnet": false,
+      "permissions": ["spot", "futures"]
+    }
   }
 }
 ```
 
-### 4.2 Create Trading Binding
-**Endpoint:** `POST /tradings`
+### 4.4 Update Exchange Binding
+**Endpoint:** `PUT /exchange-bindings/{id}`
 
-**Description:** Bind a new trading to the user account.
+**Description:** Update an existing exchange binding.
 
 **Headers:**
 ```
@@ -307,13 +375,127 @@ Authorization: Bearer {jwt_token}
 **Request Body:**
 ```json
 {
-  "name": "My Binance Account",
-  "type": "binance",
-  "api_key": "encrypted_api_key",
-  "api_secret": "encrypted_api_secret",
+  "name": "Updated Binance Connection",
+  "api_key": "new_api_key",
+  "api_secret": "new_api_secret",
+  "status": "active"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "eb123",
+    "name": "Updated Binance Connection",
+    "exchange": "binance",
+    "type": "private", 
+    "status": "active",
+    "updated_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### 4.5 Delete Exchange Binding
+**Endpoint:** `DELETE /exchange-bindings/{id}`
+
+**Description:** Delete an exchange binding (only if not referenced by active tradings).
+
+**Headers:**
+```
+Authorization: Bearer {jwt_token}
+```
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
+### 4.6 Get Public Exchange Bindings
+**Endpoint:** `GET /exchange-bindings/public`
+
+**Description:** Get all public exchange bindings available for simulation and backtesting.
+
+**Headers:**
+```
+Authorization: Bearer {jwt_token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "public_binance",
+      "name": "Binance",
+      "exchange": "binance", 
+      "type": "public",
+      "status": "active",
+      "info": {
+        "description": "A virtual Binance exchange for simulation and backtesting"
+      }
+    }
+  ]
+}
+```
+
+## 5. Trading Management API
+
+### 5.1 List User Tradings
+**Endpoint:** `GET /tradings`
+
+**Description:** Get all tradings created by the current user.
+
+**Headers:**
+```
+Authorization: Bearer {jwt_token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "trading123",
+      "name": "My Real Trading",
+      "exchange_binding_id": "eb123",
+      "type": "real",
+      "status": "active",
+      "created_at": "2024-01-01T00:00:00Z",
+      "info": {
+        "strategy": "momentum",
+        "risk_level": "medium"
+      }
+    }
+  ]
+}
+```
+
+### 5.2 Create Trading
+**Endpoint:** `POST /tradings`
+
+**Description:** Create a new trading using an existing exchange binding.
+
+**Headers:**
+```
+Authorization: Bearer {jwt_token}
+```
+
+**Request Body:**
+```json
+{
+  "name": "My Real Trading",
+  "exchange_binding_id": "eb123",
+  "type": "real",
   "info": {
-    "testnet": false,
-    "permissions": ["spot", "futures"]
+    "strategy": "momentum",
+    "risk_level": "medium",
+    "description": "Live trading with momentum strategy"
   }
 }
 ```
@@ -324,15 +506,16 @@ Authorization: Bearer {jwt_token}
   "success": true,
   "data": {
     "id": "trading123",
-    "name": "My Binance Account",
-    "type": "binance",
+    "name": "My Real Trading",
+    "exchange_binding_id": "eb123",
+    "type": "real",
     "status": "active",
     "created_at": "2024-01-15T10:30:00Z"
   }
 }
 ```
 
-### 4.3 Get Trading Details
+### 5.3 Get Trading Details
 **Endpoint:** `GET /tradings/{trading_id}`
 
 **Description:** Get details of a specific trading.
@@ -361,7 +544,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 4.4 Update Trading
+### 5.4 Update Trading
 **Endpoint:** `PUT /tradings/{trading_id}`
 
 **Description:** Update trading configuration.
@@ -394,7 +577,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 4.5 Delete Trading
+### 5.5 Delete Trading
 **Endpoint:** `DELETE /tradings/{trading_id}`
 
 **Description:** Remove trading binding from user account.
@@ -414,9 +597,9 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-## 5. Sub-account Management API
+## 6. Sub-account Management API
 
-### 5.1 List Sub-accounts
+### 6.1 List Sub-accounts
 **Endpoint:** `GET /sub-accounts`
 
 **Description:** Get all sub-accounts for the current user.
@@ -456,7 +639,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 5.2 Create Sub-account
+### 6.2 Create Sub-account
 **Endpoint:** `POST /sub-accounts`
 
 **Description:** Create a new sub-account.
@@ -494,7 +677,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 5.3 Get Sub-account Details
+### 6.3 Get Sub-account Details
 **Endpoint:** `GET /sub-accounts/{sub_account_id}`
 
 **Description:** Get details of a specific sub-account.
@@ -528,7 +711,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 5.4 Update Sub-account
+### 6.4 Update Sub-account
 **Endpoint:** `PUT /sub-accounts/{sub_account_id}`
 
 **Description:** Update sub-account information.
@@ -563,7 +746,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 5.5 Delete Sub-account
+### 6.5 Delete Sub-account
 **Endpoint:** `DELETE /sub-accounts/{sub_account_id}`
 
 **Description:** Delete a sub-account (only if balance is zero).
@@ -583,9 +766,9 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-## 6. Transaction Management API
+## 7. Transaction Management API
 
-### 6.1 List Transactions
+### 7.1 List Transactions
 **Endpoint:** `GET /transactions`
 
 **Description:** Get transaction history.
@@ -639,7 +822,7 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-### 6.2 Get Transaction Details
+### 7.2 Get Transaction Details
 **Endpoint:** `GET /transactions/{transaction_id}`
 
 **Description:** Get details of a specific transaction.
@@ -675,9 +858,9 @@ Authorization: Bearer {jwt_token}
 }
 ```
 
-## 7. Trading Log Management API
+## 8. Trading Log Management API
 
-### 7.1 List Trading Logs
+### 8.1 List Trading Logs
 **Endpoint:** `GET /trading-logs`
 
 **Description:** Get trading log history.
