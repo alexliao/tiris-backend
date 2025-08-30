@@ -36,6 +36,7 @@ type TradingLogResponse struct {
 	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty"`
 	TransactionID *uuid.UUID             `json:"transaction_id,omitempty"`
 	Timestamp     string                 `json:"timestamp"`
+	EventTime     *string                `json:"event_time,omitempty"`
 	Type          string                 `json:"type"`
 	Source        string                 `json:"source"`
 	Message       string                 `json:"message"`
@@ -51,6 +52,7 @@ type CreateTradingLogRequest struct {
 	TradingID     uuid.UUID              `json:"trading_id" binding:"required" example:"453f0347-3959-49de-8e3f-1cf7c8e0827c" description:"ID of the trading where the trading activity occurred"`
 	SubAccountID  *uuid.UUID             `json:"sub_account_id,omitempty" example:"b4e006d0-1069-4ef4-b33f-7690af4929f4" description:"Optional sub-account ID (used for some trading log types)"`
 	TransactionID *uuid.UUID             `json:"transaction_id,omitempty" example:"1a098613-e738-447d-b921-74c3594df3a5" description:"Optional transaction ID for linking to specific transactions"`
+	EventTime     *time.Time             `json:"event_time,omitempty" example:"2024-01-15T10:30:00Z" description:"Logical timestamp when the trading event occurred. If not provided, defaults to NULL. For live trading, this should match current time. For backtesting, this represents the historical time when the event logically occurred."`
 	Type          string                 `json:"type" binding:"required,min=1,max=50" example:"long" enums:"long,short,stop_loss,deposit,withdraw,trade_execution,api_call,system_event,error,custom" description:"Type of trading log entry. Business logic types (long, short, stop_loss, deposit, withdraw) require specific 'info' field structures and trigger automatic financial calculations"`
 	Source        string                 `json:"source" binding:"required,oneof=manual bot" example:"bot" description:"Source of the trading log entry"`
 	Message       string                 `json:"message" binding:"required,min=1" example:"Successfully executed BUY order for 0.5 BTC at $42,500" description:"Human-readable description of the trading activity"`
@@ -452,6 +454,12 @@ func (s *TradingLogService) convertToTradingLogResponse(tradingLog *models.Tradi
 		info = make(map[string]interface{})
 	}
 
+	var eventTimeStr *string
+	if tradingLog.EventTime != nil {
+		eventTime := tradingLog.EventTime.Format("2006-01-02T15:04:05Z07:00")
+		eventTimeStr = &eventTime
+	}
+
 	return &TradingLogResponse{
 		ID:            tradingLog.ID,
 		UserID:        tradingLog.UserID,
@@ -459,6 +467,7 @@ func (s *TradingLogService) convertToTradingLogResponse(tradingLog *models.Tradi
 		SubAccountID:  tradingLog.SubAccountID,
 		TransactionID: tradingLog.TransactionID,
 		Timestamp:     tradingLog.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
+		EventTime:     eventTimeStr,
 		Type:          tradingLog.Type,
 		Source:        tradingLog.Source,
 		Message:       tradingLog.Message,

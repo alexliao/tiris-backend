@@ -27,7 +27,7 @@ The trading log business logic automatically processes `long`, `short`, and `sto
 
 ## API Usage Examples
 
-### Long Position (Buy Order)
+### Long Position (Buy Order) - Live Trading
 
 ```json
 POST /v1/trading-logs
@@ -36,6 +36,7 @@ POST /v1/trading-logs
   "type": "long",
   "source": "manual",
   "message": "ETH long position opened",
+  "event_time": "2024-01-18T10:00:00Z",
   "info": {
     "stock_account_id": "eth-account-uuid",
     "currency_account_id": "usdt-account-uuid", 
@@ -44,6 +45,28 @@ POST /v1/trading-logs
     "stock": "ETH",
     "currency": "USDT",
     "fee": 12.00
+  }
+}
+```
+
+### Long Position (Buy Order) - Backtesting Historical Data
+
+```json
+POST /v1/trading-logs
+{
+  "trading_id": "uuid-of-trading",
+  "type": "long",
+  "source": "bot",
+  "message": "ETH long position opened (backtest)",
+  "event_time": "2023-06-15T14:22:33Z",
+  "info": {
+    "stock_account_id": "eth-account-uuid",
+    "currency_account_id": "usdt-account-uuid", 
+    "price": 1800.00,
+    "volume": 2.0,
+    "stock": "ETH",
+    "currency": "USDT",
+    "fee": 7.20
   }
 }
 ```
@@ -61,6 +84,7 @@ POST /v1/trading-logs
   "type": "short",
   "source": "manual", 
   "message": "ETH short position opened",
+  "event_time": "2024-01-18T10:05:00Z",
   "info": {
     "stock_account_id": "eth-account-uuid",
     "currency_account_id": "usdt-account-uuid",
@@ -86,6 +110,7 @@ POST /v1/trading-logs
   "type": "stop_loss",
   "source": "bot",
   "message": "ETH stop-loss triggered",
+  "event_time": "2024-01-18T10:15:00Z",
   "info": {
     "stock_account_id": "eth-account-uuid",
     "currency_account_id": "usdt-account-uuid",
@@ -116,7 +141,8 @@ When business logic is applied, the response includes additional metadata:
     "type": "long",
     "source": "manual",
     "message": "ETH long position opened",
-    "timestamp": "2025-01-18T10:00:00Z",
+    "timestamp": "2024-01-18T10:00:00Z",
+    "event_time": "2024-01-18T10:00:00Z",
     "info": {
       "stock_account_id": "eth-account-uuid",
       "currency_account_id": "usdt-account-uuid",
@@ -130,6 +156,43 @@ When business logic is applied, the response includes additional metadata:
       "transaction_ids": ["tx-uuid-1", "tx-uuid-2"]
     }
   }
+}
+```
+
+## Timestamp vs Event Time
+
+The trading log system now supports two distinct timestamp concepts:
+
+- **`timestamp`**: Database creation timestamp (when the record was inserted into the database). This is automatically set by the system and represents the physical time when the log entry was created.
+
+- **`event_time`**: Logical timestamp when the trading event actually occurred. This is optional and can be:
+  - **NULL** for backward compatibility with existing trading logs
+  - **Current time** for live trading (matches or is close to `timestamp`)
+  - **Historical time** for backtesting scenarios (can be significantly different from `timestamp`)
+
+### Use Case Examples
+
+**Live Trading**: Both timestamps are nearly identical
+```json
+{
+  "timestamp": "2024-01-18T10:00:00Z",      // When log was created
+  "event_time": "2024-01-18T10:00:00Z"     // When trade actually happened
+}
+```
+
+**Backtesting**: Timestamps show the difference between logical and physical time
+```json
+{
+  "timestamp": "2024-01-18T10:00:00Z",      // When backtest log was created (now)
+  "event_time": "2023-06-15T14:22:33Z"     // When trade logically occurred (historical)
+}
+```
+
+**Legacy Data**: Event time is NULL for backward compatibility
+```json
+{
+  "timestamp": "2024-01-18T10:00:00Z",      // When log was created
+  "event_time": null                        // Not specified (legacy behavior)
 }
 ```
 

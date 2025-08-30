@@ -199,6 +199,9 @@ definitions:
       Must use TradingLogInfo structure - For types ''deposit'', ''withdraw'': Must
       use DepositWithdrawInfo structure - For other types: Can use any object structure'
     properties:
+      event_time:
+        example: "2024-01-15T10:30:00Z"
+        type: string
       info:
         additionalProperties: true
         type: object
@@ -345,6 +348,8 @@ definitions:
     type: object
   services.TradingLogResponse:
     properties:
+      event_time:
+        type: string
       id:
         type: string
       info:

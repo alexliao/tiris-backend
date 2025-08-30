@@ -265,6 +265,7 @@ CREATE TABLE trading_logs (
     sub_account_id UUID REFERENCES sub_accounts(id) ON DELETE SET NULL,
     transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    event_time TIMESTAMPTZ,
     type VARCHAR(50) NOT NULL,
     source VARCHAR(20) NOT NULL CHECK (source IN ('manual', 'bot')),
     message TEXT,
@@ -285,6 +286,9 @@ SELECT create_hypertable('trading_logs', 'timestamp', chunk_time_interval => INT
 CREATE INDEX idx_trading_logs_user_timestamp ON trading_logs(user_id, timestamp DESC);
 CREATE INDEX idx_trading_logs_trading_timestamp ON trading_logs(trading_id, timestamp DESC);
 CREATE INDEX idx_trading_logs_sub_account_timestamp ON trading_logs(sub_account_id, timestamp DESC);
+CREATE INDEX idx_trading_logs_event_time ON trading_logs(event_time DESC) WHERE event_time IS NOT NULL;
+CREATE INDEX idx_trading_logs_user_event_time ON trading_logs(user_id, event_time DESC) WHERE event_time IS NOT NULL;
+CREATE INDEX idx_trading_logs_trading_event_time ON trading_logs(trading_id, event_time DESC) WHERE event_time IS NOT NULL;
 CREATE INDEX idx_trading_logs_type ON trading_logs(type);
 CREATE INDEX idx_trading_logs_source ON trading_logs(source);
 CREATE INDEX idx_trading_logs_transaction_id ON trading_logs(transaction_id);
@@ -303,7 +307,8 @@ SELECT add_retention_policy('trading_logs', INTERVAL '1 year');
 - `trading_id`: Foreign key to tradings table
 - `sub_account_id`: Optional foreign key to sub_accounts table
 - `transaction_id`: Optional foreign key to related transaction
-- `timestamp`: Log timestamp (indexed for time-series queries)
+- `timestamp`: Log creation timestamp (when record was inserted into database)
+- `event_time`: Logical event timestamp (when trading event actually occurred, NULL for backward compatibility)
 - `type`: Log type/category
 - `source`: Log source (manual user action or bot)
 - `message`: Human-readable log message

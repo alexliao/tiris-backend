@@ -390,6 +390,7 @@ type TradingLog struct {
 	SubAccountID  *uuid.UUID `gorm:"type:uuid;index:idx_trading_logs_sub_account_timestamp" json:"sub_account_id,omitempty"`
 	TransactionID *uuid.UUID `gorm:"type:uuid;index" json:"transaction_id,omitempty"`
 	Timestamp     time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP;index:idx_trading_logs_user_timestamp,sort:desc;index:idx_trading_logs_trading_timestamp,sort:desc;index:idx_trading_logs_sub_account_timestamp,sort:desc" json:"timestamp"`
+	EventTime     *time.Time `gorm:"type:timestamptz;index:idx_trading_logs_event_time,sort:desc,where:event_time IS NOT NULL;index:idx_trading_logs_user_event_time,sort:desc,where:event_time IS NOT NULL;index:idx_trading_logs_trading_event_time,sort:desc,where:event_time IS NOT NULL" json:"event_time,omitempty"`
 	Type          string     `gorm:"type:varchar(50);not null;index" json:"type"`
 	Source        string     `gorm:"type:varchar(20);not null;check:source IN ('manual', 'bot');index" json:"source"`
 	Message       string     `gorm:"type:text;not null" json:"message"`

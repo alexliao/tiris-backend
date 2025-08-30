@@ -3532,6 +3532,10 @@ const docTemplate = `{
                 "type"
             ],
             "properties": {
+                "event_time": {
+                    "type": "string",
+                    "example": "2024-01-15T10:30:00Z"
+                },
                 "info": {
                     "type": "object",
                     "additionalProperties": true
@@ -3730,6 +3734,9 @@ const docTemplate = `{
         "services.TradingLogResponse": {
             "type": "object",
             "properties": {
+                "event_time": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },

@@ -3526,6 +3526,10 @@
                 "type"
             ],
             "properties": {
+                "event_time": {
+                    "type": "string",
+                    "example": "2024-01-15T10:30:00Z"
+                },
                 "info": {
                     "type": "object",
                     "additionalProperties": true
@@ -3724,6 +3728,9 @@
         "services.TradingLogResponse": {
             "type": "object",
             "properties": {
+                "event_time": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },

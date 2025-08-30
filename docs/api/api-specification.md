@@ -889,6 +889,7 @@ Authorization: Bearer {jwt_token}
       {
         "id": "log123",
         "timestamp": "2024-01-15T10:30:00Z",
+        "event_time": "2024-01-15T10:29:58Z",
         "type": "buy_order",
         "source": "bot",
         "message": "Executed buy order for 0.001 BTC",
@@ -938,6 +939,7 @@ Authorization: Bearer {jwt_token}
 **Optional Fields:**
 - `sub_account_id` (string): Sub-account UUID (used for some trading log types)
 - `transaction_id` (string): Transaction UUID for linking to specific transactions
+- `event_time` (string): Logical timestamp when the trading event occurred in ISO 8601 format. If not provided, defaults to NULL. For live trading, this should match current time. For backtesting, this represents the historical time when the event logically occurred.
 - `info` (object): Type-specific structured data (structure depends on `type` field)
 
 #### Business Logic Types
@@ -985,13 +987,14 @@ For non-business logic types (`trade_execution`, `api_call`, `system_event`, `er
 
 #### Request Examples
 
-**Long Position Request:**
+**Long Position Request (Live Trading):**
 ```json
 {
   "trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
   "type": "long",
   "source": "bot", 
   "message": "ETH long position opened",
+  "event_time": "2024-01-15T10:30:00Z",
   "info": {
     "stock_account_id": "eth-account-uuid",
     "currency_account_id": "usdt-account-uuid",
@@ -1004,13 +1007,34 @@ For non-business logic types (`trade_execution`, `api_call`, `system_event`, `er
 }
 ```
 
+**Long Position Request (Backtesting Historical Data):**
+```json
+{
+  "trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
+  "type": "long",
+  "source": "bot", 
+  "message": "ETH long position opened (backtest)",
+  "event_time": "2023-06-15T14:22:33Z",
+  "info": {
+    "stock_account_id": "eth-account-uuid",
+    "currency_account_id": "usdt-account-uuid",
+    "price": 1800.00,
+    "volume": 1.5,
+    "stock": "ETH",
+    "currency": "USDT",
+    "fee": 5.40
+  }
+}
+```
+
 **Deposit Request:**
 ```json
 {
   "trading_id": "453f0347-3959-49de-8e3f-1cf7c8e0827c",
   "type": "deposit",
   "source": "api",
-  "message": "USDT deposit to account", 
+  "message": "USDT deposit to account",
+  "event_time": "2024-01-15T10:30:00Z",
   "info": {
     "account_id": "usdt-account-uuid",
     "amount": 1000.00,
@@ -1043,6 +1067,7 @@ For non-business logic types (`trade_execution`, `api_call`, `system_event`, `er
   "data": {
     "id": "log123",
     "timestamp": "2024-01-15T10:30:00Z",
+    "event_time": "2024-01-15T10:30:00Z",
     "type": "long",
     "source": "bot",
     "message": "ETH long position opened",
@@ -1098,6 +1123,7 @@ Authorization: Bearer {jwt_token}
   "data": {
     "id": "log123",
     "timestamp": "2024-01-15T10:30:00Z",
+    "event_time": "2024-01-15T10:29:58Z",
     "type": "buy_order",
     "source": "bot",
     "message": "Executed buy order for 0.001 BTC",
