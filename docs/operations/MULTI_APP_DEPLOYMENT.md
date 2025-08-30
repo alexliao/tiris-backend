@@ -1,6 +1,6 @@
-# Quick Deployment Guide
+# Multi-App Deployment Guide
 
-This guide covers the fastest ways to deploy Tiris Backend with different architecture options.
+This guide covers deploying Tiris Backend with multi-application architecture, including reverse proxy setup, subdomain routing, and SSL configuration.
 
 ## 🚀 **One-Command Deployment**
 
@@ -407,7 +407,7 @@ sudo certbot certonly --standalone \
   -d pred.dev.tiris.ai
 
 # Update nginx configuration for SSL
-# (See MULTI_APP_DEPLOYMENT.md for full SSL setup)
+# (See SSL/HTTPS Setup section above for full setup)
 ```
 
 ## 📈 **Adding More Applications**
@@ -436,7 +436,7 @@ curl http://pred.dev.tiris.ai/health
 
 ## 📚 **Additional Documentation**
 
-- **Multi-App Architecture**: `MULTI_APP_DEPLOYMENT.md`
+- **Multi-App Architecture**: This document
 - **Development Setup**: `README.md`
 - **API Documentation**: Available at `/docs` endpoint
 - **Environment Configuration**: `.env.simple.template`

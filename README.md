@@ -290,7 +290,8 @@ All configuration is managed through environment variables. See `.env.example` f
 
 - Base URL: `https://api.tiris.ai/v1` (production)
 - Development URL: `https://api.dev.tiris.ai/v1`
-- Full API specification: [docs/api-specification.md](docs/api-specification.md)
+- Full API specification: [docs/api/api-specification.md](docs/api/api-specification.md)
+- Interactive docs available at `/docs` endpoint when running
 
 ### Health Checks
 
@@ -343,7 +344,7 @@ WECHAT_REDIRECT_URL=http://localhost:8080/auth/wechat/callback
 - `9090` - Prometheus server
 - `9093` - AlertManager
 
-See [Port Checker Documentation](docs/PORT_CHECKER.md) for detailed port management.
+See [Port Checker Documentation](docs/operations/PORT_CHECKER.md) for detailed port management.
 
 ## Architecture
 
@@ -371,17 +372,20 @@ Uses NATS JetStream for processing trading events from tiris-bot:
 
 ## Documentation
 
-### Development & Operations
-- [Port Checker Guide](docs/PORT_CHECKER.md) - Port management and troubleshooting
-- [Test User Creation Guide](docs/TEST_USER_CREATION.md) - Creating OAuth test users for API development
+### 📁 Organized Documentation Structure
 
-### System Documentation
-- [System Definition](docs/system-definition.md)
-- [Requirements](docs/requirements.md)
-- [Architecture Design](docs/architecture.md)
-- [API Specification](docs/api-specification.md)
-- [Database Schema](docs/database-schema.md)
-- [Implementation Roadmap](docs/implementation-roadmap.md)
+- **[📋 Testing](docs/testing/)** - Comprehensive testing guides, strategies, and updates
+- **[🏗️ Architecture](docs/architecture/)** - System design, database schema, and technical specifications  
+- **[📡 API](docs/api/)** - API specifications and endpoint documentation
+- **[💼 Business](docs/business/)** - Requirements, business logic, and implementation roadmaps
+- **[⚙️ Operations](docs/operations/)** - Deployment, monitoring, and maintenance guides
+
+### Quick Links
+- **Architecture**: [System Design](docs/architecture/architecture.md) | [Database Schema](docs/architecture/database-schema.md)
+- **API**: [Full Specification](docs/api/api-specification.md) | [Interactive Docs](/docs) (when running)
+- **Testing**: [Test Strategy](docs/testing/test-strategy.md) | [Quick Start](docs/testing/README.md)
+- **Operations**: [Port Management](docs/operations/PORT_CHECKER.md) | [Database Setup](docs/operations/TEST_DATABASE_SETUP.md)
+- **Business**: [Requirements](docs/business/requirements.md) | [Trading Logic](docs/business/TRADING_LOG_BUSINESS_LOGIC.md)
 
 ## License
 
